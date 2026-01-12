@@ -18,10 +18,16 @@ export default function ModuleCard({
   color,
   icon,
 }: ModuleCardProps) {
+  // Si href es una URL externa (empieza con http), usar <a> en lugar de Link de Next.js
+  const isExternalUrl = href.startsWith('http')
+  const LinkComponent = isExternalUrl ? 'a' : Link
+  const linkProps = isExternalUrl
+    ? { href, className: 'group block h-full' }
+    : { href, className: 'group block h-full' }
+
   return (
-    <Link
-      href={href}
-      className="group block h-full"
+    <LinkComponent
+      {...linkProps}
     >
       <div className="h-full p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 transform hover:-translate-y-1"
         style={{ borderLeftColor: color }}
@@ -100,6 +106,20 @@ export default function ModuleCard({
           </span>
         </div>
       </div>
+  )
+
+  // Renderizar con Link de Next.js para rutas internas o <a> para URLs externas
+  if (isExternalUrl) {
+    return (
+      <a href={href} className="group block h-full">
+        {cardContent}
+      </a>
+    )
+  }
+
+  return (
+    <Link href={href} className="group block h-full">
+      {cardContent}
     </Link>
   )
 }

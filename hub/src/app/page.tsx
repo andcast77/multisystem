@@ -4,6 +4,10 @@ import Footer from '@/components/layout/Footer'
 import ModuleCard from '@/components/modules/ModuleCard'
 
 export default function Home() {
+  // URLs de las aplicaciones desde variables de entorno, con valores por defecto para desarrollo local
+  const shopflowUrl = process.env.NEXT_PUBLIC_SHOPFLOW_URL || 'http://localhost:3003'
+  const workifyUrl = process.env.NEXT_PUBLIC_WORKIFY_URL || 'http://localhost:3004'
+
   return (
     <main className="min-h-screen">
       <Hero />
@@ -29,7 +33,7 @@ export default function Home() {
                 'Control de Ventas',
                 'GestiÃ³n de Productos'
               ]}
-              href="/shopflow"
+              href={shopflowUrl}
               color="#3B82F6"
               icon={
                 <svg className="w-12 h-12" style={{ color: '#3B82F6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +51,7 @@ export default function Home() {
                 'Registro de Asistencia',
                 'Dashboard de Estadísticas'
               ]}
-              href="/workify"
+              href={workifyUrl}
               color="#10B981"
               icon={
                 <svg className="w-12 h-12" style={{ color: '#10B981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
