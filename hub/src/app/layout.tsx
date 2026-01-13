@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { HubLayout } from '@/components/layout/HubLayout'
 
 export const metadata: Metadata = {
   title: 'MultiSystem Hub',
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="antialiased">
-        {children}
+        <HubLayout>{children}</HubLayout>
       </body>
     </html>
   )
