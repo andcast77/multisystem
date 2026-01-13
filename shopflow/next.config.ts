@@ -28,6 +28,7 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  basePath: '/shopflow',
   async headers() {
     return [
       {
