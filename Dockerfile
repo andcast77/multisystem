@@ -59,16 +59,16 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
-COPY --from=build /app/public ./public
-COPY --from=build /app/package.json ./
-COPY --from=build --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=deps  --chown=nextjs:nodejs /app/node_modules ./node_modules
+# Copiar standalone output (optimizado para Next.js standalone)
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
 EXPOSE 3005
 
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]
 
 # =========================
 # Stage 4: Development
@@ -152,3 +152,48 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Script de inicio que ejecuta tanto Nginx como Next.js
 CMD ["sh", "-c", "nginx && echo 'Nginx iniciado' && sleep 2 && echo 'Iniciando servidor de desarrollo Hub...' && pnpm dev"]
+
+# =========================
+# Stage 6: Runtime con Nginx (Producción)
+# =========================
+FROM node:20-alpine AS runtime-with-nginx
+RUN apk add --no-cache nginx wget curl
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3005
+ENV HOSTNAME="0.0.0.0"
+
+# Usuario no root para Next.js
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
+
+# Copiar standalone output (optimizado para Next.js standalone)
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=build --chown=nextjs:nodejs /app/public ./public
+
+# Crear directorios necesarios para Nginx
+RUN mkdir -p /var/log/nginx /var/cache/nginx /run/nginx
+
+# Copiar configuración de Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Configurar permisos para Nginx (necesita ejecutarse como root)
+RUN chmod 755 /var/log/nginx /var/cache/nginx /run/nginx
+
+# Exponer puertos
+EXPOSE 80
+EXPOSE 3005
+
+# Health check que verifica tanto Nginx como Next.js
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/health && \
+      wget --no-verbose --tries=1 --spider http://localhost:3005/
+
+# Script de inicio que ejecuta tanto Nginx (como root) como Next.js (como nextjs)
+# Nginx debe ejecutarse como root, pero Next.js como nextjs
+# Nota: El contenedor corre como root para permitir que Nginx inicie, pero Next.js se ejecuta como nextjs
+CMD ["sh", "-c", "nginx && sleep 2 && echo 'Nginx iniciado' && exec su nextjs -s /bin/sh -c 'cd /app && node server.js'"]
