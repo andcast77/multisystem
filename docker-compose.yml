@@ -82,7 +82,7 @@
   # =========================
   hub-frontend:
     build:
-      context: ./hub
+      context: ./modules/hub
       dockerfile: Dockerfile
       target: dev
     container_name: multisystem-hub-frontend
@@ -218,4 +218,5 @@ volumes:
 networks:
   multisystem-network:
     driver: bridge
+
 
