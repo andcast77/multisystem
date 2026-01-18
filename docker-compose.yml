@@ -34,6 +34,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: development
+      CI: "true"
       PORT: ${API_PORT:-3000}
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/multisystem_db}
       CORS_ORIGIN: ${CORS_ORIGINS:-http://localhost:3003,http://localhost:3004,http://localhost:3005}
