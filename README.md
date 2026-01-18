@@ -316,6 +316,38 @@ docker build -t multisystem-hub-prod --target runtime .
 docker-compose --profile migration up migrate-db
 ```
 
+### Ejecutar Servicios Individualmente
+
+Cada servicio puede ejecutarse de forma **completamente independiente** sin `depends_on`. Si las dependencias no están disponibles, el servicio mostrará errores de conexión pero seguirá corriendo:
+
+```bash
+# Solo PostgreSQL
+docker-compose up -d postgres
+
+# Solo API (si postgres no está, dará errores de conexión a BD)
+docker-compose up -d api
+
+# Solo Hub frontend (si api/shopflow/workify no están, mostrará errores en el frontend)
+docker-compose up -d hub-frontend
+
+# Solo ShopFlow frontend (si api no está, dará errores de conexión a API)
+docker-compose up -d shopflow-frontend
+
+# Solo Workify frontend (si api no está, dará errores de conexión a API)
+docker-compose up -d workify-frontend
+
+# Migraciones (requiere postgres, pero si no está, fallará sin bloquear otros servicios)
+docker-compose --profile migration up migrate-db
+```
+
+**Ventajas de este enfoque:**
+- ✅ **Aislamiento completo**: Cada servicio inicia independientemente
+- ✅ **Sin bloqueos**: Un servicio no bloquea a otro si falta una dependencia
+- ✅ **Desarrollo independiente**: Puedes trabajar en un módulo sin levantar todo el stack
+- ✅ **Errores manejados**: Los servicios manejan errores de conexión internamente
+
+**Nota**: Todos los servicios comparten la red `multisystem-network` para comunicación cuando están disponibles. Los servicios manejan errores de conexión internamente (timeouts, errores de red, etc.).
+
 ## 🚂 Despliegue en Railway
 
 Railway es la plataforma recomendada para desplegar Multisystem en producción debido a su soporte nativo para Docker Compose y PostgreSQL gestionado.
