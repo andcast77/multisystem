@@ -52,13 +52,6 @@ prisma/migrations/
 .cache/
 .turbo/
 
-# Git Submodules - ignorar contenido pero permitir referencias
-# Servicios compartidos (submodules)
-services/*/
-!services/*/.git
-!services/*/.gitmodules
-
-# Módulos frontend (submodules)
-modules/*/
-!modules/*/.git
-!modules/*/.gitmodules
+# Git Submodules - Git trackea las referencias, no el contenido
+# Los submodules se gestionan con git submodule, no necesitan estar en .gitignore
+# services/ y modules/ están excluidos del build del hub pero Git trackea las referencias

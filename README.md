@@ -4,28 +4,56 @@ Plataforma modular que integra múltiples aplicaciones independientes (monorepos
 
 ## 🏗️ Arquitectura
 
-Multisystem está estructurado en tres categorías principales:
+Multisystem está estructurado en tres categorías principales con **comunicación exclusivamente por HTTP**:
 
 ### Servicios Compartidos (Infraestructura de Multisystem)
-- **`services/api/`** - API compartida con Prisma y base de datos unificada (servicio backend)
+- **`services/api/`** - API Principal (puerto 3001) - Lógica de negocio
   - 🔗 **Git Submodule** - Servicio compartido que consumen todos los módulos frontend
+  - Consume Database API por HTTP (no por import directo)
+- **`services/database/`** - Database API (puerto 3002) - Gestión de base de datos
+  - 🔗 **Git Submodule** - Expone Prisma como API HTTP
+  - Se conecta directamente a PostgreSQL
 - **`nginx/`** - Configuración del reverse proxy
 - **`scripts/`** - Scripts de utilidad para desarrollo
 - **`docker-compose.yml`** - Orquestación de servicios
 
-**Nota**: `services/api/` es un servicio compartido con su propio repositorio Git, configurado como **Git Submodule** para que el repositorio principal trackee qué versión está usando.
+**Nota**: `services/api/` y `services/database/` son servicios independientes con sus propios repositorios Git, configurados como **Git Submodules**. La comunicación entre ellos es exclusivamente por HTTP.
 
 ### Hub (Plataforma Principal)
 - **Raíz del repositorio** - La aplicación Next.js de multisystem está en la raíz
   - ✅ **Parte del repositorio principal** - No es un submodule
   - Es la aplicación central que integra todos los módulos
   - Contiene `package.json`, `src/`, `next.config.js`, etc. directamente en la raíz
+  - **Build independiente**: El build del hub excluye `services/` y `modules/` (submodules)
+  - **Comunicación por HTTP**: Solo se comunica con servicios/módulos mediante variables de entorno
 
 ### Módulos Frontend como Submodules
 - **`modules/shopflow/`** - Módulo ShopFlow
 - **`modules/workify/`** - Módulo Workify
 
-Cada módulo frontend es un **Git Submodule** independiente con su propio repositorio Git. Estos módulos se integran en el hub y consumen la API compartida (`services/api/`).
+Cada módulo frontend es un **Git Submodule** independiente con su propio repositorio Git. Estos módulos se integran en el hub y consumen la API compartida (`services/api/`) **únicamente por HTTP**.
+
+### Arquitectura de Comunicación
+
+```
+Frontends (Hub, ShopFlow, Workify)
+    │ HTTP (NEXT_PUBLIC_API_URL)
+    ▼
+API Principal (puerto 3001) - services/api
+    │ HTTP (DATABASE_API_URL)
+    ▼
+Database API (puerto 3002) - services/database
+    │ Prisma Client
+    ▼
+PostgreSQL (puerto 5432)
+```
+
+**Principios de Arquitectura**:
+- ✅ Cada componente es independiente (diferentes builds, diferentes contenedores)
+- ✅ Comunicación solo por HTTP (variables de entorno con URLs)
+- ✅ Sin dependencias directas entre componentes (no imports, no file:../, no workspaces compartidos)
+- ✅ Cada componente tiene su propio repositorio (submodules)
+- ✅ El build del hub excluye `services/` y `modules/` (no se incluyen en la imagen Docker)
 
 ## 🚀 Inicio Rápido
 
@@ -261,11 +289,12 @@ git commit -m "feat: agregar nuevo módulo"
 
 | Servicio | Puerto | Descripción |
 |----------|--------|-------------|
-| API | 3000 | API compartida |
-| Hub Frontend | 3005 | Plataforma principal |
+| Hub Frontend | 3000 | Plataforma principal (desarrollo) |
+| API | 3001 | API compartida |
+| Database API | 3002 | Servicio de base de datos |
 | ShopFlow Frontend | 3003 | Módulo ShopFlow |
 | Workify Frontend | 3004 | Módulo Workify |
-| Nginx | 80 | Reverse proxy |
+| Nginx | 80 | Reverse proxy (solo producción) |
 | PostgreSQL | 5432 | Base de datos |
 
 ## 🐳 Docker
@@ -275,8 +304,8 @@ El proyecto incluye un Dockerfile multi-stage optimizado con los siguientes targ
 - **`deps`**: Instalación de dependencias
 - **`build`**: Compilación de producción
 - **`runtime`**: Imagen optimizada para producción (usa `output: standalone`)
-- **`dev`**: Entorno de desarrollo
-- **`dev-with-nginx`**: Desarrollo con Nginx integrado como reverse proxy
+- **`dev`**: Entorno de desarrollo (sin Nginx)
+- **`runtime-with-nginx`**: Producción con Nginx integrado como reverse proxy
 
 ### Desarrollo
 
@@ -303,17 +332,24 @@ docker-compose -f docker-compose.prod.yml up -d
 ### Build Manual
 
 ```bash
-# Build para desarrollo (con Nginx)
-docker build -t multisystem-hub --target dev-with-nginx .
+# Build para desarrollo (sin Nginx)
+docker build -t multisystem-hub --target dev .
 
-# Build para producción
-docker build -t multisystem-hub-prod --target runtime .
+# Build para producción (con Nginx)
+docker build -t multisystem-hub-prod --target runtime-with-nginx .
 ```
 
 ### Ejecutar Migraciones
 
 ```bash
-docker-compose --profile migration up migrate-db
+# Desde el directorio services/database
+cd services/database
+pnpm install
+pnpm exec prisma generate
+pnpm exec prisma db push
+
+# O usando migraciones formales
+pnpm exec prisma migrate dev --name nombre_migracion
 ```
 
 ### Ejecutar Servicios Individualmente
@@ -335,9 +371,6 @@ docker-compose up -d shopflow-frontend
 
 # Solo Workify frontend (si api no está, dará errores de conexión a API)
 docker-compose up -d workify-frontend
-
-# Migraciones (requiere postgres, pero si no está, fallará sin bloquear otros servicios)
-docker-compose --profile migration up migrate-db
 ```
 
 **Ventajas de este enfoque:**
@@ -384,7 +417,7 @@ Railway detecta automáticamente tu `docker-compose.prod.yml` y despliega todos 
 ```bash
 DATABASE_URL=postgresql://...  # URL de PostgreSQL gestionado de Railway
 NODE_ENV=production
-NEXT_PUBLIC_API_URL=http://api:3000
+NEXT_PUBLIC_API_URL=http://api:3001
 NEXT_PUBLIC_SHOPFLOW_URL=http://shopflow-frontend:3003
 NEXT_PUBLIC_WORKIFY_URL=http://workify-frontend:3004
 CORS_ORIGINS=https://tu-proyecto.railway.app
@@ -399,11 +432,14 @@ Copia `.env.example` a `.env` y configura:
 - `DATABASE_URL` - URL de conexión a PostgreSQL
 - `POSTGRES_USER` - Usuario de PostgreSQL
 - `POSTGRES_PASSWORD` - Contraseña de PostgreSQL
-- `API_PORT` - Puerto del servicio API (default: 3000)
+- `API_PORT` - Puerto del servicio API Principal (default: 3001)
+- `DATABASE_API_PORT` - Puerto del servicio Database API (default: 3002)
+- `HUB_FRONTEND_PORT` - Puerto del Hub Frontend (default: 3000)
 - `CORS_ORIGINS` - Orígenes permitidos para CORS
-- `NEXT_PUBLIC_API_URL` - URL de la API para los frontends
-- `NEXT_PUBLIC_SHOPFLOW_URL` - URL del módulo ShopFlow
-- `NEXT_PUBLIC_WORKIFY_URL` - URL del módulo Workify
+- `NEXT_PUBLIC_API_URL` - URL de la API Principal para los frontends (HTTP)
+- `DATABASE_API_URL` - URL de Database API (usada internamente por API Principal, HTTP)
+- `NEXT_PUBLIC_SHOPFLOW_URL` - URL del módulo ShopFlow (HTTP)
+- `NEXT_PUBLIC_WORKIFY_URL` - URL del módulo Workify (HTTP)
 
 Ver `env.example` para todas las variables disponibles.
 
@@ -413,16 +449,44 @@ Ver `env.example` para todas las variables disponibles.
 
 - **Hub**: La aplicación Next.js está en la raíz del repositorio - parte del repositorio principal
 - **Servicios Compartidos como Submodules**:
-  - **`services/api/`**: Servicio backend compartido que consumen todos los módulos
+  - **`services/api/`**: API Principal (puerto 3001) - Servicio backend compartido que consumen todos los módulos
     - Git Submodule en `services/`
+    - Consume Database API por HTTP (no por import directo)
+  - **`services/database/`**: Database API (puerto 3002) - Gestión de base de datos
+    - Git Submodule en `services/`
+    - Expone Prisma como API HTTP
 - **Servicios de Infraestructura** (`nginx/`, `scripts/`): Parte del repositorio principal de multisystem
 - **Módulos Frontend como Submodules** (`modules/shopflow/`, `modules/workify/`): Aplicaciones frontend independientes
 
 **Estructura de Submodules**:
 - `services/api/` → Submodule en `services/` (servicio compartido)
+- `services/database/` → Submodule en `services/` (gestión de base de datos)
 - `modules/shopflow/`, `modules/workify/` → Submodules en `modules/` (aplicaciones frontend)
 - Raíz del repositorio → Aplicación hub (Next.js) - no es submodule
 - Todos los submodules se gestionan con `git submodule update --init --recursive`
+
+### Independencia de Componentes
+
+**Todos los componentes son independientes y se comunican solo por HTTP**:
+
+- **Hub**: 
+  - Build excluye `services/` y `modules/` (definido en `.dockerignore` y `tsconfig.json`)
+  - No tiene imports directos de submodules
+  - Usa variables de entorno (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SHOPFLOW_URL`, etc.)
+
+- **services/api**:
+  - NO importa de `services/database` (solo HTTP)
+  - NO tiene dependencia `file:../database` o `@multisystem/database` en `package.json`
+  - Usa `DATABASE_API_URL` para comunicación HTTP con Database API
+
+- **modules/shopflow y modules/workify**:
+  - NO importan de `services/api` o `services/database`
+  - NO tienen dependencias de `services/` en `package.json`
+  - Usan `NEXT_PUBLIC_API_URL` para comunicación HTTP con API Principal
+
+- **services/database**:
+  - Es completamente independiente
+  - Expone su funcionalidad solo por HTTP (puerto 3002)
 
 ## 🤝 Contribuir
 
@@ -433,13 +497,16 @@ Ver `env.example` para todas las variables disponibles.
 ## 📝 Notas Importantes
 
 - **Hub es la aplicación principal**: La aplicación Next.js está en la raíz del repositorio, no es un submodule
-- **Servicios y módulos son independientes**: `services/api/` y los módulos frontend tienen sus propios repositorios Git como submodules
+- **Servicios y módulos son independientes**: `services/api/`, `services/database/` y los módulos frontend tienen sus propios repositorios Git como submodules
 - **El repositorio principal trackea referencias de submodules**: No se duplican commits de servicios ni módulos
 - **Docker funciona con rutas locales**: El contexto de hub apunta a la raíz (`.`), servicios a `services/api/` y módulos a `modules/`
+- **Build del hub excluye submodules**: `services/` y `modules/` están excluidos del build del hub (definido en `.dockerignore` y `tsconfig.json`)
+- **Comunicación exclusivamente por HTTP**: Todos los componentes se comunican mediante HTTP usando variables de entorno, sin dependencias directas (no imports, no file:../)
+- **Separación de APIs mantenida**: API Principal (3001) y Database API (3002) son servicios independientes que se comunican por HTTP
 - **Actualiza submodules regularmente**: Usa `git submodule update --remote` para actualizar todos los submodules
 - **Tailwind CSS configurado**: El proyecto incluye Tailwind CSS con configuración completa (`tailwind.config.js`, `postcss.config.js`)
 - **Lockfile incluido**: El proyecto incluye `pnpm-lock.yaml` para builds reproducibles
-- **Nginx integrado**: El hub incluye Nginx como reverse proxy en el contenedor (stage `dev-with-nginx`)
+- **Nginx solo en producción**: Nginx se usa únicamente en producción (stage `runtime-with-nginx`), no en desarrollo
 
 ## 🆘 Solución de Problemas
 

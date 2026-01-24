@@ -175,31 +175,17 @@ multisystem/
 
 ### Fase 6: Actualizar Docker Compose
 
-1. **Actualizar servicio `migrate-db` en `docker-compose.yml`**:
-   ```yaml
-   migrate-db:
-     build:
-       context: ./services/database  # Cambiar contexto
-       dockerfile: Dockerfile
-       target: dev
-     container_name: multisystem-migrate-db
-     environment:
-       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/multisystem_db}
-     command: >
-       sh -c "pnpm install &&
-              pnpm exec prisma generate &&
-              pnpm exec prisma db push --accept-data-loss &&
-              pnpm exec prisma db seed"
-     depends_on:
-       postgres:
-         condition: service_healthy
-     networks:
-       - multisystem-network
-     profiles:
-       - migration
+1. **Las migraciones se ejecutan manualmente desde `services/database`**:
+   ```bash
+   cd services/database
+   pnpm install
+   pnpm exec prisma generate
+   pnpm exec prisma db push
+   # O para migraciones formales:
+   pnpm exec prisma migrate dev --name nombre_migracion
    ```
 
-2. **Actualizar `docker-compose.prod.yml`** de la misma manera.
+2. **No es necesario un servicio `migrate-db` en Docker Compose** - las migraciones se ejecutan manualmente cuando sea necesario.
 
 3. **Actualizar servicio `api`** (la API ya tendrá `@multisystem/database` como dependencia via `file:../database`):
    ```yaml
@@ -294,7 +280,7 @@ multisystem/                        # Repositorio principal
 │       ├── src/client.ts
 │       └── package.json
 │
-├── docker-compose.yml              # migrate-db usa services/database
+├── docker-compose.yml              # Servicios de desarrollo
 └── .gitmodules                     # Incluye services/database
 ```
 
@@ -310,8 +296,6 @@ multisystem/                        # Repositorio principal
 - `.gitmodules` - Agregar submodule database (se hace automáticamente con `git submodule add`)
 - `services/api/package.json` - Agregar dependencia `"@multisystem/database": "file:../database"`
 - `services/api/src/**` - Actualizar imports de Prisma
-- `docker-compose.yml` - Actualizar servicio `migrate-db`
-- `docker-compose.prod.yml` - Actualizar servicio `migrate-db`
 - `services/api/Dockerfile` - Manejar dependencia `file:../database`
 - `README.md` - Actualizar estructura de proyecto
 - `docs/DEVELOPMENT.md` - Documentar database repo

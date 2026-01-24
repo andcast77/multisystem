@@ -266,7 +266,7 @@ Verificar que:
 
 - Solo la API tenga `DATABASE_URL`
 - Los frontends NO tengan `DATABASE_URL`
-- El servicio `migrate-db` use el schema unificado
+- Las migraciones se ejecuten desde `services/database` usando el schema unificado
 
 ### 7. Actualizar .gitignore
 
@@ -382,7 +382,13 @@ Asegurar que `prisma/migrations/` esté ignorado (si se usan migraciones formale
 
 8. **Verificar y probar**:
 
-- Ejecutar `docker-compose --profile migration up migrate-db` para crear BD
+- Ejecutar migraciones manualmente desde `services/database`:
+  ```bash
+  cd services/database
+  pnpm install
+  pnpm exec prisma generate
+  pnpm exec prisma db push
+  ```
 - Verificar que todos los servicios funcionen
 - Probar endpoints de ambos módulos
 

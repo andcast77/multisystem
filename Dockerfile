@@ -52,7 +52,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3005
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Usuario no root
@@ -66,7 +66,7 @@ COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
-EXPOSE 3005
+EXPOSE 3000
 
 CMD ["node", "server.js"]
 
@@ -117,13 +117,13 @@ RUN chown -R node:node /app || true
 
 # Variables de entorno para desarrollo
 ENV NODE_ENV=development
-ENV PORT=3005
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV WATCHPACK_POLLING=true
 ENV CHOKIDAR_USEPOLLING=true
 
-EXPOSE 3005
+EXPOSE 3000
 
 # Script de inicio con verificación
 CMD ["sh", "-c", "echo 'Iniciando servidor de desarrollo Hub...' && pnpm dev"]
@@ -148,7 +148,7 @@ EXPOSE 80
 # Health check que verifica tanto Next.js como Nginx
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost/health && \
-      wget --no-verbose --tries=1 --spider http://localhost:3005/api/health
+      wget --no-verbose --tries=1 --spider http://localhost:3000/api/health
 
 # Script de inicio que ejecuta tanto Nginx como Next.js
 CMD ["sh", "-c", "nginx && echo 'Nginx iniciado' && sleep 2 && echo 'Iniciando servidor de desarrollo Hub...' && pnpm dev"]
@@ -163,7 +163,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3005
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Usuario no root para Next.js
@@ -186,12 +186,12 @@ RUN chmod 755 /var/log/nginx /var/cache/nginx /run/nginx
 
 # Exponer puertos
 EXPOSE 80
-EXPOSE 3005
+EXPOSE 3000
 
 # Health check que verifica tanto Nginx como Next.js
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost/health && \
-      wget --no-verbose --tries=1 --spider http://localhost:3005/
+      wget --no-verbose --tries=1 --spider http://localhost:3000/
 
 # Script de inicio que ejecuta tanto Nginx (como root) como Next.js (como nextjs)
 # Nginx debe ejecutarse como root, pero Next.js como nextjs
