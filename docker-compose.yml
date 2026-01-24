@@ -34,13 +34,14 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: development
+      CI: "true"
       PORT: ${DATABASE_API_PORT:-3002}
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/multisystem_db}
       CORS_ORIGIN: ${CORS_ORIGINS:-http://localhost:3000}
     ports:
       - "${DATABASE_API_PORT:-3002}:3002"
     volumes:
-      - ./:/app
+      - ./services/database:/app
       - /app/node_modules
     networks:
       - multisystem-network
@@ -112,7 +113,7 @@ services:
     networks:
       - multisystem-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
