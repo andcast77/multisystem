@@ -116,6 +116,21 @@ Cada push crea un nuevo deployment con su propia URL.
 
 **Nota**: Esta advertencia no debería aparecer si `.gitmodules` ha sido eliminado. Si aparece, es porque Vercel detectó el archivo en un commit anterior. En el próximo deployment debería desaparecer.
 
+### ⚠️ Advertencia: "Ignored build scripts"
+
+Si ves una advertencia sobre scripts de build ignorados (como Prisma o Sharp):
+
+**Opción 1: Si no necesitas el paquete** (Recomendado)
+- Elimina el paquete de `package.json` si no lo estás usando
+- Ejemplo: Si no usas Prisma en el Hub, elimínalo de las dependencias
+
+**Opción 2: Si necesitas el paquete**
+- Los scripts se ejecutarán automáticamente en builds futuros
+- O puedes aprobar manualmente en Vercel: Settings → Build & Development Settings → Build Command
+- Agrega: `pnpm install --ignore-scripts=false` (no recomendado por seguridad)
+
+**Nota**: Sharp es usado automáticamente por Next.js para optimización de imágenes, así que es normal que aparezca. Vercel lo manejará automáticamente.
+
 ### Error: "Build failed"
 
 **Solución**:
