@@ -27,11 +27,13 @@ Multisystem está estructurado en tres categorías principales con **comunicaci�
   - **Build independiente**: El build del hub excluye `services/` y `modules/` (submodules)
   - **Comunicación por HTTP**: Solo se comunica con servicios/módulos mediante variables de entorno
 
-### Módulos Frontend como Submodules
-- **`modules/shopflow/`** - Módulo ShopFlow
-- **`modules/workify/`** - Módulo Workify
+### Módulos Frontend como Repositorios Independientes
+- **`multisystem-shopflow/`** - Módulo ShopFlow (repositorio independiente)
+- **`multisystem-workify/`** - Módulo Workify (repositorio independiente)
 
-Cada módulo frontend es un **Git Submodule** independiente con su propio repositorio Git. Estos módulos se integran en el hub y consumen la API compartida (`services/api/`) **únicamente por HTTP**.
+**⚠️ Importante**: Los módulos frontend son **repositorios Git completamente independientes** (NO submodules) para compatibilidad con Vercel. Cada módulo se despliega en su propio dominio en Vercel y consume la API compartida **únicamente por HTTP**.
+
+Ver [docs/MODULES_AS_INDEPENDENT_REPOS.md](docs/MODULES_AS_INDEPENDENT_REPOS.md) para más detalles.
 
 ### Arquitectura de Comunicación
 
@@ -67,41 +69,37 @@ PostgreSQL (puerto 5432)
 ### Clonar el Proyecto
 
 ```bash
-# Clonar el repositorio principal
+# Clonar el repositorio principal (Hub)
 git clone <URL_REPO_MULTISYSTEM>
 cd multisystem
 
-# Inicializar todos los submodules (api + módulos frontend)
-git submodule update --init --recursive
-
-# O usar el script de inicialización
+# Inicializar submodules de servicios backend (solo services/api y services/database)
 ./scripts/setup-submodules.sh  # Linux/Mac
 .\scripts\setup-submodules.ps1  # Windows PowerShell
+
+# Clonar módulos frontend para desarrollo local (repositorios independientes)
+./scripts/setup-modules-dev.sh  # Linux/Mac
+.\scripts\setup-modules-dev.ps1  # Windows PowerShell
 ```
+
+**Nota**: Los módulos frontend (ShopFlow, Workify) son **repositorios Git independientes**, no submodules. Se clonan localmente para desarrollo, pero se despliegan por separado en Vercel.
 
 ### Configuración Inicial
 
-1. **Configurar URLs de submodules** (si aún no están configuradas):
-   Edita `.gitmodules` y reemplaza los placeholders con las URLs reales de tus repositorios:
-   ```ini
-   [submodule "services/api"]
-       path = services/api
-       url = https://github.com/tu-usuario/api.git
-   
-   [submodule "modules/shopflow"]
-       path = modules/shopflow
-       url = https://github.com/tu-usuario/shopflow.git
-   ```
-
-2. **Configurar variables de entorno**:
+1. **Configurar variables de entorno**:
    ```bash
    cp .env.example .env
    # Edita .env con tus configuraciones
    ```
 
-3. **Inicializar submodules**:
+2. **Inicializar servicios backend**:
    ```bash
-   ./scripts/setup-submodules.sh
+   ./scripts/setup-submodules.sh  # Solo servicios backend
+   ```
+
+3. **Clonar módulos frontend para desarrollo** (opcional):
+   ```bash
+   ./scripts/setup-modules-dev.sh  # Clona ShopFlow y Workify localmente
    ```
 
 ### Desarrollo Local
@@ -135,21 +133,24 @@ pnpm db:seed
 # 4. Iniciar API
 pnpm dev
 
-# 5. En otra terminal, iniciar hub (desde la raíz) y cada módulo
+# 5. En otra terminal, iniciar hub (desde la raíz)
 # Hub está en la raíz, así que desde multisystem/
-# Las dependencias ya están instaladas (pnpm-lock.yaml existe)
-pnpm install  # Solo necesario si cambias dependencias
+pnpm install
 pnpm dev
 
-# En otra terminal, iniciar módulos
+# 6. En otras terminales, iniciar módulos frontend
+# (Primero clonar con: ./scripts/setup-modules-dev.sh)
 cd modules/shopflow
 pnpm install
 pnpm dev
 
+# En otra terminal:
 cd modules/workify
 pnpm install
 pnpm dev
 ```
+
+**Nota**: Los módulos frontend deben clonarse primero con `setup-modules-dev.sh` ya que son repositorios independientes.
 
 ## 📁 Estructura del Proyecto
 
@@ -182,27 +183,30 @@ multisystem/
 │   ├── src/
 │   └── ...
 │
-├── modules/                # 🔗 Módulos frontend como submodules
-│   ├── shopflow/          # Módulo ShopFlow
-│   └── workify/           # Módulo Workify
+├── modules/                # 📦 Módulos frontend (repositorios independientes, clonados localmente)
+│   ├── shopflow/          # Módulo ShopFlow (repositorio: multisystem-shopflow)
+│   └── workify/           # Módulo Workify (repositorio: multisystem-workify)
+│                          # Nota: Se clonan con scripts/setup-modules-dev.sh
 │
 ├── scripts/                # ✅ Scripts de utilidad
-│   ├── setup-submodules.sh
+│   ├── setup-submodules.sh    # Solo servicios backend
+│   ├── setup-modules-dev.sh   # Clona módulos frontend para desarrollo
 │   ├── update-submodules.sh
 │   └── init-dev.sh
 │
-├── docker-compose.yml      # ✅ Desarrollo
-├── docker-compose.prod.yml # ✅ Producción
-└── .gitmodules            # 🔗 Configuración de submodules
+├── docker-compose.yml      # ✅ Desarrollo (solo servicios backend)
+├── docker-compose.prod.yml # ✅ Producción (solo servicios backend)
+└── .gitmodules            # 🔗 Configuración de submodules (solo servicios backend)
 ```
 
 **Leyenda:**
 - ✅ = Contenido del repositorio principal (multisystem)
-- 🔗 = Git Submodules (repositorios independientes)
+- 🔗 = Git Submodules (solo servicios backend: services/api y services/database)
+- 📦 = Repositorios independientes (módulos frontend clonados localmente para desarrollo)
 
 ## 🔧 Scripts Disponibles
 
-### Setup de Submodules
+### Setup de Submodules (Solo Servicios Backend)
 
 ```bash
 # Linux/Mac
@@ -211,6 +215,20 @@ multisystem/
 # Windows PowerShell
 .\scripts\setup-submodules.ps1
 ```
+
+**Nota**: Este script solo inicializa submodules de servicios backend (services/api y services/database).
+
+### Setup de Módulos Frontend (Repositorios Independientes)
+
+```bash
+# Linux/Mac
+./scripts/setup-modules-dev.sh
+
+# Windows PowerShell
+.\scripts\setup-modules-dev.ps1
+```
+
+**Nota**: Este script clona los módulos frontend (ShopFlow, Workify) como repositorios independientes para desarrollo local.
 
 ### Actualizar Submodules
 
@@ -232,12 +250,12 @@ multisystem/
 .\scripts\init-dev.ps1
 ```
 
-## 🔄 Trabajar con Git Submodules
+## 🔄 Trabajar con Repositorios
 
-### Actualizar Submodules
+### Actualizar Submodules (Solo Servicios Backend)
 
 ```bash
-# Actualizar todos los submodules a la última versión
+# Actualizar submodules de servicios backend a la última versión
 git submodule update --remote
 
 # O usar el script
@@ -255,34 +273,48 @@ git commit -m "feat: nueva funcionalidad en hub"
 git push origin main
 ```
 
-### Trabajar en un Módulo Específico
+### Trabajar en un Módulo Frontend (Repositorio Independiente)
+
+Los módulos frontend (ShopFlow, Workify) son **repositorios independientes**, no submodules.
+
+**Opción 1: Trabajar directamente en el repositorio independiente**
 
 ```bash
-# Entrar al módulo
-cd modules/shopflow
+# Clonar el repositorio del módulo (si no lo tienes)
+git clone https://github.com/tu-usuario/multisystem-shopflow.git
+cd multisystem-shopflow
 
 # Crear una rama y trabajar normalmente
 git checkout -b feature/nueva-funcionalidad
 # ... hacer cambios ...
 git commit -m "feat: nueva funcionalidad"
 git push origin feature/nueva-funcionalidad
-
-# Volver al repositorio principal
-cd ../..
-
-# Actualizar la referencia del submodule
-git add modules/shopflow
-git commit -m "chore: actualizar referencia de shopflow"
 ```
 
-### Agregar un Nuevo Módulo
+**Opción 2: Trabajar desde el clon local (para desarrollo)**
 
 ```bash
-# Agregar como submodule
-git submodule add <URL_REPO> modules/nuevo-modulo
+# Si clonaste con setup-modules-dev.sh
+cd modules/shopflow
 
-# Commit en el repositorio principal
-git commit -m "feat: agregar nuevo módulo"
+# Trabajar normalmente (es un repositorio Git independiente)
+git checkout -b feature/nueva-funcionalidad
+# ... hacer cambios ...
+git commit -m "feat: nueva funcionalidad"
+git push origin feature/nueva-funcionalidad
+```
+
+**Nota**: No necesitas actualizar referencias en el repositorio principal porque los módulos son independientes.
+
+### Agregar un Nuevo Módulo Frontend
+
+```bash
+# 1. Crear un nuevo repositorio Git independiente
+# 2. Clonarlo localmente para desarrollo
+git clone <URL_REPO> modules/nuevo-modulo
+
+# 3. Actualizar scripts/setup-modules-dev.sh con la nueva URL
+# 4. Configurar el proyecto en Vercel conectando el repositorio
 ```
 
 ## 🌐 Servicios y Puertos
@@ -297,47 +329,43 @@ git commit -m "feat: agregar nuevo módulo"
 | Nginx | 80 | Reverse proxy (solo producción) |
 | PostgreSQL | 5432 | Base de datos |
 
-## 🐳 Docker
+## 🐳 Docker (Solo Backend Services)
 
-El proyecto incluye un Dockerfile multi-stage optimizado con los siguientes targets:
+**Nota**: Los frontends (Hub, ShopFlow, Workify) ya no usan Docker y se despliegan directamente en Vercel. Docker solo se usa para los servicios backend (API, Database API) en Railway.
 
-- **`deps`**: Instalación de dependencias
-- **`build`**: Compilación de producción
-- **`runtime`**: Imagen optimizada para producción (usa `output: standalone`)
-- **`dev`**: Entorno de desarrollo (sin Nginx)
-- **`runtime-with-nginx`**: Producción con Nginx integrado como reverse proxy
+### Desarrollo Local
 
-### Desarrollo
+Para desarrollo local de los servicios backend:
 
 ```bash
-# Iniciar todos los servicios (incluye PostgreSQL, API, módulos y hub)
+# Iniciar solo servicios backend (PostgreSQL, API, Database API)
 docker-compose up -d
 
 # Ver logs
 docker-compose logs -f
 
 # Ver logs de un servicio específico
-docker-compose logs -f hub-frontend
+docker-compose logs -f api
 
 # Detener servicios
 docker-compose down
 ```
 
+**Para desarrollo de frontends**, ejecuta desde cada directorio:
+```bash
+# Hub (desde la raíz)
+pnpm dev
+
+# ShopFlow (desde modules/shopflow)
+cd modules/shopflow && pnpm dev
+
+# Workify (desde modules/workify)
+cd modules/workify && pnpm dev
+```
+
 ### Producción
 
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Build Manual
-
-```bash
-# Build para desarrollo (sin Nginx)
-docker build -t multisystem-hub --target dev .
-
-# Build para producción (con Nginx)
-docker build -t multisystem-hub-prod --target runtime-with-nginx .
-```
+Los servicios backend se despliegan en Railway usando Docker. Ver [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
 
 ### Ejecutar Migraciones
 
@@ -381,49 +409,79 @@ docker-compose up -d workify-frontend
 
 **Nota**: Todos los servicios comparten la red `multisystem-network` para comunicación cuando están disponibles. Los servicios manejan errores de conexión internamente (timeouts, errores de red, etc.).
 
-## 🚂 Despliegue en Railway
+## 🚀 Despliegue
 
-Railway es la plataforma recomendada para desplegar Multisystem en producción debido a su soporte nativo para Docker Compose y PostgreSQL gestionado.
+Multisystem utiliza una arquitectura híbrida de despliegue:
 
-### Inicio Rápido
+- **Frontends (Hub, ShopFlow, Workify)**: Desplegados en **Vercel**
+- **Backend Services (API, Database API)**: Desplegados en **Railway**
 
-1. Conecta tu repositorio de GitHub a Railway
-2. Railway detectará automáticamente `docker-compose.prod.yml`
-3. Configura PostgreSQL como servicio gestionado
-4. Ajusta variables de entorno
-5. Despliega
+### 🎨 Frontends en Vercel
 
-Para una guía detallada, consulta [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
+Vercel es la plataforma recomendada para los frontends Next.js debido a:
+- ✅ Optimización automática para Next.js
+- ✅ Despliegue automático desde Git
+- ✅ CDN global integrado
+- ✅ Preview deployments para cada PR
+- ✅ Plan gratuito generoso
 
-### Ventajas de Railway
+**Guía completa**: [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md)
 
-- ✅ Soporte nativo de Docker Compose
+### 🔧 Backend en Railway
+
+Railway es la plataforma recomendada para los servicios backend debido a:
+- ✅ Soporte nativo de Docker
 - ✅ PostgreSQL gestionado incluido
 - ✅ Networking automático entre servicios
 - ✅ Soporte para Git Submodules
-- ✅ Despliegue en minutos
 - ✅ Precio razonable ($5 crédito/mes en plan gratuito)
 
-### Configuración Básica
+**Guía completa**: [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md)
 
-Railway detecta automáticamente tu `docker-compose.prod.yml` y despliega todos los servicios. Solo necesitas:
+### Arquitectura de Despliegue
 
-1. **PostgreSQL gestionado**: Crea un servicio PostgreSQL en Railway y usa su `DATABASE_URL`
-2. **Variables de entorno**: Configura las variables necesarias en el dashboard
-3. **Dominios públicos**: Railway genera URLs públicas automáticamente
+```
+┌─────────────────────────────────────────────────────────┐
+│                    VERCEL                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │   Hub    │  │ ShopFlow │  │ Workify  │             │
+│  │ (Next.js)│  │ (Next.js)│  │ (Next.js)│             │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘             │
+│       │             │             │                    │
+│       └─────────────┴─────────────┘                    │
+│                    │ HTTP                                │
+└────────────────────┼────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                   RAILWAY                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
+│  │   API    │  │ Database │  │PostgreSQL │            │
+│  │ (Fastify)│  │   API    │  │           │            │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘            │
+│       │             │             │                    │
+│       └─────────────┴─────────────┘                    │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### Variables de Entorno Principales
 
+**Frontends (Vercel)**:
 ```bash
-DATABASE_URL=postgresql://...  # URL de PostgreSQL gestionado de Railway
+NEXT_PUBLIC_API_URL=https://tu-api.railway.app
+NEXT_PUBLIC_SHOPFLOW_URL=https://tu-shopflow.vercel.app
+NEXT_PUBLIC_WORKIFY_URL=https://tu-workify.vercel.app
 NODE_ENV=production
-NEXT_PUBLIC_API_URL=http://api:3001
-NEXT_PUBLIC_SHOPFLOW_URL=http://shopflow-frontend:3003
-NEXT_PUBLIC_WORKIFY_URL=http://workify-frontend:3004
-CORS_ORIGINS=https://tu-proyecto.railway.app
 ```
 
-Ver [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) para la lista completa y configuración detallada.
+**Backend (Railway)**:
+```bash
+DATABASE_URL=postgresql://...  # URL de PostgreSQL gestionado
+NODE_ENV=production
+PORT=3001  # Para API
+DATABASE_API_URL=http://database:3002  # Para API
+CORS_ORIGINS=https://*.vercel.app
+```
 
 ## 🔐 Variables de Entorno
 
@@ -458,12 +516,14 @@ Ver `env.example` para todas las variables disponibles.
 - **Servicios de Infraestructura** (`nginx/`, `scripts/`): Parte del repositorio principal de multisystem
 - **Módulos Frontend como Submodules** (`modules/shopflow/`, `modules/workify/`): Aplicaciones frontend independientes
 
-**Estructura de Submodules**:
-- `services/api/` → Submodule en `services/` (servicio compartido)
-- `services/database/` → Submodule en `services/` (gestión de base de datos)
-- `modules/shopflow/`, `modules/workify/` → Submodules en `modules/` (aplicaciones frontend)
-- Raíz del repositorio → Aplicación hub (Next.js) - no es submodule
-- Todos los submodules se gestionan con `git submodule update --init --recursive`
+**Estructura de Repositorios**:
+- `multisystem` → Repositorio principal (Hub)
+- `multisystem-shopflow` → Repositorio independiente (ShopFlow)
+- `multisystem-workify` → Repositorio independiente (Workify)
+- `services/api/` → Submodule o repositorio independiente (API backend)
+- `services/database/` → Submodule o repositorio independiente (Database API)
+
+**Nota**: Los módulos frontend son repositorios independientes (no submodules) para compatibilidad con Vercel. Los servicios backend pueden ser submodules o repositorios independientes según tu preferencia.
 
 ### Independencia de Componentes
 
@@ -490,42 +550,59 @@ Ver `env.example` para todas las variables disponibles.
 
 ## 🤝 Contribuir
 
-1. Trabaja en el módulo específico (submodule)
+### Trabajar en el Hub
+
+1. Trabaja en el repositorio principal `multisystem`
+2. Haz commit y push normalmente
+
+### Trabajar en Módulos Frontend
+
+1. Trabaja directamente en el repositorio independiente (ej: `multisystem-shopflow`)
 2. Haz commit y push en el repositorio del módulo
+3. **No necesitas** actualizar referencias en el repositorio principal (son independientes)
+
+### Trabajar en Servicios Backend
+
+1. Trabaja en el submodule (ej: `services/api`)
+2. Haz commit y push en el repositorio del servicio
 3. Actualiza la referencia en el repositorio principal si es necesario
 
 ## 📝 Notas Importantes
 
 - **Hub es la aplicación principal**: La aplicación Next.js está en la raíz del repositorio, no es un submodule
-- **Servicios y módulos son independientes**: `services/api/`, `services/database/` y los módulos frontend tienen sus propios repositorios Git como submodules
-- **El repositorio principal trackea referencias de submodules**: No se duplican commits de servicios ni módulos
-- **Docker funciona con rutas locales**: El contexto de hub apunta a la raíz (`.`), servicios a `services/api/` y módulos a `modules/`
+- **Módulos frontend son repositorios independientes**: ShopFlow y Workify son repositorios Git completamente independientes (no submodules) para compatibilidad con Vercel
+- **Servicios backend pueden ser submodules o repositorios independientes**: Según tu preferencia y plataforma de despliegue
+- **Docker solo para backend**: Los frontends se despliegan en Vercel sin Docker, los servicios backend usan Docker en Railway
 - **Build del hub excluye submodules**: `services/` y `modules/` están excluidos del build del hub (definido en `.dockerignore` y `tsconfig.json`)
 - **Comunicación exclusivamente por HTTP**: Todos los componentes se comunican mediante HTTP usando variables de entorno, sin dependencias directas (no imports, no file:../)
 - **Separación de APIs mantenida**: API Principal (3001) y Database API (3002) son servicios independientes que se comunican por HTTP
 - **Actualiza submodules regularmente**: Usa `git submodule update --remote` para actualizar todos los submodules
 - **Tailwind CSS configurado**: El proyecto incluye Tailwind CSS con configuración completa (`tailwind.config.js`, `postcss.config.js`)
 - **Lockfile incluido**: El proyecto incluye `pnpm-lock.yaml` para builds reproducibles
-- **Nginx solo en producción**: Nginx se usa únicamente en producción (stage `runtime-with-nginx`), no en desarrollo
+- **Despliegue híbrido**: Frontends en Vercel, Backend en Railway
 
 ## 🆘 Solución de Problemas
 
-### Los submodules están vacíos
+### Los módulos no están disponibles localmente
+
+Si los módulos son repositorios independientes, clónalos manualmente:
 
 ```bash
-git submodule update --init --recursive
+# Para desarrollo local
+git clone https://github.com/tu-usuario/multisystem-shopflow.git modules/shopflow
+git clone https://github.com/tu-usuario/multisystem-workify.git modules/workify
 ```
 
-### Error al clonar submodules
-
-Verifica que las URLs en `.gitmodules` sean correctas y que tengas acceso a los repositorios.
-
-### Docker no encuentra los módulos
-
-Asegúrate de que los submodules estén inicializados:
+O usa el script de setup:
 ```bash
-git submodule update --init --recursive
+./scripts/setup-dev.sh
 ```
+
+### Error al desplegar en Vercel
+
+- Verifica que cada módulo sea un repositorio independiente (no submodule)
+- Asegúrate de conectar el repositorio correcto en Vercel
+- Verifica que `package.json` esté en la raíz de cada repositorio
 
 ## 📄 Licencia
 
