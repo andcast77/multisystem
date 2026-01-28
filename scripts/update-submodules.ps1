@@ -1,25 +1,38 @@
-# Script para actualizar Git Submodules a la última versión (PowerShell)
+# Script para actualizar servicios backend (repositorios independientes)
+# Nota: services/api y services/database son repositorios Git independientes
+#       NO son submodules, se actualizan directamente con git pull
 
-Write-Host "🔄 Actualizando Git Submodules..." -ForegroundColor Cyan
+Write-Host "🔄 Actualizando servicios backend..." -ForegroundColor Cyan
 
-# Verificar que estamos en el directorio raíz del proyecto
-if (-not (Test-Path ".gitmodules")) {
-    Write-Host "❌ Error: No se encontró .gitmodules. Asegúrate de estar en el directorio raíz del proyecto." -ForegroundColor Red
-    exit 1
+# Actualizar services/api si existe
+if (Test-Path "services/api") {
+    Write-Host "📥 Actualizando services/api..." -ForegroundColor Yellow
+    Push-Location services/api
+    try {
+        git pull
+    } catch {
+        Write-Host "⚠️  No se pudo actualizar services/api (puede tener cambios locales)" -ForegroundColor Yellow
+    }
+    Pop-Location
+} else {
+    Write-Host "⚠️  services/api no existe. Ejecuta .\scripts\setup-submodules.ps1 primero" -ForegroundColor Yellow
 }
 
-# Actualizar todos los submodules a la última versión de sus ramas remotas
-Write-Host "📥 Actualizando submodules desde remotos..." -ForegroundColor Yellow
-git submodule update --remote
+# Actualizar services/database si existe
+if (Test-Path "services/database") {
+    Write-Host "📥 Actualizando services/database..." -ForegroundColor Yellow
+    Push-Location services/database
+    try {
+        git pull
+    } catch {
+        Write-Host "⚠️  No se pudo actualizar services/database (puede tener cambios locales)" -ForegroundColor Yellow
+    }
+    Pop-Location
+} else {
+    Write-Host "⚠️  services/database no existe. Ejecuta .\scripts\setup-submodules.ps1 primero" -ForegroundColor Yellow
+}
 
-# Mostrar estado actualizado
 Write-Host ""
-Write-Host "📊 Estado actualizado de submodules:" -ForegroundColor Cyan
-git submodule status
-
+Write-Host "✅ Servicios backend actualizados!" -ForegroundColor Green
 Write-Host ""
-Write-Host "✅ Submodules actualizados correctamente!" -ForegroundColor Green
-Write-Host ""
-Write-Host "⚠️  Nota: Los cambios en submodules deben ser commiteados en el repositorio principal:" -ForegroundColor Yellow
-Write-Host "   git add modules/" -ForegroundColor Gray
-Write-Host "   git commit -m 'chore: actualizar submodules'" -ForegroundColor Gray
+Write-Host "💡 Nota: Si hay conflictos, resuélvelos manualmente en cada directorio" -ForegroundColor Yellow

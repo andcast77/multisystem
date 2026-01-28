@@ -52,12 +52,16 @@ prisma/migrations/
 .cache/
 .turbo/
 
-# Git Submodules - Solo servicios backend (services/api y services/database)
-# Los submodules de servicios backend se gestionan con git submodule
-# services/ está excluido del build del hub pero Git trackea las referencias
+# Servicios backend - Proyectos separados (repositorios independientes)
+# services/api y services/database son repositorios Git independientes
+# Se clonan localmente para desarrollo (NO son submodules)
+# Se despliegan por separado en Railway
+# NO son necesarios para el build del Hub en Vercel (comunicación solo por HTTP)
+services/
 
-# Módulos frontend - Repositorios independientes (NO submodules)
+# Módulos frontend - Proyectos separados (repositorios independientes)
 # Los módulos frontend (ShopFlow, Workify) son repositorios Git independientes
 # Se clonan localmente para desarrollo con scripts/setup-modules-dev.sh
-# Opcional: agregar modules/ aquí si quieres ignorar los clones locales
-# modules/
+# Se despliegan por separado en Vercel
+# Son solo clones locales para tener contexto, NO deben estar en el build
+modules/

@@ -1,28 +1,33 @@
 #!/bin/bash
-# Script para actualizar Git Submodules a la última versión
+# Script para actualizar servicios backend (repositorios independientes)
+# Nota: services/api y services/database son repositorios Git independientes
+#       NO son submodules, se actualizan directamente con git pull
 
 set -e
 
-echo "🔄 Actualizando Git Submodules..."
+echo "🔄 Actualizando servicios backend..."
 
-# Verificar que estamos en el directorio raíz del proyecto
-if [ ! -f ".gitmodules" ]; then
-    echo "❌ Error: No se encontró .gitmodules. Asegúrate de estar en el directorio raíz del proyecto."
-    exit 1
+# Actualizar services/api si existe
+if [ -d "services/api" ]; then
+    echo "📥 Actualizando services/api..."
+    cd services/api
+    git pull || echo "⚠️  No se pudo actualizar services/api (puede tener cambios locales)"
+    cd ../..
+else
+    echo "⚠️  services/api no existe. Ejecuta ./scripts/setup-submodules.sh primero"
 fi
 
-# Actualizar todos los submodules a la última versión de sus ramas remotas
-echo "📥 Actualizando submodules desde remotos..."
-git submodule update --remote
+# Actualizar services/database si existe
+if [ -d "services/database" ]; then
+    echo "📥 Actualizando services/database..."
+    cd services/database
+    git pull || echo "⚠️  No se pudo actualizar services/database (puede tener cambios locales)"
+    cd ../..
+else
+    echo "⚠️  services/database no existe. Ejecuta ./scripts/setup-submodules.sh primero"
+fi
 
-# Mostrar estado actualizado
 echo ""
-echo "📊 Estado actualizado de submodules:"
-git submodule status
-
+echo "✅ Servicios backend actualizados!"
 echo ""
-echo "✅ Submodules actualizados correctamente!"
-echo ""
-echo "⚠️  Nota: Los cambios en submodules deben ser commiteados en el repositorio principal:"
-echo "   git add modules/"
-echo "   git commit -m 'chore: actualizar submodules'"
+echo "💡 Nota: Si hay conflictos, resuélvelos manualmente en cada directorio"

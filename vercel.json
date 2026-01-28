@@ -1,0 +1,12 @@
+{
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "master": true
+    }
+  },
+  "cleanUrls": true,
+  "trailingSlash": true
+}

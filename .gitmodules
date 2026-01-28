@@ -1,7 +1,8 @@
-[submodule "services/api"]
-	path = services/api
-	url = https://github.com/andcast77/multisystem-api.git
-
-[submodule "services/database"]
-	path = services/database
-	url = https://github.com/andcast77/multisystem-database.git
+# Este archivo está vacío porque services/ y modules/ son proyectos separados
+# No son submodules, son repositorios independientes que se clonan localmente para desarrollo
+# 
+# Para clonar localmente:
+# - services/api: git clone https://github.com/andcast77/multisystem-api.git services/api
+# - services/database: git clone https://github.com/andcast77/multisystem-database.git services/database
+# - modules/shopflow: git clone <URL> modules/shopflow
+# - modules/workify: git clone <URL> modules/workify
