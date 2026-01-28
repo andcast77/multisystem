@@ -8,5 +8,23 @@
     }
   },
   "cleanUrls": true,
-  "trailingSlash": true
+  "trailingSlash": true,
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://api-shopflow.railway.app/:path*"
+    },
+    {
+      "source": "/shopflow/:path*",
+      "destination": "https://shopflow.vercel.app/:path*"
+    },
+    {
+      "source": "/workify/:path*",
+      "destination": "https://workify.vercel.app/:path*"
+    }
+  ]
 }

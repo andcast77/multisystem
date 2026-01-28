@@ -39,4 +39,4 @@ Write-Host "📖 Próximos pasos:" -ForegroundColor Cyan
 Write-Host "   1. Clona los módulos frontend: .\scripts\setup-modules-dev.ps1" -ForegroundColor Gray
 Write-Host "   2. Instala las dependencias de cada servicio/módulo" -ForegroundColor Gray
 Write-Host "   3. Configura las variables de entorno (.env)" -ForegroundColor Gray
-Write-Host "   4. Inicia los servicios con: docker-compose up" -ForegroundColor Gray
+Write-Host "   4. Inicia los servicios manualmente desde cada directorio" -ForegroundColor Gray

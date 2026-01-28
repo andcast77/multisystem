@@ -29,16 +29,7 @@ Esta carpeta contiene los planes detallados para implementar el sistema de proxy
 - Hooks para detección de módulos activos
 - Extensibilidad para nuevos módulos
 
-### 3. [Proxy Reverse en Producción con Nginx](./proxy-reverse-produccion-nginx.md)
-**Objetivo**: Configurar Nginx como reverse proxy en producción.
-
-- Configuración de Nginx
-- Dockerfile para Nginx
-- Routing y rewrite de rutas
-- Configuración SSL/HTTPS (opcional)
-- Manejo de assets estáticos y WebSockets
-
-### 4. [Sistema de Routing y Detección de Módulos](./routing-sistema-hub.md)
+### 3. [Sistema de Routing y Detección de Módulos](./routing-sistema-hub.md)
 **Objetivo**: Implementar sistema de routing unificado con detección de módulos activos.
 
 - HubLayout con sidebar y header
@@ -47,23 +38,12 @@ Esta carpeta contiene los planes detallados para implementar el sistema de proxy
 - Componentes de UI (HubSidebar, HubHeader)
 - Hooks para routing
 
-### 5. [Integración con Docker y Docker Compose](./integracion-docker-proxy.md)
-**Objetivo**: Integrar el sistema de proxy reverso con Docker.
-
-- Configuración de docker-compose.yml
-- Configuración de docker-compose.prod.yml
-- Variables de entorno para Docker
-- Redes y dependencias entre servicios
-- Healthchecks y reinicios automáticos
-
 ## Orden de Implementación Recomendado
 
 1. **Organizar Proyecto Multisystem** (Plan 0) - **PRIORITARIO**: Aislar builds y asegurar independencia de componentes
 2. **Configuración de Módulos** (Plan 2) - Base para todo el sistema
 3. **Proxy Reverse en Desarrollo** (Plan 1) - Para desarrollo local
-4. **Sistema de Routing** (Plan 4) - UI y navegación
-5. **Integración Docker** (Plan 5) - Infraestructura
-6. **Proxy Reverse en Producción** (Plan 3) - Para producción
+4. **Sistema de Routing** (Plan 3) - UI y navegación
 
 ## Arquitectura General
 
@@ -76,7 +56,7 @@ Esta carpeta contiene los planes detallados para implementar el sistema de proxy
         │                       │
    Desarrollo              Producción
         │                       │
-   Next.js Rewrites         Nginx Proxy
+   Next.js Rewrites      Vercel Rewrites
         │                       │
 ┌───────┴────────┐    ┌─────────┴────────┐
 │  Hub Frontend  │    │  Hub Frontend    │

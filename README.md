@@ -13,9 +13,7 @@ Multisystem está estructurado en tres categorías principales con **comunicaci�
 - **`services/database/`** - Database API (puerto 3002) - Gestión de base de datos
   - 🔗 **Git Submodule** - Expone Prisma como API HTTP
   - Se conecta directamente a PostgreSQL
-- **`nginx/`** - Configuración del reverse proxy
 - **`scripts/`** - Scripts de utilidad para desarrollo
-- **`docker-compose.yml`** - Orquestación de servicios
 
 **Nota**: `services/api/` y `services/database/` son servicios independientes con sus propios repositorios Git, configurados como **Git Submodules**. La comunicación entre ellos es exclusivamente por HTTP.
 
@@ -51,17 +49,16 @@ PostgreSQL (puerto 5432)
 ```
 
 **Principios de Arquitectura**:
-- ✅ Cada componente es independiente (diferentes builds, diferentes contenedores)
+- ✅ Cada componente es independiente (diferentes builds)
 - ✅ Comunicación solo por HTTP (variables de entorno con URLs)
 - ✅ Sin dependencias directas entre componentes (no imports, no file:../, no workspaces compartidos)
 - ✅ Cada componente tiene su propio repositorio (submodules)
-- ✅ El build del hub excluye `services/` y `modules/` (no se incluyen en la imagen Docker)
+- ✅ El build del hub excluye `services/` y `modules/`
 
 ## 🚀 Inicio Rápido
 
 ### Prerrequisitos
 
-- Docker y Docker Compose
 - Git
 - Node.js 20+ y pnpm (para desarrollo local)
 - Tailwind CSS está configurado (incluido en el proyecto)
@@ -103,21 +100,6 @@ cd multisystem
    ```
 
 ### Desarrollo Local
-
-#### Opción 1: Docker Compose (Recomendado)
-
-```bash
-# Iniciar todos los servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener servicios
-docker-compose down
-```
-
-#### Opción 2: Desarrollo Local sin Docker
 
 ```bash
 # 1. Iniciar PostgreSQL (o usar servicio externo)
@@ -178,8 +160,6 @@ multisystem/
 │   ├── tsconfig.json
 │   ├── tailwind.config.js  # Configuración Tailwind CSS
 │   ├── postcss.config.js   # Configuración PostCSS
-│   ├── nginx.conf          # Configuración reverse proxy
-│   ├── Dockerfile          # Multi-stage Dockerfile
 │   ├── src/
 │   └── ...
 │
@@ -194,8 +174,6 @@ multisystem/
 │   ├── update-submodules.sh
 │   └── init-dev.sh
 │
-├── docker-compose.yml      # ✅ Desarrollo (solo servicios backend)
-├── docker-compose.prod.yml # ✅ Producción (solo servicios backend)
 └── .gitmodules            # 🔗 Configuración de submodules (solo servicios backend)
 ```
 
@@ -326,46 +304,29 @@ git clone <URL_REPO> modules/nuevo-modulo
 | Database API | 3002 | Servicio de base de datos |
 | ShopFlow Frontend | 3003 | Módulo ShopFlow |
 | Workify Frontend | 3004 | Módulo Workify |
-| Nginx | 80 | Reverse proxy (solo producción) |
 | PostgreSQL | 5432 | Base de datos |
 
-## 🐳 Docker (Solo Backend Services)
+## 🔧 Desarrollo Local
 
-**Nota**: Los frontends (Hub, ShopFlow, Workify) ya no usan Docker y se despliegan directamente en Vercel. Docker solo se usa para los servicios backend (API, Database API) en Railway.
+Para desarrollo local, ejecuta cada servicio desde su directorio:
 
-### Desarrollo Local
-
-Para desarrollo local de los servicios backend:
-
-```bash
-# Iniciar solo servicios backend (PostgreSQL, API, Database API)
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Ver logs de un servicio específico
-docker-compose logs -f api
-
-# Detener servicios
-docker-compose down
-```
-
-**Para desarrollo de frontends**, ejecuta desde cada directorio:
 ```bash
 # Hub (desde la raíz)
+pnpm install
 pnpm dev
 
 # ShopFlow (desde modules/shopflow)
-cd modules/shopflow && pnpm dev
+cd modules/shopflow
+pnpm install
+pnpm dev
 
 # Workify (desde modules/workify)
-cd modules/workify && pnpm dev
+cd modules/workify
+pnpm install
+pnpm dev
 ```
 
-### Producción
-
-Los servicios backend se despliegan en Railway usando Docker. Ver [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
+**Nota**: Los servicios backend (API, Database API) se despliegan en Railway. Ver [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
 
 ### Ejecutar Migraciones
 
@@ -380,25 +341,6 @@ pnpm exec prisma db push
 pnpm exec prisma migrate dev --name nombre_migracion
 ```
 
-### Ejecutar Servicios Individualmente
-
-Cada servicio puede ejecutarse de forma **completamente independiente** sin `depends_on`. Si las dependencias no están disponibles, el servicio mostrará errores de conexión pero seguirá corriendo:
-
-```bash
-# Solo PostgreSQL
-docker-compose up -d postgres
-
-# Solo API (si postgres no está, dará errores de conexión a BD)
-docker-compose up -d api
-```
-
-**Ventajas de este enfoque:**
-- ✅ **Aislamiento completo**: Cada servicio inicia independientemente
-- ✅ **Sin bloqueos**: Un servicio no bloquea a otro si falta una dependencia
-- ✅ **Desarrollo independiente**: Puedes trabajar en un módulo sin levantar todo el stack
-- ✅ **Errores manejados**: Los servicios manejan errores de conexión internamente
-
-**Nota**: Todos los servicios comparten la red `multisystem-network` para comunicación cuando están disponibles. Los servicios manejan errores de conexión internamente (timeouts, errores de red, etc.).
 
 ## 🚀 Despliegue
 
@@ -421,7 +363,6 @@ Vercel es la plataforma recomendada para los frontends Next.js debido a:
 ### 🔧 Backend en Railway
 
 Railway es la plataforma recomendada para los servicios backend debido a:
-- ✅ Soporte nativo de Docker
 - ✅ PostgreSQL gestionado incluido
 - ✅ Networking automático entre servicios
 - ✅ Soporte para Git Submodules
@@ -504,7 +445,7 @@ Ver `env.example` para todas las variables disponibles.
   - **`services/database/`**: Database API (puerto 3002) - Gestión de base de datos
     - Git Submodule en `services/`
     - Expone Prisma como API HTTP
-- **Servicios de Infraestructura** (`nginx/`, `scripts/`): Parte del repositorio principal de multisystem
+- **Servicios de Infraestructura** (`scripts/`): Parte del repositorio principal de multisystem
 - **Módulos Frontend como Submodules** (`modules/shopflow/`, `modules/workify/`): Aplicaciones frontend independientes
 
 **Estructura de Repositorios**:
@@ -521,7 +462,7 @@ Ver `env.example` para todas las variables disponibles.
 **Todos los componentes son independientes y se comunican solo por HTTP**:
 
 - **Hub**: 
-  - Build excluye `services/` y `modules/` (definido en `.dockerignore` y `tsconfig.json`)
+  - Build excluye `services/` y `modules/` (definido en `tsconfig.json`)
   - No tiene imports directos de submodules
   - Usa variables de entorno (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SHOPFLOW_URL`, etc.)
 
@@ -563,8 +504,7 @@ Ver `env.example` para todas las variables disponibles.
 - **Hub es la aplicación principal**: La aplicación Next.js está en la raíz del repositorio, no es un submodule
 - **Módulos frontend son repositorios independientes**: ShopFlow y Workify son repositorios Git completamente independientes (no submodules) para compatibilidad con Vercel
 - **Servicios backend pueden ser submodules o repositorios independientes**: Según tu preferencia y plataforma de despliegue
-- **Docker solo para backend**: Los frontends se despliegan en Vercel sin Docker, los servicios backend usan Docker en Railway
-- **Build del hub excluye submodules**: `services/` y `modules/` están excluidos del build del hub (definido en `.dockerignore` y `tsconfig.json`)
+- **Build del hub excluye submodules**: `services/` y `modules/` están excluidos del build del hub (definido en `tsconfig.json`)
 - **Comunicación exclusivamente por HTTP**: Todos los componentes se comunican mediante HTTP usando variables de entorno, sin dependencias directas (no imports, no file:../)
 - **Separación de APIs mantenida**: API Principal (3001) y Database API (3002) son servicios independientes que se comunican por HTTP
 - **Actualiza submodules regularmente**: Usa `git submodule update --remote` para actualizar todos los submodules
