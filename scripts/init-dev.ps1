@@ -4,21 +4,21 @@ Write-Host "🚀 Inicializando entorno de desarrollo de Multisystem..." -Foregro
 Write-Host ""
 
 # Verificar que estamos en el directorio raíz del proyecto
-if (-not (Test-Path ".gitmodules")) {
-    Write-Host "❌ Error: No se encontró .gitmodules. Asegúrate de estar en el directorio raíz del proyecto." -ForegroundColor Red
+if (-not (Test-Path "package.json")) {
+    Write-Host "❌ Error: No se encontró package.json. Asegúrate de estar en el directorio raíz del proyecto." -ForegroundColor Red
     exit 1
 }
 
-# Paso 1: Configurar submodules
-Write-Host "📦 Paso 1/3: Configurando Git Submodules..." -ForegroundColor Yellow
+# Paso 1: Clonar servicios backend (repositorios independientes)
+Write-Host "📦 Paso 1/3: Clonando servicios backend..." -ForegroundColor Yellow
 & .\scripts\setup-submodules.ps1
 
-# Paso 2: Verificar que los submodules existen
+# Paso 2: Verificar estructura
 Write-Host ""
-Write-Host "🔍 Paso 2/3: Verificando estructura de módulos..." -ForegroundColor Yellow
-if (-not (Test-Path "modules/hub") -or -not (Test-Path "modules/shopflow") -or -not (Test-Path "modules/workify")) {
-    Write-Host "⚠️  Advertencia: Algunos módulos no están presentes." -ForegroundColor Yellow
-    Write-Host "   Asegúrate de que las URLs en .gitmodules sean correctas." -ForegroundColor Gray
+Write-Host "🔍 Paso 2/3: Verificando estructura..." -ForegroundColor Yellow
+if (-not (Test-Path "services/api") -or -not (Test-Path "services/database")) {
+    Write-Host "⚠️  Advertencia: Algunos servicios no están presentes." -ForegroundColor Yellow
+    Write-Host "   Ejecuta: .\scripts\setup-submodules.ps1" -ForegroundColor Gray
 }
 
 # Paso 3: Instalar dependencias (si es necesario)
@@ -36,8 +36,7 @@ Write-Host ""
 Write-Host "✅ Entorno de desarrollo inicializado!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📖 Próximos pasos:" -ForegroundColor Cyan
-Write-Host "   1. Configura las URLs de los repositorios en .gitmodules" -ForegroundColor Gray
-Write-Host "   2. Ejecuta: .\scripts\setup-submodules.ps1" -ForegroundColor Gray
-Write-Host "   3. Instala las dependencias de cada módulo" -ForegroundColor Gray
-Write-Host "   4. Configura las variables de entorno (.env)" -ForegroundColor Gray
-Write-Host "   5. Inicia los servicios con: docker-compose up" -ForegroundColor Gray
+Write-Host "   1. Clona los módulos frontend: .\scripts\setup-modules-dev.ps1" -ForegroundColor Gray
+Write-Host "   2. Instala las dependencias de cada servicio/módulo" -ForegroundColor Gray
+Write-Host "   3. Configura las variables de entorno (.env)" -ForegroundColor Gray
+Write-Host "   4. Inicia los servicios con: docker-compose up" -ForegroundColor Gray

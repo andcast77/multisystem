@@ -1,12 +1,12 @@
 # Scripts de Utilidad - Multisystem
 
-Este directorio contiene scripts de utilidad para trabajar con Git Submodules y el entorno de desarrollo.
+Este directorio contiene scripts de utilidad para clonar repositorios independientes y configurar el entorno de desarrollo.
 
 ## Scripts Disponibles
 
 ### `setup-submodules.sh` / `setup-submodules.ps1`
 
-Inicializa y configura los Git Submodules del proyecto.
+Clona los servicios backend (repositorios independientes) localmente para desarrollo.
 
 **Uso:**
 ```bash
@@ -18,13 +18,13 @@ Inicializa y configura los Git Submodules del proyecto.
 ```
 
 **Qué hace:**
-- Verifica que existe `.gitmodules`
-- Inicializa todos los submodules recursivamente
-- Muestra el estado de los submodules
+- Clona `services/api` y `services/database` desde sus repositorios Git independientes
+- Estos son repositorios separados, NO submodules
+- Se clonan localmente solo para desarrollo
 
 ### `update-submodules.sh` / `update-submodules.ps1`
 
-Actualiza todos los submodules a la última versión de sus ramas remotas.
+Actualiza los servicios backend clonados localmente.
 
 **Uso:**
 ```bash
@@ -36,15 +36,25 @@ Actualiza todos los submodules a la última versión de sus ramas remotas.
 ```
 
 **Qué hace:**
-- Actualiza todos los submodules usando `git submodule update --remote`
-- Muestra el estado actualizado
-- Recuerda que debes hacer commit de los cambios en el repositorio principal
+- Actualiza `services/api` y `services/database` usando `git pull`
+- Si hay conflictos, debes resolverlos manualmente en cada directorio
 
-**Después de ejecutar:**
+### `setup-modules-dev.sh` / `setup-modules-dev.ps1`
+
+Clona los módulos frontend (repositorios independientes) localmente para desarrollo.
+
+**Uso:**
 ```bash
-git add modules/
-git commit -m "chore: actualizar submodules"
+# Linux/Mac
+./scripts/setup-modules-dev.sh
+
+# Windows PowerShell
+.\scripts\setup-modules-dev.ps1
 ```
+
+**Qué hace:**
+- Clona `modules/shopflow` y `modules/workify` desde sus repositorios Git independientes
+- Estos son repositorios separados que se despliegan en Vercel
 
 ### `init-dev.sh` / `init-dev.ps1`
 
@@ -60,8 +70,8 @@ Inicializa el entorno de desarrollo completo.
 ```
 
 **Qué hace:**
-1. Configura los Git Submodules
-2. Verifica la estructura de módulos
+1. Clona los servicios backend (repositorios independientes)
+2. Verifica la estructura
 3. Proporciona instrucciones para instalar dependencias
 
 ## Notas

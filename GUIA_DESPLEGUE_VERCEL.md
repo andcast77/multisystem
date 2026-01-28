@@ -114,7 +114,7 @@ Cada push crea un nuevo deployment con su propia URL.
 
 **Solución**: Puedes ignorar esta advertencia. El build debería completarse exitosamente.
 
-**Nota**: La advertencia aparece porque Vercel intenta clonar los submodules definidos en `.gitmodules`, pero como `services/` está en `.gitignore`, no se incluyen en el repositorio. Esto es correcto y esperado - los servicios backend y módulos frontend son proyectos separados que se despliegan independientemente.
+**Nota**: Esta advertencia no debería aparecer si `.gitmodules` ha sido eliminado. Si aparece, es porque Vercel detectó el archivo en un commit anterior. En el próximo deployment debería desaparecer.
 
 ### Error: "Build failed"
 
