@@ -211,13 +211,14 @@ Railway usa los health checks definidos en `docker-compose.prod.yml`. Asegúrate
 
 Para ejecutar migraciones Prisma:
 
-1. **Opción 1: Servicio de migración temporal**
-   - Descomenta el servicio `migrate-db` en `docker-compose.prod.yml`
-   - Ejecuta una vez: `railway run docker-compose up migrate-db`
-
-2. **Opción 2: Script manual**
+1. **Opción 1: Script manual desde Railway CLI**
    ```bash
-   railway run --service api sh -c "cd services/api && pnpm exec prisma generate && pnpm exec prisma db push"
+   railway run --service api sh -c "cd services/database && pnpm install && pnpm exec prisma generate && pnpm exec prisma db push"
+   ```
+
+2. **Opción 2: Usando migraciones formales**
+   ```bash
+   railway run --service api sh -c "cd services/database && pnpm install && pnpm exec prisma migrate deploy"
    ```
 
 3. **Opción 3: En el build de la API**

@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules
 .pnpm-store
 .pnpm-debug.log
@@ -44,9 +44,13 @@ coverage
 # Docker
 docker-compose*.yml
 
-# Monorepos (no necesarios en build raÃ­z)
+# Monorepos (no necesarios en build raíz)
 api
 hub
 shopflow
 workify
 pos
+
+# Submodules (instancias independientes - NO incluidos en build del hub)
+services/
+modules/

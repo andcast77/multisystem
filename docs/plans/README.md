@@ -4,6 +4,14 @@ Esta carpeta contiene los planes detallados para implementar el sistema de proxy
 
 ## Planes Disponibles
 
+### 0. [Organizar Proyecto Multisystem](./organizar-proyecto-multisystem.md)
+**Objetivo**: Aislar el build del hub excluyendo services/ y modules/, asegurando que cada componente sea independiente y se comunique solo por HTTP.
+
+- Excluir submodules del build del hub
+- Verificar independencia entre subproyectos
+- Asegurar comunicación solo por HTTP
+- Eliminar dependencias directas entre componentes
+
 ### 1. [Proxy Reverse en Desarrollo](./proxy-reverse-desarrollo.md)
 **Objetivo**: Configurar el hub para funcionar como proxy reverso en desarrollo usando Next.js rewrites.
 
@@ -50,11 +58,12 @@ Esta carpeta contiene los planes detallados para implementar el sistema de proxy
 
 ## Orden de Implementación Recomendado
 
-1. **Configuración de Módulos** (Plan 2) - Base para todo el sistema
-2. **Proxy Reverse en Desarrollo** (Plan 1) - Para desarrollo local
-3. **Sistema de Routing** (Plan 4) - UI y navegación
-4. **Integración Docker** (Plan 5) - Infraestructura
-5. **Proxy Reverse en Producción** (Plan 3) - Para producción
+1. **Organizar Proyecto Multisystem** (Plan 0) - **PRIORITARIO**: Aislar builds y asegurar independencia de componentes
+2. **Configuración de Módulos** (Plan 2) - Base para todo el sistema
+3. **Proxy Reverse en Desarrollo** (Plan 1) - Para desarrollo local
+4. **Sistema de Routing** (Plan 4) - UI y navegación
+5. **Integración Docker** (Plan 5) - Infraestructura
+6. **Proxy Reverse en Producción** (Plan 3) - Para producción
 
 ## Arquitectura General
 
