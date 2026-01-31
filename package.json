@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "api": "cd services/api && pnpm dev",
+    "shopflow": "cd modules/shopflow && pnpm dev",
+    "workify": "cd modules/workify && pnpm dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "projects": "pnpm api && pnpm shopflow && pnpm workify && pnpm dev"
   },
   "dependencies": {
     "next": "16.1.1",
