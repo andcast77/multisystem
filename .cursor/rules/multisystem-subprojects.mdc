@@ -1,0 +1,36 @@
+---
+description: Reglas para módulos y servicios en el monorepo Multisystem — cambios a nivel subproyecto
+alwaysApply: true
+---
+
+# Módulos y Servicios — Alcance de Cambios
+
+En el monorepo Multisystem, cada **módulo** y cada **servicio** es un subproyecto independiente. Los cambios se hacen **a nivel repositorio del subproyecto correspondiente**.
+
+## Módulos
+
+Cuando el usuario mencione un módulo por nombre, aplicar los cambios en ese módulo:
+
+| Módulo | Directorio | Descripción |
+|--------|------------|-------------|
+| **ShopFlow** | `shopflow/` (o `../shopflow` desde hub) | Punto de venta e inventario |
+| **Workify** | `workify/` (o `../workify` desde hub) | Empleados y horarios |
+
+## Servicios
+
+Cuando el usuario mencione un servicio por nombre, aplicar los cambios en ese servicio:
+
+| Servicio | Directorio | Descripción |
+|----------|------------|-------------|
+| **database** | `database/` (o `../database` desde hub) | Prisma, schema, migraciones, cliente |
+| **api** | `api/` (o `../api` desde hub) | API REST compartida (Fastify) |
+
+## Regla general
+
+- **ShopFlow** → cambios en `shopflow/`
+- **Workify** → cambios en `workify/`
+- **database** (o base de datos) → cambios en `database/`
+- **api** → cambios en `api/`
+- **Hub** → cambios en `hub/` (landing page)
+
+Siempre aplicar cambios en el directorio del subproyecto indicado. No modificar el Hub cuando se trabaja en módulos o servicios.

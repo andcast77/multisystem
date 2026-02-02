@@ -1,15 +1,3 @@
-# Servicios backend - Proyectos separados (repositorios independientes)
-# services/api y services/database son repositorios Git independientes
-# Se despliegan por separado en Railway
-# NO son necesarios para el build del Hub en Vercel (comunicación solo por HTTP)
-services/
-
-# Módulos frontend - Proyectos separados (repositorios independientes)
-# ShopFlow y Workify son repositorios Git independientes
-# Se despliegan por separado en Vercel
-# Solo se clonan localmente para desarrollo, NO deben estar en el build
-modules/
-
 # Scripts de desarrollo (no necesarios en build)
 scripts/
 

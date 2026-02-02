@@ -1,10 +1,31 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { AuthActions } from "@/components/AuthActions";
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const hasToken = !!cookieStore.get("token")?.value;
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-12 px-4">
         <h1 className="text-4xl font-bold text-center mb-8">Multisystem Hub</h1>
+
+        <p className="text-center text-gray-600 mb-6">
+          Punto de entrada unificado. Aquí puedes registrar tu empresa y acceder a los módulos.
+        </p>
+
+        <div className="flex justify-center gap-4 mb-8 flex-wrap">
+          <AuthActions hasToken={hasToken} />
+          {!hasToken && (
+            <Link
+              href="/register"
+              className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700"
+            >
+              Registrar empresa
+            </Link>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
