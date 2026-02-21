@@ -12,8 +12,8 @@ export type LoginResponse = {
     user: { id: string; email: string; name: string; role: string; isSuperuser?: boolean };
     token: string;
     companyId?: string;
-    company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean };
-    companies?: Array<{ id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean }>;
+    company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean };
+    companies?: Array<{ id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean }>;
   };
   error?: string;
 };
@@ -28,7 +28,7 @@ export type MeResponse = {
     companyId?: string;
     membershipRole?: string;
     isSuperuser?: boolean;
-    company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean };
+    company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean };
   };
   error?: string;
 };
@@ -38,14 +38,24 @@ export type ContextResponse = {
   data?: {
     token: string;
     companyId: string;
-    company: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean };
+    company: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean };
   };
   error?: string;
 };
 
 export type CompaniesResponse = {
   success: boolean;
-  data?: Array<{ id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean }>;
+  data?: Array<{ id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean }>;
+  error?: string;
+};
+
+export type RegisterResponse = {
+  success: boolean;
+  data?: {
+    user: { id: string; email: string; name: string; role: string };
+    token: string;
+    company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean; technicalServicesEnabled: boolean };
+  };
   error?: string;
 };
 
@@ -78,6 +88,21 @@ export const authApi = {
     request<LoginResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password, companyId }),
+    }),
+
+  register: (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    companyName: string;
+    workifyEnabled?: boolean;
+    shopflowEnabled?: boolean;
+    technicalServicesEnabled?: boolean;
+  }) =>
+    request<RegisterResponse>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 
   me: () => request<MeResponse>("/api/auth/me"),

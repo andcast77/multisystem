@@ -1,52 +1,84 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Hero } from "@/components/Hero";
+import { ModuleCard } from "@/components/ModuleCard";
+import { FeaturesSection } from "@/components/FeaturesSection";
+import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
+import { ShoppingCart, Users, Wrench, Settings } from "lucide-react";
 
 export default async function Home() {
   const cookieStore = await cookies();
   const hasToken = !!cookieStore.get("token")?.value;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-12 px-4">
-        <h1 className="text-4xl font-bold text-center mb-8">Multisystem Hub</h1>
-
-        <p className="text-center text-gray-600 mb-6">
-          Punto de entrada unificado. Aquí puedes registrar tu empresa y acceder a los módulos.
-        </p>
-
-        <div className="flex justify-center gap-4 mb-8 flex-wrap">
-          <AuthActions hasToken={hasToken} />
-          {!hasToken && (
-            <Link
-              href="/register"
-              className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700"
-            >
-              Registrar empresa
+    <>
+      <div className="min-h-screen flex flex-col">
+        <header className="border-b-2 border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              Multisystem
             </Link>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">🏪 ShopFlow</h2>
-            <p className="text-gray-600 mb-4">Sistema de punto de venta y gestión de inventario</p>
-            <Link href="/shopflow" className="text-blue-600 hover:underline">Acceder →</Link>
+            <nav>
+              <AuthActions hasToken={hasToken} />
+            </nav>
           </div>
+        </header>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">👥 Workify</h2>
-            <p className="text-gray-600 mb-4">Sistema de gestión de empleados y horarios</p>
-            <Link href="/workify" className="text-blue-600 hover:underline">Acceder →</Link>
-          </div>
+        <main className="flex-grow">
+          <Hero hasToken={hasToken} />
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">⚙️ Configuración</h2>
-            <p className="text-gray-600 mb-4">Configuración del sistema multisystem</p>
-            <span className="text-gray-400">Próximamente</span>
-          </div>
-        </div>
+          <FeaturesSection />
+
+          <section className="py-20 px-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+                  Módulos disponibles
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Accede a los módulos que tu empresa tiene activados
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <ModuleCard
+                  icon={<ShoppingCart className="w-8 h-8 text-primary" />}
+                  title="ShopFlow"
+                  description="Sistema de punto de venta y gestión de inventario"
+                  features={["Gestión de productos", "Punto de venta rápido", "Reportes de ventas"]}
+                  href="/shopflow"
+                />
+
+                <ModuleCard
+                  icon={<Users className="w-8 h-8 text-primary" />}
+                  title="Workify"
+                  description="Sistema de gestión de empleados y horarios"
+                  features={["Gestión de turnos", "Control de asistencia", "Nómina integrada"]}
+                  href="/workify"
+                />
+
+                <ModuleCard
+                  icon={<Wrench className="w-8 h-8 text-primary" />}
+                  title="Servicios Técnicos"
+                  description="Ordenes de trabajo, activos y visitas técnicas"
+                  features={["Órdenes de trabajo", "Gestión de activos", "Visitas técnicas"]}
+                  href="/techservices"
+                />
+
+                <ModuleCard
+                  icon={<Settings className="w-8 h-8 text-muted-foreground" />}
+                  title="Configuración"
+                  description="Configuración del sistema multisystem"
+                  disabled={true}
+                />
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <Footer />
       </div>
-    </main>
+    </>
   );
 }

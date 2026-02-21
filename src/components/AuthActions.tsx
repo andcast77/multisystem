@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "@multisystem/ui";
 import { clearTokenCookie } from "@/lib/auth";
 
 type Props = {
@@ -15,21 +16,21 @@ export function AuthActions({ hasToken }: Props) {
 
   if (hasToken) {
     return (
-      <button
+      <Button
         onClick={handleLogout}
-        className="bg-gray-600 text-white px-4 py-2 rounded font-medium hover:bg-gray-700"
+        variant="secondary"
+        size="md"
       >
         Cerrar sesión
-      </button>
+      </Button>
     );
   }
 
   return (
-    <Link
-      href="/login"
-      className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700"
-    >
-      Iniciar sesión
+    <Link href="/login" className="inline-block">
+      <Button variant="default" size="md">
+        Iniciar sesión
+      </Button>
     </Link>
   );
 }
