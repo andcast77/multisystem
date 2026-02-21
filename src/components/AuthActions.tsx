@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Button } from "@multisystem/ui";
 import { clearTokenCookie } from "@/lib/auth";
 

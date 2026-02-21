@@ -3,8 +3,9 @@
  */
 
 import { getTokenFromCookie } from "./auth";
+import type { Company, CompanyStats, CompanyMember, UpdateCompanyInput } from "@/types/company";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export type LoginResponse = {
   success: boolean;
@@ -114,4 +115,38 @@ export const authApi = {
     }),
 
   companies: () => request<CompaniesResponse>("/api/auth/companies"),
+};
+
+export const companyApi = {
+  getCompany: (id: string) =>
+    request<{ success: boolean; data: Company; error?: string }>(
+      `/api/companies/${id}`
+    ),
+
+  getCompanyStats: (id: string) =>
+    request<{ success: boolean; data: CompanyStats; error?: string }>(
+      `/api/companies/${id}/stats`
+    ),
+
+  updateCompany: (id: string, data: UpdateCompanyInput) =>
+    request<{ success: boolean; data: Company; message?: string; error?: string }>(
+      `/api/companies/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    ),
+
+  deleteCompany: (id: string) =>
+    request<{ success: boolean; message?: string; error?: string }>(
+      `/api/companies/${id}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  getCompanyMembers: (id: string) =>
+    request<{ success: boolean; data: CompanyMember[]; error?: string }>(
+      `/api/companies/${id}/members`
+    ),
 };
