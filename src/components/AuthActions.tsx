@@ -25,7 +25,7 @@ export function AuthActions({ hasToken }: Props) {
   }
 
   return (
-    <Link href="/login" className="inline-block">
+    <Link to="/login" className="inline-block">
       <Button variant="default" size="md">
         Iniciar sesión
       </Button>

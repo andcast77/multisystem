@@ -67,7 +67,7 @@ export function ModuleCard({
   }
 
   return (
-    <Link href={href} className="block h-full">
+    <Link to={href} className="block h-full">
       {content}
     </Link>
   );

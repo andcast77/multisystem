@@ -39,13 +39,13 @@ export function Hero({ hasToken }: HeroProps) {
         <div className="flex gap-4 justify-center flex-wrap mb-12">
           {!hasToken && (
             <>
-              <Link href="/login" className="inline-block">
+              <Link to="/login" className="inline-block">
                 <Button variant="default" size="lg" className="gap-2 bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                   Iniciar sesión
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/register" className="inline-block">
+              <Link to="/register" className="inline-block">
                 <Button variant="outline" size="lg" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10">
                   Registrar empresa
                 </Button>
