@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { useCompany } from "@/hooks/useCompany";
 import { useCompanyStats } from "@/hooks/useCompanyStats";
@@ -77,7 +77,7 @@ export default function DashboardPage() {
             <p className="text-slate-600 mt-1">Panel de control de la empresa</p>
           </div>
           {isAdmin && (
-            <Link href="/dashboard/settings">
+            <Link to="/dashboard/settings">
               <Button variant="outline">
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración

@@ -1,6 +1,8 @@
-import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Hero } from "@/components/Hero";
 import { ModuleCard } from "@/components/ModuleCard";
 import { FeaturesSection } from "@/components/FeaturesSection";
@@ -8,21 +10,22 @@ import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
 import { ShoppingCart, Users, Wrench, Settings } from "lucide-react";
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const hasToken = !!cookieStore.get("token")?.value;
+export default function Home() {
+  const navigate = useNavigate();
 
-  // Redirect logged-in users to dashboard
-  if (hasToken) {
-    redirect("/dashboard");
-  }
+  useEffect(() => {
+    const token = localStorage.getItem("token") || document.cookie.includes("token");
+    if (token) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <>
       <div className="min-h-screen flex flex-col">
         <header className="border-b-2 border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
               Multisystem
             </Link>
             <nav>

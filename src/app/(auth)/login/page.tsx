@@ -1,10 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 import { authApi } from "@/lib/api-client";
 import { setTokenCookie } from "@/lib/auth";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
@@ -38,7 +35,7 @@ type Company = {
 };
 
 export default function LoginPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -59,14 +56,14 @@ export default function LoginPage() {
     const checkAuth = async () => {
       try {
         await authApi.me();
-        router.push("/dashboard");
+        navigate("/dashboard", { replace: true });
       } catch {
         setIsChecking(false);
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [navigate]);
 
   async function onSubmit(data: LoginInput) {
     try {
@@ -77,7 +74,7 @@ export default function LoginPage() {
       setTokenCookie(newToken);
       setToken(newToken);
 
-      router.push("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login error:", err);
     }
@@ -145,16 +142,15 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
-                {/* Links */}
                 <div className="mt-6 text-center space-y-3">
                   <p className="text-sm text-slate-600">
                     ¿No tienes cuenta?{" "}
-                    <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
                       Registrarse
                     </Link>
                   </p>
                   <p className="text-xs text-slate-500">
-                    <Link href="/" className="text-slate-600 hover:text-slate-700">
+                    <Link to="/" className="text-slate-600 hover:text-slate-700">
                       Volver al Hub
                     </Link>
                   </p>

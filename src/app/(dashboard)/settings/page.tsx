@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUser } from "@/hooks/useUser";
@@ -30,7 +30,7 @@ import { DeleteCompanyDialog } from "@/components/features/DeleteCompanyDialog";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useUser();
   const { data: company } = useCompany(user?.companyId);
