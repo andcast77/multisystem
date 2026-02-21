@@ -1,10 +1,7 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 import { authApi } from "@/lib/api-client";
 import { setTokenCookie } from "@/lib/auth";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
@@ -17,34 +14,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@multisystem/ui";
 
-type Company = {
-  id: string;
-  name: string;
-  workifyEnabled: boolean;
-  shopflowEnabled: boolean;
-  technicalServicesEnabled: boolean;
-};
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [isSelectingCompany, setIsSelectingCompany] = useState(false);
-  const [token, setToken] = useState("");
+export function LoginPage() {
+  const navigate = useNavigate();
 
   const {
     register,
@@ -59,31 +32,28 @@ export default function LoginPage() {
     const checkAuth = async () => {
       try {
         await authApi.me();
-        router.push("/dashboard");
+        navigate("/dashboard", { replace: true });
       } catch {
-        setIsChecking(false);
+        // Not logged in, stay on login page
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [navigate]);
 
   async function onSubmit(data: LoginInput) {
     try {
       const res = await authApi.login(data.email, data.password);
       if (!res.success || !res.data) return;
 
-      const { token: newToken, company, companies: companiesList } = res.data;
-      setTokenCookie(newToken);
-      setToken(newToken);
+      const { token } = res.data;
+      setTokenCookie(token);
 
-      router.push("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login error:", err);
     }
   }
-
-  if (isChecking) return null;
 
   return (
     <>
@@ -149,12 +119,12 @@ export default function LoginPage() {
                 <div className="mt-6 text-center space-y-3">
                   <p className="text-sm text-slate-600">
                     ¿No tienes cuenta?{" "}
-                    <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
                       Registrarse
                     </Link>
                   </p>
                   <p className="text-xs text-slate-500">
-                    <Link href="/" className="text-slate-600 hover:text-slate-700">
+                    <Link to="/" className="text-slate-600 hover:text-slate-700">
                       Volver al Hub
                     </Link>
                   </p>

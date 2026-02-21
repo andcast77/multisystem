@@ -1,7 +1,5 @@
-"use client";
-
 import React from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@multisystem/ui";
 import { ArrowRight, Lock } from "lucide-react";
 

@@ -1,10 +1,7 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 import { authApi } from "@/lib/api-client";
 import { setTokenCookie } from "@/lib/auth";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
@@ -17,19 +14,16 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   ScrollArea,
 } from "@multisystem/ui";
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+export function RegisterPage() {
+  const navigate = useNavigate();
   const [showTermsModal, setShowTermsModal] = useState(false);
 
   const {
@@ -48,14 +42,14 @@ export default function RegisterPage() {
     const checkAuth = async () => {
       try {
         await authApi.me();
-        router.push("/dashboard");
+        navigate("/dashboard", { replace: true });
       } catch {
-        setIsChecking(false);
+        // Not logged in, stay on register page
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [navigate]);
 
   async function onSubmit(data: RegisterInput) {
     try {
@@ -73,14 +67,10 @@ export default function RegisterPage() {
       }
 
       setTokenCookie(res.data.token);
-      router.push("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Registration error:", err);
     }
-  }
-
-  if (isChecking) {
-    return null;
   }
 
   return (
@@ -237,7 +227,7 @@ export default function RegisterPage() {
                 <div className="mt-6 text-center">
                   <p className="text-sm text-slate-600">
                     ¿Ya tienes cuenta?{" "}
-                    <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
                       Inicia sesión
                     </Link>
                   </p>

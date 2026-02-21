@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@multisystem/ui/styles.css";
 import "./globals.css";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }
