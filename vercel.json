@@ -1,4 +1,0 @@
-{
-  "buildCommand": "pnpm run build:hub",
-  "outputDirectory": "apps/hub/dist"
-}
