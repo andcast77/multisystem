@@ -1,4 +1,0 @@
-onlyBuiltDependencies:
-  - '@multisystem/ui'
-  - esbuild
-  - sharp
