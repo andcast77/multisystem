@@ -91,11 +91,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await authApi.post<{ success?: boolean; data?: { token?: string } }>("/context", {
+      const res = await authApi.post<{
+        success?: boolean;
+        data?: { token?: string };
+        error?: string;
+      }>("/context", {
         companyId: selectedCompanyId,
       });
       if (!res?.success || !res.data?.token) {
-        setError(res?.error || "Error al seleccionar empresa");
+        setError(res?.error ?? "Error al seleccionar empresa");
         return;
       }
       setTokenCookie(res.data.token);

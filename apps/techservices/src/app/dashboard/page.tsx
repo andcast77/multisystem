@@ -21,10 +21,10 @@ export default function DashboardPage() {
       const assetsResponse = await techServicesApi.get<ApiResponse<Asset[]>>("/assets");
 
       if (ordersResponse.success && ordersResponse.data) {
-        const open = ordersResponse.data.filter((o) => o.status === "OPEN").length;
+        const open = ordersResponse.data.filter((o: WorkOrder) => o.status === "OPEN").length;
         setOpenOrders(open);
         setScheduledVisits(
-          ordersResponse.data.filter((o) => o.status === "IN_PROGRESS" || o.status === "ON_HOLD").length
+          ordersResponse.data.filter((o: WorkOrder) => o.status === "IN_PROGRESS" || o.status === "ON_HOLD").length
         );
       }
       if (assetsResponse.success && assetsResponse.data) {

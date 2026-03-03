@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalEnv": ["VITE_API_URL"],
+  "globalEnv": ["VITE_API_URL", "DATABASE_URL", "DIRECT_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

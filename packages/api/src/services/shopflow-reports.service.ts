@@ -118,7 +118,7 @@ export async function getDaily(
       revenue: Number(s.revenue),
     })
   })
-  const result = []
+  const result: { date: string; sales: number; revenue: number }[] = []
   for (let i = 0; i < days; i++) {
     const date = new Date(startDate)
     date.setDate(date.getDate() + i)

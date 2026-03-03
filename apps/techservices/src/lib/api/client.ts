@@ -97,4 +97,4 @@ export const authApi = {
     apiClient.post<T>(`/api/auth${endpoint}`, data, options),
 };
 
-export type { ApiResponse } from "@multisystem/api-types";
+export type { ApiResponse } from "@multisystem/contracts";

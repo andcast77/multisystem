@@ -144,10 +144,10 @@ export async function listProducts(
           ),
       minStockThreshold != null && !isNaN(minStockThreshold)
         ? prisma.$queryRaw<ProductRow[]>(
-            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${ctx.companyId} AND active = true AND stock <= ${minStockThreshold} ORDER BY ${Prisma.raw(`"${orderCol}"`)} ${Prisma.raw(sortOrder === 'desc' ? 'DESC' : 'ASC')} LIMIT ${limit} OFFSET ${skip}`
+            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${ctx.companyId} AND active = true AND stock <= ${minStockThreshold} ORDER BY ${Prisma.raw(`"${orderCol}"`)} ${Prisma.raw(String(sortOrder === 'desc' ? 'DESC' : 'ASC'))} LIMIT ${limit} OFFSET ${skip}`
           )
         : prisma.$queryRaw<ProductRow[]>(
-            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${ctx.companyId} AND active = true AND stock <= COALESCE("minStock", 0) ORDER BY ${Prisma.raw(`"${orderCol}"`)} ${Prisma.raw(sortOrder === 'desc' ? 'DESC' : 'ASC')} LIMIT ${limit} OFFSET ${skip}`
+            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${ctx.companyId} AND active = true AND stock <= COALESCE("minStock", 0) ORDER BY ${Prisma.raw(`"${orderCol}"`)} ${Prisma.raw(String(sortOrder === 'desc' ? 'DESC' : 'ASC'))} LIMIT ${limit} OFFSET ${skip}`
           ),
     ])
     const total = Number(totalResult[0]?.count ?? 0)
