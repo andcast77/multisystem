@@ -1,6 +1,5 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm run build:api",
-  "outputDirectory": "dist",
   "framework": null
 }
