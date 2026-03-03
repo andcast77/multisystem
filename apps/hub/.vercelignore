@@ -1,0 +1,5 @@
+# Scripts de desarrollo (no necesarios en build)
+scripts/
+
+# Documentación (no necesaria en build)
+docs/

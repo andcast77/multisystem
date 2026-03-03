@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js.snap
+
+# Prisma
+prisma/migrations/
+
+# Misc
+.cache/
+.turbo/
+
+# Servicios backend - Proyectos separados (repositorios independientes)
+# services/api y services/database son repositorios Git independientes
+# Se clonan localmente para desarrollo (NO son submodules)
+# Se despliegan por separado en Railway
+# NO son necesarios para el build del Hub en Vercel (comunicación solo por HTTP)
+services/
+
+# Módulos frontend - Proyectos separados (repositorios independientes)
+# Los módulos frontend (ShopFlow, Workify) son repositorios Git independientes
+# Se clonan localmente para desarrollo con scripts/setup-modules-dev.sh
+# Se despliegan por separado en Vercel
+# Son solo clones locales para tener contexto, NO deben estar en el build
+modules/
