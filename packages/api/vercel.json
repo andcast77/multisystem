@@ -1,4 +1,0 @@
-{
-  "buildCommand": "cd ../.. && pnpm --filter @multisystem/database migrate:deploy && pnpm turbo build --filter=@multisystem/api",
-  "installCommand": "pnpm install"
-}

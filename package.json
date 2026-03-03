@@ -8,6 +8,7 @@
     "dev:hub": "pnpm --filter @multisystem/ui build && turbo run dev --filter=@multisystem/api --filter=@multisystem/hub",
     "build": "turbo run build",
     "build:hub": "turbo run build --filter=@multisystem/ui --filter=@multisystem/hub",
+    "build:api": "turbo run build --filter=@multisystem/api",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue"
   },
