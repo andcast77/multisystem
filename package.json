@@ -7,7 +7,7 @@
     "dev": "turbo run dev",
     "dev:hub": "pnpm --filter @multisystem/ui build && turbo run dev --filter=@multisystem/api --filter=@multisystem/hub",
     "build": "turbo run build",
-    "build:hub": "turbo run build --filter=./apps/hub",
+    "build:hub": "turbo run build --filter=@multisystem/hub",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue"
   },
