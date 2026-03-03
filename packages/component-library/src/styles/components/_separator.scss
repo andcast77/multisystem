@@ -1,0 +1,21 @@
+// Separator Component Styles
+// ==========================
+
+@use '../index' as *;
+
+.ui-separator {
+  flex-shrink: 0;
+  background-color: hsl(var(--border));
+
+  // Horizontal separator
+  &--horizontal {
+    height: 1px;
+    width: 100%;
+  }
+
+  // Vertical separator
+  &--vertical {
+    height: 100%;
+    width: 1px;
+  }
+}

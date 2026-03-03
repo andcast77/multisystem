@@ -1,0 +1,81 @@
+// Table Component Styles
+// ======================
+
+@use '../index' as *;
+
+.ui-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+}
+
+.ui-table {
+  width: 100%;
+  caption-side: bottom;
+  font-size: $font-size-sm;
+}
+
+.ui-table__header {
+  tr {
+    border-bottom: 1px solid hsl(var(--border));
+  }
+}
+
+.ui-table__body {
+  tr:last-child {
+    border-bottom: 0;
+  }
+}
+
+.ui-table__footer {
+  border-top: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted) / 0.5);
+  font-weight: $font-weight-medium;
+
+  tr:last-child {
+    border-bottom: 0;
+  }
+}
+
+.ui-table__row {
+  border-bottom: 1px solid hsl(var(--border));
+  @include ui-transition(colors);
+
+  &:hover {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  &[data-state="selected"] {
+    background-color: hsl(var(--muted));
+  }
+}
+
+.ui-table__head {
+  height: 3rem; // h-12
+  padding: 0 $spacing-4;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: $font-weight-medium;
+  color: hsl(var(--muted-foreground));
+
+  // Checkbox column (no right padding)
+  &:has([role="checkbox"]) {
+    padding-right: 0;
+  }
+}
+
+.ui-table__cell {
+  padding: $spacing-4;
+  vertical-align: middle;
+
+  // Checkbox column (no right padding)
+  &:has([role="checkbox"]) {
+    padding-right: 0;
+  }
+}
+
+.ui-table__caption {
+  margin-top: $spacing-4;
+  font-size: $font-size-sm;
+  color: hsl(var(--muted-foreground));
+}

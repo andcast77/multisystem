@@ -1,0 +1,130 @@
+// SCSS Mixins - Reusable style patterns
+// ======================================
+
+@use 'variables' as *;
+
+// Focus ring mixin (standardized across all interactive components)
+@mixin ui-focus-ring($color: hsl(var(--ring)), $offset: 2px) {
+  outline: none;
+  box-shadow: 0 0 0 $offset hsl(var(--background)), 0 0 0 calc($offset + 2px) $color;
+}
+
+// Smooth transitions
+@mixin ui-transition($properties...) {
+  transition-property: #{$properties};
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+// Elevation/shadow levels
+@mixin ui-elevation($level: 1) {
+  @if $level == 0 {
+    box-shadow: none;
+  } @else if $level == 1 {
+    box-shadow: $shadow-sm;
+  } @else if $level == 2 {
+    box-shadow: $shadow;
+  } @else if $level == 3 {
+    box-shadow: $shadow-md;
+  } @else if $level == 4 {
+    box-shadow: $shadow-lg;
+  } @else if $level == 5 {
+    box-shadow: $shadow-xl;
+  }
+}
+
+// Truncate text with ellipsis
+@mixin ui-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Flexbox center alignment
+@mixin ui-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Visually hidden (accessible but invisible)
+@mixin ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// Responsive breakpoint mixin
+@mixin ui-breakpoint($breakpoint) {
+  @if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) { @content; }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) { @content; }
+  } @else if $breakpoint == 2xl {
+    @media (min-width: $breakpoint-2xl) { @content; }
+  }
+}
+
+// Disabled state styling
+@mixin ui-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+// Reset button styles
+@mixin ui-button-reset {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+}
+
+// Backdrop blur effect
+@mixin ui-backdrop-blur($amount: 8px) {
+  backdrop-filter: blur($amount);
+  -webkit-backdrop-filter: blur($amount);
+}
+
+// Gradient background
+@mixin ui-gradient($from, $to, $direction: to right) {
+  background: linear-gradient($direction, $from, $to);
+}
+
+// Animation presets
+@mixin ui-animate-in {
+  animation: ui-fade-in 200ms ease-out;
+}
+
+@mixin ui-animate-out {
+  animation: ui-fade-out 150ms ease-in;
+}
+
+// Overlay/backdrop common styles
+@mixin ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal-backdrop;
+  background-color: hsl(0 0% 0% / 0.5);
+}
+
+// Card/panel base styles
+@mixin ui-panel {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: $radius-2xl;
+  @include ui-elevation(1);
+}

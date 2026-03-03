@@ -1,0 +1,44 @@
+// Checkbox Component Styles
+// =========================
+
+@use '../index' as *;
+
+.ui-checkbox {
+  // Base checkbox styles
+  height: 1rem; // h-4
+  width: 1rem; // w-4
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  border: 1px solid hsl(var(--primary));
+  @include ui-transition(all);
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  }
+
+  // Disabled state
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  // Checked state
+  &[data-state="checked"] {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+.ui-checkbox__indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+
+  .lucide {
+    height: 0.875rem; // h-3.5
+    width: 0.875rem; // w-3.5
+  }
+}

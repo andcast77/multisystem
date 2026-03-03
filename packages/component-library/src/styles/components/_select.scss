@@ -1,0 +1,64 @@
+// Select Component Styles
+// =======================
+// TODO: This is a placeholder - needs full implementation based on Radix UI Select
+
+@use '../index' as *;
+
+.ui-select__trigger {
+  display: flex;
+  height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: $radius-lg;
+  border: 1px solid hsl(var(--input));
+  background-color: hsl(var(--background));
+  padding: 0 $spacing-3;
+  font-size: $font-size-sm;
+  @include ui-transition(all);
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.ui-select__content {
+  position: relative;
+  z-index: $z-dropdown;
+  max-height: 24rem;
+  min-width: 8rem;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  @include ui-elevation(3);
+}
+
+.ui-select__item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border-radius: $radius-sm;
+  padding: $spacing-2 $spacing-8 $spacing-2 $spacing-2;
+  font-size: $font-size-sm;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  &[data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+}

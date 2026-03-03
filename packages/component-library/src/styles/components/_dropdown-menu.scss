@@ -1,0 +1,59 @@
+// Dropdown Menu Component Styles
+// ===============================
+// TODO: This is a placeholder - needs full implementation based on Radix UI DropdownMenu
+
+@use '../index' as *;
+
+.ui-dropdown-menu__content {
+  z-index: $z-dropdown;
+  min-width: 8rem;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  @include ui-elevation(3);
+  padding: $spacing-1;
+
+  &[data-state="open"] {
+    @include ui-animate-in;
+  }
+
+  &[data-state="closed"] {
+    @include ui-animate-out;
+  }
+}
+
+.ui-dropdown-menu__item {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  border-radius: $radius-sm;
+  padding: $spacing-2 $spacing-8 $spacing-2 $spacing-2;
+  font-size: $font-size-sm;
+  outline: none;
+  @include ui-transition(colors);
+
+  &:focus {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  &[data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+}
+
+.ui-dropdown-menu__label {
+  padding: $spacing-2 $spacing-8 $spacing-2 $spacing-2;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.ui-dropdown-menu__separator {
+  margin: $spacing-1 (-$spacing-1);
+  height: 1px;
+  background-color: hsl(var(--border));
+}

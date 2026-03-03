@@ -1,0 +1,41 @@
+// Input Component Styles
+// ======================
+
+@use '../index' as *;
+
+.ui-input {
+  // Base input styles
+  display: flex;
+  height: 2.75rem; // h-11
+  width: 100%;
+  border-radius: $radius-xl;
+  border: 1px solid hsl(215.4 16.3% 46.9% / 0.8);
+  background-color: hsl(0 0% 100% / 0.85);
+  padding: $spacing-2 $spacing-3;
+  font-size: $font-size-base;
+  color: hsl(215.4 16.3% 26.9%);
+  @include ui-elevation(1);
+  @include ui-transition(all);
+
+  // Responsive font size
+  @include ui-breakpoint(md) {
+    font-size: $font-size-sm;
+  }
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(221.2 83.2% 53.3% / 0.6);
+  }
+
+  // Disabled state
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  // Placeholder
+  &::placeholder {
+    color: hsl(215.4 16.3% 46.9% / 0.6);
+  }
+}

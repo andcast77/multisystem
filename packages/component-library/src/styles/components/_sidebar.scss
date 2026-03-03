@@ -1,0 +1,49 @@
+// Sidebar Component Styles
+// ========================
+// TODO: This is a placeholder - needs full implementation
+
+@use '../index' as *;
+
+.ui-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
+}
+
+.ui-sidebar__header {
+  padding: $spacing-4;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.ui-sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-4;
+}
+
+.ui-sidebar__footer {
+  padding: $spacing-4;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.ui-sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  @include ui-transition(colors);
+
+  &:hover {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  &--active {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+}

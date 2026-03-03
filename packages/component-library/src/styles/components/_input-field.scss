@@ -1,0 +1,30 @@
+// Input Field Component Styles
+// ============================
+// Composite component with label + input + error message
+
+@use '../index' as *;
+
+.ui-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.ui-input-field__label {
+  // Inherits from .ui-label
+}
+
+.ui-input-field__input {
+  // Inherits from .ui-input
+}
+
+.ui-input-field__error {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: hsl(var(--destructive));
+}
+
+.ui-input-field__description {
+  font-size: $font-size-sm;
+  color: hsl(var(--muted-foreground));
+}

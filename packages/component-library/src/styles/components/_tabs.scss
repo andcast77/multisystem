@@ -1,0 +1,57 @@
+// Tabs Component Styles
+// =====================
+// Note: Root element handled by Radix UI, no specific styles needed
+
+@use '../index' as *;
+
+.ui-tabs__list {
+  display: inline-flex;
+  height: 2.5rem; // h-10
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  background-color: hsl(var(--muted));
+  padding: $spacing-1;
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-tabs__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: $radius-sm;
+  padding: $spacing-3 $spacing-1 + 0.125rem; // px-3 py-1.5
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  @include ui-transition(all);
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  }
+
+  // Disabled state
+  &:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  // Active state
+  &[data-state="active"] {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    @include ui-elevation(1);
+  }
+}
+
+.ui-tabs__content {
+  margin-top: $spacing-2;
+  
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  }
+}

@@ -1,0 +1,30 @@
+// Main SCSS Entry Point
+// ======================
+// This file imports all component styles and is compiled to dist/styles.css
+
+// 1. Theme and variables (must be first)
+@use 'theme';
+
+// 2. Component styles (alphabetical order)
+// Note: Components use @use to import variables/mixins as needed
+@use 'components/alert';
+@use 'components/alert-dialog';
+@use 'components/badge';
+@use 'components/button';
+@use 'components/card';
+@use 'components/checkbox';
+@use 'components/dialog';
+@use 'components/dropdown-menu';
+@use 'components/input';
+@use 'components/input-field';
+@use 'components/label';
+@use 'components/progress';
+@use 'components/scroll-area';
+@use 'components/select';
+@use 'components/separator';
+@use 'components/sidebar';
+@use 'components/skeleton';
+@use 'components/switch';
+@use 'components/table';
+@use 'components/tabs';
+@use 'components/textarea';

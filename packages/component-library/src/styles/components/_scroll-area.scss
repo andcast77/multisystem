@@ -1,0 +1,46 @@
+// Scroll Area Component Styles
+// ============================
+// TODO: This is a placeholder - needs full implementation based on Radix UI ScrollArea
+
+@use '../index' as *;
+
+.ui-scroll-area {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-scroll-area__viewport {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+}
+
+.ui-scroll-area__scrollbar {
+  display: flex;
+  touch-action: none;
+  user-select: none;
+  @include ui-transition(background-color);
+
+  &--vertical {
+    height: 100%;
+    width: 0.625rem;
+    border-left: 1px solid transparent;
+  }
+
+  &--horizontal {
+    height: 0.625rem;
+    width: 100%;
+    border-top: 1px solid transparent;
+  }
+}
+
+.ui-scroll-area__thumb {
+  position: relative;
+  flex: 1;
+  border-radius: $radius-full;
+  background-color: hsl(var(--border));
+
+  &:hover {
+    background-color: hsl(var(--border) / 0.8);
+  }
+}

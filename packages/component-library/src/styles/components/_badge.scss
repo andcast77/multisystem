@@ -1,0 +1,59 @@
+// Badge Component Styles
+// ======================
+
+@use '../index' as *;
+
+.ui-badge {
+  // Base badge styles
+  display: inline-flex;
+  align-items: center;
+  border-radius: $radius-full;
+  border: 1px solid transparent;
+  padding: $spacing-1 $spacing-2 + 0.125rem; // px-2.5 py-0.5
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  @include ui-transition(colors);
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(221.2 83.2% 53.3% / 0.6);
+  }
+
+  // Variant styles
+  &--default {
+    border-color: transparent;
+    background-color: hsl(238 83.5% 66.7%);
+    color: white;
+
+    &:hover {
+      background-color: hsl(238 83.5% 61.7%);
+    }
+  }
+
+  &--secondary {
+    border-color: transparent;
+    background-color: hsl(210 40% 96.1%);
+    color: hsl(215.4 16.3% 46.9%);
+
+    &:hover {
+      background-color: hsl(214.3 31.8% 91.4%);
+    }
+  }
+
+  &--destructive,
+  &--danger {
+    border-color: transparent;
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+
+    &:hover {
+      background-color: hsl(var(--destructive) / 0.8);
+    }
+  }
+
+  &--outline {
+    border-color: hsl(214.3 31.8% 91.4%);
+    color: hsl(215.4 16.3% 46.9%);
+    background-color: transparent;
+  }
+}

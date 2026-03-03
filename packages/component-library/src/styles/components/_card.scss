@@ -1,0 +1,45 @@
+// Card Component Styles
+// =====================
+
+@use '../index' as *;
+
+.ui-card {
+  // Base card styles
+  border-radius: $radius-2xl;
+  border: 1px solid hsl(var(--border) / 0.7);
+  background-color: hsl(var(--card) / 0.9);
+  color: hsl(var(--card-foreground));
+  @include ui-elevation(1);
+  @include ui-backdrop-blur;
+}
+
+.ui-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1 + 0.125rem; // space-y-1.5
+  padding: $spacing-6;
+}
+
+.ui-card__title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-none;
+  letter-spacing: -0.025em;
+}
+
+.ui-card__description {
+  font-size: $font-size-sm;
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-card__content {
+  padding: $spacing-6;
+  padding-top: 0;
+}
+
+.ui-card__footer {
+  display: flex;
+  align-items: center;
+  padding: $spacing-6;
+  padding-top: 0;
+}
