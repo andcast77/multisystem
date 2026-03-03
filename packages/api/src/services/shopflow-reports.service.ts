@@ -40,7 +40,7 @@ export async function getStats(
   }
   const { startDate, endDate } = query
 
-  const where: Parameters<typeof prisma.sale.aggregate>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
   }
@@ -150,7 +150,7 @@ export async function getTopProducts(
   const limit = parseInt(query.limit || '10')
   const { startDate, endDate, categoryId } = query
 
-  const whereSale: Parameters<typeof prisma.sale.findMany>[0]['where'] = {
+  const whereSale: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
   }
@@ -216,7 +216,7 @@ export async function getPaymentMethods(
   }
   const { startDate, endDate } = query
 
-  const where: Parameters<typeof prisma.sale.groupBy>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
   }
@@ -256,7 +256,7 @@ export async function getInventory(
     return { success: false, error: 'Forbidden' }
   }
 
-  const productWhere: Parameters<typeof prisma.product.findMany>[0]['where'] = {
+  const productWhere: Prisma.ProductWhereInput = {
     companyId: ctx.companyId,
     active: true,
   }
@@ -330,7 +330,7 @@ export async function getToday(
   const endOfDay = new Date(today)
   endOfDay.setHours(23, 59, 59, 999)
 
-  const where: Parameters<typeof prisma.sale.aggregate>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
     createdAt: { gte: today, lte: endOfDay },
@@ -384,7 +384,7 @@ export async function getWeek(
   endOfWeek.setDate(endOfWeek.getDate() + 6)
   endOfWeek.setHours(23, 59, 59, 999)
 
-  const where: Parameters<typeof prisma.sale.aggregate>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
     createdAt: { gte: startOfWeek, lte: endOfWeek },
@@ -422,7 +422,7 @@ export async function getMonth(
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
   endOfMonth.setHours(23, 59, 59, 999)
 
-  const where: Parameters<typeof prisma.sale.aggregate>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     status: 'COMPLETED',
     createdAt: { gte: startOfMonth, lte: endOfMonth },
@@ -458,7 +458,7 @@ export async function getByUser(
     return { success: false, error: 'Usuario no encontrado' }
   }
 
-  const where: Parameters<typeof prisma.sale.aggregate>[0]['where'] = {
+  const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
     userId,
     status: 'COMPLETED',

@@ -1,4 +1,4 @@
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 
 type EmployeeRow = {
@@ -31,7 +31,7 @@ export async function listEmployees(
   const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? '10', 10) || 10))
   const skip = (page - 1) * limit
 
-  const where: Parameters<typeof prisma.employee.findMany>[0]['where'] = {
+  const where: Prisma.EmployeeWhereInput = {
     companyId: ctx.companyId,
     isDeleted: false,
   }

@@ -275,8 +275,12 @@ export async function updateProduct(
   if (body.stock !== undefined) data.stock = body.stock
   if (body.minStock !== undefined) data.minStock = body.minStock
   if (body.maxStock !== undefined) data.maxStock = body.maxStock
-  if (body.categoryId !== undefined) data.categoryId = body.categoryId
-  if (body.supplierId !== undefined) data.supplierId = body.supplierId
+  if (body.categoryId !== undefined) {
+    data.category = body.categoryId ? { connect: { id: body.categoryId } } : { disconnect: true }
+  }
+  if (body.supplierId !== undefined) {
+    data.supplier = body.supplierId ? { connect: { id: body.supplierId } } : { disconnect: true }
+  }
   if (body.storeId !== undefined) data.storeId = body.storeId
   if (body.active !== undefined) data.active = body.active
   if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl

@@ -289,51 +289,49 @@ export async function updateConcurrentSessions(
 }
 
 export async function registerRoutes(fastify: FastifyInstance) {
-  type Req = FastifyRequest
-  type Rep = FastifyReply
   fastify.post<{ Body: { email: string; password: string; companyId?: string } }>(
     '/api/auth/login',
-    (request: Req, reply: Rep) => login(request, reply)
+    (request, reply) => login(request, reply)
   )
-  fastify.post('/api/auth/logout', (request: Req, reply: Rep) => logout(request, reply))
+  fastify.post('/api/auth/logout', (request, reply) => logout(request, reply))
   fastify.post<{ Body: { email: string; password: string; firstName?: string; lastName?: string; companyName?: string; workifyEnabled?: boolean; shopflowEnabled?: boolean; technicalServicesEnabled?: boolean } }>(
     '/api/auth/register',
-    (request: Req, reply: Rep) => register(request, reply)
+    (request, reply) => register(request, reply)
   )
-  fastify.get('/api/auth/me', (request: Req, reply: Rep) => me(request, reply))
-  fastify.post<{ Body: { token: string } }>('/api/auth/verify', (request: Req, reply: Rep) => verify(request, reply))
-  fastify.get('/api/auth/companies', (request: Req, reply: Rep) => listCompanies(request, reply))
-  fastify.post<{ Body: { companyId: string } }>('/api/auth/context', (request: Req, reply: Rep) => setContext(request, reply))
+  fastify.get('/api/auth/me', (request, reply) => me(request, reply))
+  fastify.post<{ Body: { token: string } }>('/api/auth/verify', (request, reply) => verify(request, reply))
+  fastify.get('/api/auth/companies', (request, reply) => listCompanies(request, reply))
+  fastify.post<{ Body: { companyId: string } }>('/api/auth/context', (request, reply) => setContext(request, reply))
   fastify.post<{
     Body: { userId: string; sessionToken: string; ipAddress?: string; userAgent?: string; expiresAt?: string }
-  }>('/api/auth/sessions', { preHandler: [requireAuth] }, (request: Req, reply: Rep) => createSession(request, reply))
-  fastify.get<{ Querystring: { token: string } }>(
+  }>('/api/auth/sessions', { preHandler: [requireAuth] }, (request, reply) => createSession(request, reply))
+  fastify.get<{ Querystring: { token?: string } }>(
     '/api/auth/sessions/validate',
-    (request: Req, reply: Rep) => validateSession(request, reply)
+    (request, reply) => validateSession(request, reply)
   )
   fastify.get<{ Querystring: { userId: string } }>(
     '/api/auth/sessions',
     { preHandler: [requireAuth] },
-    (request: Req, reply: Rep) => listSessions(request, reply)
+    (request, reply) => listSessions(request, reply)
   )
   fastify.delete<{ Params: { token: string } }>(
     '/api/auth/sessions/:token',
     { preHandler: [requireAuth] },
-    (request: Req, reply: Rep) => deleteSession(request, reply)
+    (request, reply) => deleteSession(request, reply)
   )
   fastify.post<{ Body: { userId: string; currentSessionToken: string } }>(
     '/api/auth/sessions/terminate-others',
     { preHandler: [requireAuth] },
-    (request: Req, reply: Rep) => terminateOthersSessions(request, reply)
+    (request, reply) => terminateOthersSessions(request, reply)
   )
   fastify.post(
     '/api/auth/sessions/cleanup-expired',
     { preHandler: [requireAuth] },
-    (request: Req, reply: Rep) => cleanupExpiredSessions(request, reply)
+    (request, reply) => cleanupExpiredSessions(request, reply)
   )
   fastify.put<{ Params: { userId: string }; Body: { allowConcurrentSessions?: boolean } }>(
     '/api/auth/users/:userId/concurrent-sessions',
     { preHandler: [requireAuth] },
-    (request: Req, reply: Rep) => updateConcurrentSessions(request, reply)
+    (request, reply) => updateConcurrentSessions(request, reply)
   )
 }

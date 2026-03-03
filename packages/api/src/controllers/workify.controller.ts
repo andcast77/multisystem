@@ -70,7 +70,7 @@ export async function getEmployeeAttendance(
     const { id } = request.params
     const { month } = request.query
     const rows = await workifyService.getEmployeeAttendance(ctx, id, month)
-    const attendance = rows.map((r) => workifyHelper.toWorkifyAttendanceEntry(r))
+    const attendance = rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyAttendanceEntry(r))
     return { success: true, attendance }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al obtener asistencia')
@@ -81,7 +81,7 @@ export async function listPositions(request: FastifyRequest, reply: FastifyReply
   try {
     const ctx = getCtx(request)
     const rows = await workifyService.listPositions(ctx)
-    return { success: true, positions: rows.map((r) => workifyHelper.toWorkifyPosition(r)) }
+    return { success: true, positions: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyPosition(r)) }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar posiciones')
   }
@@ -107,7 +107,7 @@ export async function listRoles(request: FastifyRequest, reply: FastifyReply) {
   try {
     const ctx = getCtx(request)
     const rows = await workifyService.listRoles(ctx)
-    return { success: true, roles: rows.map((r) => workifyHelper.toWorkifyRole(r)) }
+    return { success: true, roles: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyRole(r)) }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar roles')
   }
@@ -133,7 +133,7 @@ export async function listHolidays(request: FastifyRequest, reply: FastifyReply)
   try {
     const ctx = getCtx(request)
     const rows = await workifyService.listHolidays(ctx)
-    return { success: true, holidays: rows.map((r) => workifyHelper.toWorkifyHoliday(r)) }
+    return { success: true, holidays: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyHoliday(r)) }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar festivos')
   }
@@ -159,7 +159,7 @@ export async function listWorkShifts(request: FastifyRequest, reply: FastifyRepl
   try {
     const ctx = getCtx(request)
     const rows = await workifyService.listWorkShifts(ctx)
-    return { success: true, workShifts: rows.map((r) => workifyHelper.toWorkifyWorkShift(r)) }
+    return { success: true, workShifts: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyWorkShift(r)) }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar turnos')
   }
@@ -182,7 +182,7 @@ export async function listTimeEntries(
   try {
     const ctx = getCtx(request)
     const rows = await workifyService.listTimeEntries(ctx, request.query)
-    return { success: true, timeEntries: rows.map((r) => workifyHelper.toWorkifyTimeEntry(r)) }
+    return { success: true, timeEntries: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifyTimeEntry(r)) }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar registros')
   }
@@ -208,7 +208,7 @@ export async function listSpecialAssignments(request: FastifyRequest, reply: Fas
     const rows = await workifyService.listSpecialAssignments(ctx)
     return {
       success: true,
-      specialAssignments: rows.map((r) => workifyHelper.toWorkifySpecialAssignment(r)),
+      specialAssignments: rows.map((r: Record<string, unknown>) => workifyHelper.toWorkifySpecialAssignment(r)),
     }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar asignaciones')
@@ -217,22 +217,27 @@ export async function listSpecialAssignments(request: FastifyRequest, reply: Fas
 
 const preWorkify = [requireAuth, requireWorkifyContext]
 
+/** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
+function handle<T extends (req: any, rep: any) => any>(
+  handler: T
+): (req: FastifyRequest, rep: FastifyReply) => ReturnType<T> {
+  return (req, rep) => handler(req as Parameters<T>[0], rep as Parameters<T>[1])
+}
+
 export async function registerRoutes(fastify: FastifyInstance) {
-  type Req = FastifyRequest
-  type Rep = FastifyReply
-  fastify.get('/api/workify/me', { preHandler: preWorkify }, (req: Req, rep: Rep) => getMe(req, rep))
-  fastify.get('/api/workify/employees', { preHandler: preWorkify }, (req: Req, rep: Rep) => listEmployees(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/workify/employees/:id', { preHandler: preWorkify }, (req: Req, rep: Rep) => getEmployeeById(req, rep))
-  fastify.get<{ Params: { id: string }; Querystring: { month?: string } }>('/api/workify/employees/:id/attendance', { preHandler: preWorkify }, (req: Req, rep: Rep) => getEmployeeAttendance(req, rep))
-  fastify.get('/api/workify/positions', { preHandler: preWorkify }, (req: Req, rep: Rep) => listPositions(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/workify/positions/:id', { preHandler: preWorkify }, (req: Req, rep: Rep) => getPositionById(req, rep))
-  fastify.get('/api/workify/roles', { preHandler: preWorkify }, (req: Req, rep: Rep) => listRoles(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/workify/roles/:id', { preHandler: preWorkify }, (req: Req, rep: Rep) => getRoleById(req, rep))
-  fastify.get('/api/workify/holidays', { preHandler: preWorkify }, (req: Req, rep: Rep) => listHolidays(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/workify/holidays/:id', { preHandler: preWorkify }, (req: Req, rep: Rep) => getHolidayById(req, rep))
-  fastify.get('/api/workify/work-shifts', { preHandler: preWorkify }, (req: Req, rep: Rep) => listWorkShifts(req, rep))
-  fastify.get('/api/workify/time-entries', { preHandler: preWorkify }, (req: Req, rep: Rep) => listTimeEntries(req, rep))
-  fastify.get('/api/workify/dashboard/stats', { preHandler: preWorkify }, (req: Req, rep: Rep) => getDashboardStats(req, rep))
-  fastify.get('/api/workify/attendance/stats', { preHandler: preWorkify }, (req: Req, rep: Rep) => getAttendanceStats(req, rep))
-  fastify.get('/api/workify/employees/special-assignments', { preHandler: preWorkify }, (req: Req, rep: Rep) => listSpecialAssignments(req, rep))
+  fastify.get('/api/workify/me', { preHandler: preWorkify }, handle(getMe))
+  fastify.get('/api/workify/employees', { preHandler: preWorkify }, handle(listEmployees))
+  fastify.get<{ Params: { id: string } }>('/api/workify/employees/:id', { preHandler: preWorkify }, handle(getEmployeeById))
+  fastify.get<{ Params: { id: string }; Querystring: { month?: string } }>('/api/workify/employees/:id/attendance', { preHandler: preWorkify }, handle(getEmployeeAttendance))
+  fastify.get('/api/workify/positions', { preHandler: preWorkify }, handle(listPositions))
+  fastify.get<{ Params: { id: string } }>('/api/workify/positions/:id', { preHandler: preWorkify }, handle(getPositionById))
+  fastify.get('/api/workify/roles', { preHandler: preWorkify }, handle(listRoles))
+  fastify.get<{ Params: { id: string } }>('/api/workify/roles/:id', { preHandler: preWorkify }, handle(getRoleById))
+  fastify.get('/api/workify/holidays', { preHandler: preWorkify }, handle(listHolidays))
+  fastify.get<{ Params: { id: string } }>('/api/workify/holidays/:id', { preHandler: preWorkify }, handle(getHolidayById))
+  fastify.get('/api/workify/work-shifts', { preHandler: preWorkify }, handle(listWorkShifts))
+  fastify.get('/api/workify/time-entries', { preHandler: preWorkify }, handle(listTimeEntries))
+  fastify.get('/api/workify/dashboard/stats', { preHandler: preWorkify }, handle(getDashboardStats))
+  fastify.get('/api/workify/attendance/stats', { preHandler: preWorkify }, handle(getAttendanceStats))
+  fastify.get('/api/workify/employees/special-assignments', { preHandler: preWorkify }, handle(listSpecialAssignments))
 }

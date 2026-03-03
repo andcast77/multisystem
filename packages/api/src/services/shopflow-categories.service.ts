@@ -1,5 +1,5 @@
 import type { FastifyReply } from 'fastify'
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 
 export type CategoryBody = {
@@ -20,7 +20,7 @@ export async function listCategories(
   reply: FastifyReply
 ): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
   try {
-    const where: Parameters<typeof prisma.category.findMany>[0]['where'] = { companyId: ctx.companyId }
+    const where: Prisma.CategoryWhereInput = { companyId: ctx.companyId }
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -205,10 +205,12 @@ export async function updateCategory(
         return { success: false, error: 'Categoría padre no encontrada' }
       }
     }
-    const data: Parameters<typeof prisma.category.update>[0]['data'] = {}
+    const data: Prisma.CategoryUpdateInput = {}
     if (name !== undefined) data.name = name
     if (description !== undefined) data.description = description
-    if (parentId !== undefined) data.parentId = parentId
+    if (parentId !== undefined) {
+      data.parent = parentId ? { connect: { id: parentId } } : { disconnect: true }
+    }
     if (Object.keys(data).length === 0) {
       reply.code(400)
       return { success: false, error: 'No hay campos para actualizar' }

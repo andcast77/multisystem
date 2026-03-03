@@ -299,7 +299,10 @@ export async function updateTicketConfig(
     }
     const data: Prisma.TicketConfigUpdateInput = {}
     if (body.storeId !== undefined) data.storeId = body.storeId as string | null
-    if (body.ticketType !== undefined) data.ticketType = body.ticketType as string
+    if (body.ticketType !== undefined) {
+      const v = body.ticketType as string
+      if (['TICKET', 'INVOICE', 'RECEIPT'].includes(v)) data.ticketType = v as 'TICKET' | 'INVOICE' | 'RECEIPT'
+    }
     if (body.header !== undefined) data.header = body.header as string | null
     if (body.description !== undefined) data.description = body.description as string | null
     if (body.logoUrl !== undefined) data.logoUrl = body.logoUrl as string | null
@@ -642,7 +645,7 @@ export async function listInventoryTransfers(
     const pageNum = parseInt(query.page ?? '1')
     const limitNum = Math.min(parseInt(query.limit ?? '20') || 20, 100)
     const skip = (pageNum - 1) * limitNum
-    const where: Parameters<typeof prisma.inventoryTransfer.findMany>[0]['where'] = { companyId: ctx.companyId }
+    const where: Prisma.InventoryTransferWhereInput = { companyId: ctx.companyId }
     if (query.fromStoreId) where.fromStoreId = query.fromStoreId
     if (query.toStoreId) where.toStoreId = query.toStoreId
     if (query.productId) where.productId = query.productId

@@ -171,11 +171,17 @@ export async function updateWorkOrder(
   if (body.description !== undefined) data.description = body.description
   if (body.status !== undefined && statusEnum.includes(body.status as (typeof statusEnum)[number])) data.status = body.status as (typeof statusEnum)[number]
   if (body.priority !== undefined && priorityEnum.includes(body.priority as (typeof priorityEnum)[number])) data.priority = body.priority as (typeof priorityEnum)[number]
-  if (body.assetId !== undefined) data.assetId = body.assetId
-  if (body.assignedEmployeeId !== undefined) data.assignedEmployeeId = body.assignedEmployeeId
-  if (body.requestedAt !== undefined) data.requestedAt = body.requestedAt ? new Date(body.requestedAt) : null
-  if (body.dueAt !== undefined) data.dueAt = body.dueAt ? new Date(body.dueAt) : null
-  if (body.completedAt !== undefined) data.completedAt = body.completedAt ? new Date(body.completedAt) : null
+  if (body.assetId !== undefined) {
+    data.asset = body.assetId ? { connect: { id: body.assetId } } : { disconnect: true }
+  }
+  if (body.assignedEmployeeId !== undefined) {
+    data.assignedEmployee = body.assignedEmployeeId
+      ? { connect: { id: body.assignedEmployeeId } }
+      : { disconnect: true }
+  }
+  if (body.requestedAt !== undefined) data.requestedAt = body.requestedAt ? new Date(body.requestedAt) : new Date()
+  if (body.dueAt !== undefined) data.dueAt = body.dueAt ? new Date(body.dueAt) : { set: null }
+  if (body.completedAt !== undefined) data.completedAt = body.completedAt ? new Date(body.completedAt) : { set: null }
   else if (body.status === 'COMPLETED') data.completedAt = new Date()
 
   if (Object.keys(data).length === 0) return getWorkOrderById(ctx, id)

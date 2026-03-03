@@ -1,5 +1,5 @@
 import type { FastifyReply } from 'fastify'
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 
 export type SupplierBody = {
@@ -27,7 +27,7 @@ export async function listSuppliers(
   reply: FastifyReply
 ): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
   try {
-    const where: Parameters<typeof prisma.supplier.findMany>[0]['where'] = { companyId: ctx.companyId }
+    const where: Prisma.SupplierWhereInput = { companyId: ctx.companyId }
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -155,7 +155,7 @@ export async function updateSupplier(
       reply.code(404)
       return { success: false, error: 'Proveedor no encontrado' }
     }
-    const data: Parameters<typeof prisma.supplier.update>[0]['data'] = {}
+    const data: Prisma.SupplierUpdateInput = {}
     if (body.name !== undefined) data.name = body.name
     if (body.email !== undefined) data.email = body.email
     if (body.phone !== undefined) data.phone = body.phone

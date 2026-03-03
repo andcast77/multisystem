@@ -85,6 +85,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/api/users', { preHandler: [requireAuth] }, (request, reply) => list(request, reply))
   fastify.get<{ Params: { id: string } }>('/api/users/:id', { preHandler: [requireAuth] }, (request, reply) => getById(request, reply))
   fastify.post('/api/users', { preHandler: [requireAuth] }, (request, reply) => create(request, reply))
-  fastify.put<{ Params: { id: string } }>('/api/users/:id', { preHandler: [requireAuth] }, (request, reply) => update(request, reply))
+  fastify.put<{ Params: { id: string }; Body: unknown }>('/api/users/:id', { preHandler: [requireAuth] }, (request, reply) => update(request, reply))
   fastify.delete<{ Params: { id: string } }>('/api/users/:id', { preHandler: [requireAuth] }, (request, reply) => remove(request, reply))
 }

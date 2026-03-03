@@ -1,5 +1,5 @@
 import type { FastifyReply } from 'fastify'
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
 
 function num(v: unknown): number {
@@ -88,7 +88,7 @@ export async function listSales(
   const limitNum = parseInt(query.limit ?? '20')
   const skip = (pageNum - 1) * limitNum
 
-  const where: Parameters<typeof prisma.sale.findMany>[0]['where'] = { companyId: ctx.companyId }
+  const where: Prisma.SaleWhereInput = { companyId: ctx.companyId }
   if (effectiveStoreId) where.storeId = effectiveStoreId
   if (query.customerId) where.customerId = query.customerId
   if (query.userId) where.userId = query.userId
@@ -381,8 +381,7 @@ export async function cancelSale(
 ): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true },
-    include: { items: { select: { productId: true, quantity: true } } },
+    select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
   if (!sale) {
     reply.code(404)
@@ -433,8 +432,7 @@ export async function refundSale(
 ): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true },
-    include: { items: { select: { productId: true, quantity: true } } },
+    select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
   if (!sale) {
     reply.code(404)

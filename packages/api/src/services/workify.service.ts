@@ -1,4 +1,4 @@
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { getCompanyModules } from '../core/modules.js'
 import * as employeesService from './employees.service.js'
@@ -137,7 +137,7 @@ export async function listTimeEntries(
   ctx: CompanyContext,
   query: { employeeId?: string; start?: string; end?: string }
 ) {
-  const where: Parameters<typeof prisma.timeEntry.findMany>[0]['where'] = { companyId: ctx.companyId }
+  const where: Prisma.TimeEntryWhereInput = { companyId: ctx.companyId }
   if (query.employeeId) where.employeeId = query.employeeId
   if (query.start && query.end) where.date = { gte: new Date(query.start), lte: new Date(query.end) }
   else if (query.start) where.date = { gte: new Date(query.start) }
@@ -155,7 +155,7 @@ export async function getEmployeeAttendance(
   employeeId: string,
   month?: string
 ) {
-  const where: Parameters<typeof prisma.timeEntry.findMany>[0]['where'] = {
+  const where: Prisma.TimeEntryWhereInput = {
     employeeId,
     employee: { companyId: ctx.companyId },
   }

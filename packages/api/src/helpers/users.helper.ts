@@ -4,8 +4,8 @@ import type { UserResponse } from '../dto/users.dto.js'
 type UserEntity = {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  firstName: string | null
+  lastName: string | null
   role: string
   isActive: boolean
   createdAt: Date
@@ -15,7 +15,13 @@ type UserEntity = {
 export function toUserResponse(user: UserEntity): UserResponse {
   return {
     ...user,
-    name: userDisplayName(user),
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    name: userDisplayName({
+      email: user.email,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+    }),
   }
 }
 

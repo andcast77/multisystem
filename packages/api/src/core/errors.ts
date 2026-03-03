@@ -26,6 +26,15 @@ export function sendBadRequest(reply: FastifyReply, message?: string) {
   return { success: false, error: message ?? DEFAULT_BAD_REQUEST }
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string') {
+    return (err as { message: string }).message
+  }
+  return 'Error desconocido'
+}
+
 export function sendServerError(
   reply: FastifyReply,
   err: unknown,
@@ -40,7 +49,7 @@ export function sendServerError(
     success: false,
     error: publicMessage,
     ...(process.env.NODE_ENV !== 'production' && {
-      message: err instanceof Error ? err.message : 'Error desconocido',
+      message: getErrorMessage(err),
     }),
   }
 }

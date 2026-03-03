@@ -62,7 +62,9 @@ export async function createWorkOrder(
       reply.code(400)
       return { success: false, error: result.error }
     }
-    return { success: true, data: result!.data }
+    const data = result && 'data' in result ? result.data : undefined
+    if (data) return { success: true, data }
+    return sendServerError(reply, new Error('Unexpected result'), request.log, 'Error al crear orden')
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al crear orden')
   }
@@ -78,6 +80,10 @@ export async function updateWorkOrder(
     const ctx = contextFromRequest(request)
     const result = await techservicesService.updateWorkOrder(ctx, request.params.id, body)
     if (!result) return sendNotFound(reply, 'Orden no encontrada')
+    if ('error' in result) {
+      reply.code(400)
+      return { success: false, error: result.error }
+    }
     return { success: true, data: result.data }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al actualizar orden')
@@ -92,7 +98,8 @@ export async function listAssets(
 ) {
   try {
     const ctx = contextFromRequest(request)
-    const data = await techservicesService.listAssets(ctx, request.query)
+    const q = request.query as { search?: string; active?: 'true' | 'false' }
+    const data = await techservicesService.listAssets(ctx, q)
     return { success: true, data }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al listar activos')
@@ -300,25 +307,30 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply) {
 
 const preTech = [requireAuth, requireWorkifyContext]
 
+/** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
+function handle<T extends (req: any, rep: any) => any>(
+  handler: T
+): (req: FastifyRequest, rep: FastifyReply) => ReturnType<T> {
+  return (req, rep) => handler(req as Parameters<T>[0], rep as Parameters<T>[1])
+}
+
 export async function registerRoutes(fastify: FastifyInstance) {
-  type Req = FastifyRequest
-  type Rep = FastifyReply
-  fastify.get('/api/techservices/me', { preHandler: preTech }, (req: Req, rep: Rep) => getMe(req, rep))
-  fastify.get('/api/techservices/work-orders', { preHandler: preTech }, (req: Req, rep: Rep) => listWorkOrders(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id', { preHandler: preTech }, (req: Req, rep: Rep) => getWorkOrderById(req, rep))
-  fastify.post('/api/techservices/work-orders', { preHandler: preTech }, (req: Req, rep: Rep) => createWorkOrder(req, rep))
-  fastify.put<{ Params: { id: string } }>('/api/techservices/work-orders/:id', { preHandler: preTech }, (req: Req, rep: Rep) => updateWorkOrder(req, rep))
-  fastify.get('/api/techservices/assets', { preHandler: preTech }, (req: Req, rep: Rep) => listAssets(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, (req: Req, rep: Rep) => getAssetById(req, rep))
-  fastify.post('/api/techservices/assets', { preHandler: preTech }, (req: Req, rep: Rep) => createAsset(req, rep))
-  fastify.put<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, (req: Req, rep: Rep) => updateAsset(req, rep))
-  fastify.delete<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, (req: Req, rep: Rep) => deleteAsset(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id/parts', { preHandler: preTech }, (req: Req, rep: Rep) => listParts(req, rep))
-  fastify.post<{ Params: { id: string } }>('/api/techservices/work-orders/:id/parts', { preHandler: preTech }, (req: Req, rep: Rep) => createPart(req, rep))
-  fastify.put<{ Params: { id: string } }>('/api/techservices/parts/:id', { preHandler: preTech }, (req: Req, rep: Rep) => updatePart(req, rep))
-  fastify.delete<{ Params: { id: string } }>('/api/techservices/parts/:id', { preHandler: preTech }, (req: Req, rep: Rep) => deletePart(req, rep))
-  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id/visits', { preHandler: preTech }, (req: Req, rep: Rep) => listVisits(req, rep))
-  fastify.post<{ Params: { id: string } }>('/api/techservices/work-orders/:id/visits', { preHandler: preTech }, (req: Req, rep: Rep) => createVisit(req, rep))
-  fastify.put<{ Params: { id: string } }>('/api/techservices/visits/:id', { preHandler: preTech }, (req: Req, rep: Rep) => updateVisit(req, rep))
-  fastify.delete<{ Params: { id: string } }>('/api/techservices/visits/:id', { preHandler: preTech }, (req: Req, rep: Rep) => deleteVisit(req, rep))
+  fastify.get('/api/techservices/me', { preHandler: preTech }, handle(getMe))
+  fastify.get('/api/techservices/work-orders', { preHandler: preTech }, handle(listWorkOrders))
+  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id', { preHandler: preTech }, handle(getWorkOrderById))
+  fastify.post('/api/techservices/work-orders', { preHandler: preTech }, handle(createWorkOrder))
+  fastify.put<{ Params: { id: string } }>('/api/techservices/work-orders/:id', { preHandler: preTech }, handle(updateWorkOrder))
+  fastify.get('/api/techservices/assets', { preHandler: preTech }, handle(listAssets))
+  fastify.get<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, handle(getAssetById))
+  fastify.post('/api/techservices/assets', { preHandler: preTech }, handle(createAsset))
+  fastify.put<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, handle(updateAsset))
+  fastify.delete<{ Params: { id: string } }>('/api/techservices/assets/:id', { preHandler: preTech }, handle(deleteAsset))
+  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id/parts', { preHandler: preTech }, handle(listParts))
+  fastify.post<{ Params: { id: string } }>('/api/techservices/work-orders/:id/parts', { preHandler: preTech }, handle(createPart))
+  fastify.put<{ Params: { id: string } }>('/api/techservices/parts/:id', { preHandler: preTech }, handle(updatePart))
+  fastify.delete<{ Params: { id: string } }>('/api/techservices/parts/:id', { preHandler: preTech }, handle(deletePart))
+  fastify.get<{ Params: { id: string } }>('/api/techservices/work-orders/:id/visits', { preHandler: preTech }, handle(listVisits))
+  fastify.post<{ Params: { id: string } }>('/api/techservices/work-orders/:id/visits', { preHandler: preTech }, handle(createVisit))
+  fastify.put<{ Params: { id: string } }>('/api/techservices/visits/:id', { preHandler: preTech }, handle(updateVisit))
+  fastify.delete<{ Params: { id: string } }>('/api/techservices/visits/:id', { preHandler: preTech }, handle(deleteVisit))
 }

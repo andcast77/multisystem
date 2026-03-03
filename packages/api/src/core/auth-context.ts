@@ -9,6 +9,10 @@ export type CompanyRow = {
   membershipRole?: string | null
 }
 
+type CompanyBasic = { id: string; name: string; isActive: boolean }
+type MemberWithCompany = { company: CompanyBasic; membershipRole: string | null }
+type RoleWithCompany = { company: CompanyBasic }
+
 /**
  * Get companies for a user (all active if superuser, else via company_members / user_roles).
  */
@@ -21,9 +25,9 @@ export async function getUserCompanies(
       where: { isActive: true },
       orderBy: { name: 'asc' },
     })
-    const companyIds = companies.map((c) => c.id)
+    const companyIds = companies.map((c: { id: string }) => c.id)
     const modulesMap = await getCompanyModulesForMany(companyIds)
-    return companies.map((c) => ({
+    return companies.map((c: { id: string; name: string }) => ({
       id: c.id,
       name: c.name,
       modules: modulesMap.get(c.id) ?? { workify: false, shopflow: false, techservices: false },
@@ -37,11 +41,11 @@ export async function getUserCompanies(
     orderBy: { company: { name: 'asc' } },
   })
 
-  const activeMembers = members.filter((m) => m.company.isActive)
+  const activeMembers = members.filter((m: MemberWithCompany) => m.company.isActive)
   if (activeMembers.length > 0) {
-    const companyIds = activeMembers.map((m) => m.company.id)
+    const companyIds = activeMembers.map((m: MemberWithCompany) => m.company.id)
     const modulesMap = await getCompanyModulesForMany(companyIds)
-    return activeMembers.map((m) => ({
+    return activeMembers.map((m: MemberWithCompany) => ({
       id: m.company.id,
       name: m.company.name,
       modules: modulesMap.get(m.company.id) ?? { workify: false, shopflow: false, techservices: false },
@@ -55,10 +59,10 @@ export async function getUserCompanies(
     orderBy: { company: { name: 'asc' } },
   })
 
-  const activeRoles = userRoles.filter((r) => r.company.isActive)
-  const companyIds = activeRoles.map((r) => r.company.id)
+  const activeRoles = userRoles.filter((r: RoleWithCompany) => r.company.isActive)
+  const companyIds = activeRoles.map((r: RoleWithCompany) => r.company.id)
   const modulesMap = await getCompanyModulesForMany(companyIds)
-  return activeRoles.map((r) => ({
+  return activeRoles.map((r: RoleWithCompany) => ({
     id: r.company.id,
     name: r.company.name,
     modules: modulesMap.get(r.company.id) ?? { workify: false, shopflow: false, techservices: false },
@@ -74,8 +78,8 @@ export function selectCompanyForUser(
   preferredCompanyId?: string | null
 ): { selectedCompany: Omit<CompanyRow, 'membershipRole'>; selectedMembershipRole: string | null } | null {
   if (companies.length === 0) return null
-  if (preferredCompanyId && companies.some((c) => c.id === preferredCompanyId)) {
-    const row = companies.find((c) => c.id === preferredCompanyId)!
+  if (preferredCompanyId && companies.some((c: CompanyRow) => c.id === preferredCompanyId)) {
+    const row = companies.find((c: CompanyRow) => c.id === preferredCompanyId)!
     return {
       selectedCompany: { id: row.id, name: row.name, modules: row.modules },
       selectedMembershipRole: row.membershipRole ?? null,
@@ -148,9 +152,9 @@ async function resolveCompanyId(decoded: {
     orderBy: { company: { name: 'asc' } },
   })
 
-  const activeMembers = members.filter((m) => m.company.isActive)
+  const activeMembers = members.filter((m: MemberWithCompany) => m.company.isActive)
   let companies: { id: string; membershipRole: string | null }[] = activeMembers.map(
-    (m) => ({ id: m.company.id, membershipRole: m.membershipRole })
+    (m: MemberWithCompany) => ({ id: m.company.id, membershipRole: m.membershipRole })
   )
 
   if (companies.length === 0) {
@@ -160,14 +164,14 @@ async function resolveCompanyId(decoded: {
       orderBy: { company: { name: 'asc' } },
     })
     companies = userRoles
-      .filter((r) => r.company.isActive)
-      .map((r) => ({ id: r.company.id, membershipRole: null }))
+      .filter((r: RoleWithCompany) => r.company.isActive)
+      .map((r: RoleWithCompany) => ({ id: r.company.id, membershipRole: null }))
   }
 
   if (companies.length === 0) return null
 
-  if (decoded.companyId && companies.some((c) => c.id === decoded.companyId)) {
-    const row = companies.find((c) => c.id === decoded.companyId)!
+  if (decoded.companyId && companies.some((c: { id: string }) => c.id === decoded.companyId)) {
+    const row = companies.find((c: { id: string; membershipRole: string | null }) => c.id === decoded.companyId)!
     return { companyId: row.id, membershipRole: row.membershipRole }
   }
 

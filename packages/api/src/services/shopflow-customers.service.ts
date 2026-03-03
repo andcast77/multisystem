@@ -1,10 +1,10 @@
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import type { FastifyReply } from 'fastify'
 
 export async function listCustomers(ctx: CompanyContext, query: { search?: string; email?: string; phone?: string }, reply: FastifyReply) {
   try {
-    const where: Parameters<typeof prisma.customer.findMany>[0]['where'] = { companyId: ctx.companyId }
+    const where: Prisma.CustomerWhereInput = { companyId: ctx.companyId }
     if (query.search) where.name = { contains: query.search, mode: 'insensitive' }
     if (query.email) where.email = query.email
     if (query.phone) where.phone = query.phone
@@ -110,7 +110,7 @@ export async function updateCustomer(ctx: CompanyContext, id: string, body: Part
       reply.code(404)
       return { success: false as const, error: 'Cliente no encontrado' }
     }
-    const data: Parameters<typeof prisma.customer.update>[0]['data'] = {}
+    const data: Prisma.CustomerUpdateInput = {}
     if (body.name !== undefined) data.name = body.name
     if (body.email !== undefined) data.email = body.email
     if (body.phone !== undefined) data.phone = body.phone

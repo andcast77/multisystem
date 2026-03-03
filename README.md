@@ -45,7 +45,33 @@ Las empresas pueden activar estos módulos:
 
 - Node.js 20+
 - pnpm 10+
-- Base de datos PostgreSQL (Neon recomendado)
+- Base de datos PostgreSQL (local con Docker o Neon)
+
+---
+
+## Base de datos local (desarrollo)
+
+Con **Docker** instalado:
+
+```bash
+# Levantar PostgreSQL en el puerto 5432
+docker compose up -d postgres
+
+# Configurar .env en packages/api/ con:
+DATABASE_URL=postgresql://multisystem:multisystem@localhost:5432/multisystem
+
+# Aplicar migraciones
+pnpm --filter @multisystem/database migrate:deploy
+
+# Opcional: cargar datos iniciales
+pnpm --filter @multisystem/database db:seed
+```
+
+Credenciales por defecto: usuario `multisystem`, contraseña `multisystem`, base `multisystem`.
+
+> **Nota:** Asegúrate de que `DATABASE_URL` esté en `packages/api/.env`. Si las migraciones no encuentran la variable, crea también `packages/database/.env` con el mismo `DATABASE_URL`.
+
+Para usar **Neon** (cloud) en lugar de local: cambia `DATABASE_URL` por tu connection string de Neon.
 
 ---
 
@@ -71,7 +97,23 @@ pnpm dev
 
 - **API:** http://localhost:3000  
 - **Swagger:** http://localhost:3000/api/docs  
+- **Hub:** http://localhost:3001  
 - **Techservices:** http://localhost:3004  
+
+### Levantar solo Hub + API + BD local
+
+1. Levantar PostgreSQL: `docker compose up -d postgres`
+2. Tener `.env` en `packages/api/` y opcionalmente en `packages/database/` (ver Base de datos local).
+3. Migraciones: `pnpm --filter @multisystem/database migrate:deploy`
+4. Levantar API y Hub (construye antes la librería de UI):
+   ```bash
+   pnpm run dev:hub
+   ```
+   - **Hub:** http://localhost:3001  
+   - **API:** http://localhost:3000  
+   - **Swagger:** http://localhost:3000/api/docs  
+
+Si el puerto 3000 está en uso, cierra el proceso que lo use o ejecuta en otra terminal solo la API cuando esté libre.  
 
 ---
 

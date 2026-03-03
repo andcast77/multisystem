@@ -67,13 +67,21 @@ export async function create(body: CreateUserBody) {
   return user
 }
 
+type UserUpdateResult = {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export async function update(
   id: string,
   body: UpdateUserBody
-): Promise<
-  | Awaited<ReturnType<typeof prisma.user.update>>
-  | { error: string; code: 400 | 404 }
-> {
+): Promise<UserUpdateResult | { error: string; code: 400 | 404 }> {
   const existing = await prisma.user.findUnique({
     where: { id },
     select: { id: true, email: true },
@@ -97,7 +105,7 @@ export async function update(
     return { error: 'No hay campos para actualizar', code: 400 }
   }
 
-  return prisma.user.update({
+  const result = await prisma.user.update({
     where: { id },
     data: updateData,
     select: {
@@ -111,6 +119,7 @@ export async function update(
       updatedAt: true,
     },
   })
+  return result as UserUpdateResult
 }
 
 export async function remove(id: string): Promise<{ success: true } | { error: string; code: 400 | 404 }> {

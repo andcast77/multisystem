@@ -58,7 +58,7 @@ export async function update(request: FastifyRequest<{ Params: { id: string }; B
     const caller = request.user!
     const result = await companiesService.update(companyId, caller, body)
     if ('error' in result) {
-      reply.code(result.code)
+      reply.code(result.code ?? 500)
       return { success: false, error: result.error }
     }
     return {
@@ -84,7 +84,7 @@ export async function remove(request: FastifyRequest<{ Params: { id: string } }>
     const caller = request.user!
     const result = await companiesService.remove(companyId, caller)
     if ('error' in result) {
-      reply.code(result.code)
+      reply.code(result.code ?? 500)
       return { success: false, error: result.error }
     }
     return { success: true, message: 'Empresa eliminada correctamente' }

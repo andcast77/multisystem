@@ -1,3 +1,15 @@
+import { existsSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { config as loadDotenv } from 'dotenv'
+
+// Cargar .env de la API antes de cualquier import que use Prisma (p. ej. controllers)
+const __dirnameApi = dirname(fileURLToPath(import.meta.url))
+const envPath = join(__dirnameApi, '..', '.env')
+if (existsSync(envPath)) {
+  loadDotenv({ path: envPath })
+}
+
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import env from '@fastify/env'
@@ -11,12 +23,8 @@ import * as shopflowController from './controllers/shopflow.controller.js'
 import * as workifyController from './controllers/workify.controller.js'
 import * as techservicesController from './controllers/techservices.controller.js'
 import { registerErrorHandler } from './core/errors.js'
-import { existsSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
+const __dirname = __dirnameApi
 const fastify = Fastify({ logger: true })
 
 // Esquema de variables de entorno

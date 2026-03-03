@@ -5,6 +5,7 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:hub": "pnpm --filter @multisystem/ui build && turbo run dev --filter=@multisystem/api --filter=@multisystem/hub",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue"

@@ -1,4 +1,4 @@
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { FastifyReply } from 'fastify'
 
 type ActionHistoryQuery = {
@@ -47,7 +47,7 @@ export async function listActions(query: ActionHistoryQuery, reply: FastifyReply
     const limitNum = parseInt(query.limit ?? '50')
     const skip = (pageNum - 1) * limitNum
 
-    const where: Parameters<typeof prisma.actionHistory.findMany>[0]['where'] = {}
+    const where: Prisma.ActionHistoryWhereInput = {}
     if (query.userId) where.userId = query.userId
     if (query.companyId) where.companyId = query.companyId
     if (query.action) where.action = query.action as 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPORT' | 'OTHER'

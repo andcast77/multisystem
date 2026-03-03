@@ -1,5 +1,5 @@
 import type { FastifyReply } from 'fastify'
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 
 export type CreateNotificationBody = {
@@ -32,7 +32,7 @@ export async function createNotification(
       priority: (priority === 'LOW' || priority === 'MEDIUM' || priority === 'HIGH' ? priority : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH',
       title,
       message,
-      data: data ?? undefined,
+      data: data != null ? (data as Prisma.InputJsonValue) : undefined,
       actionUrl: actionUrl ?? null,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
       status: 'UNREAD',
@@ -62,7 +62,7 @@ export async function listNotifications(
   const limitNum = parseInt(query.limit ?? '20')
   const skip = (pageNum - 1) * limitNum
 
-  const where: Parameters<typeof prisma.notification.findMany>[0]['where'] = {
+  const where: Prisma.NotificationWhereInput = {
     companyId: ctx.companyId,
     OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
   }

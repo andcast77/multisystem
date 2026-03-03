@@ -1,4 +1,4 @@
-import { prisma } from '../db/index.js'
+import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { getCompanyModules } from '../core/modules.js'
 import * as workOrdersService from './work-orders.service.js'
@@ -72,7 +72,7 @@ export async function updateWorkOrder(ctx: CompanyContext, id: string, body: Wor
 // ----- Assets -----
 
 export async function listAssets(ctx: CompanyContext, query: AssetListQuery) {
-  const where: Parameters<typeof prisma.technicalAsset.findMany>[0]['where'] = { companyId: ctx.companyId }
+  const where: Prisma.TechnicalAssetWhereInput = { companyId: ctx.companyId }
   if (query.active === 'true') where.isActive = true
   else if (query.active === 'false') where.isActive = false
   if (query.search?.trim()) {
@@ -124,7 +124,7 @@ export async function updateAsset(ctx: CompanyContext, id: string, body: AssetUp
   })
   if (!existing) return null
 
-  const data: Parameters<typeof prisma.technicalAsset.update>[0]['data'] = {}
+  const data: Prisma.TechnicalAssetUpdateInput = {}
   if (body.name !== undefined) data.name = body.name
   if (body.brand !== undefined) data.brand = body.brand
   if (body.model !== undefined) data.model = body.model
@@ -162,7 +162,9 @@ export async function listParts(ctx: CompanyContext, workOrderId: string) {
     },
     orderBy: { createdAt: 'desc' },
   })
-  return rows.map((r) => techservicesHelper.toPartResponse(r as techservicesHelper.PartEntity))
+  return rows.map((r) =>
+    techservicesHelper.toPartResponse({ ...r, unitCost: Number(r.unitCost) } as unknown as techservicesHelper.PartEntity)
+  )
 }
 
 export async function createPart(ctx: CompanyContext, workOrderId: string, body: PartCreateBody) {
@@ -180,7 +182,11 @@ export async function createPart(ctx: CompanyContext, workOrderId: string, body:
       notes: body.notes ?? null,
     },
   })
-  return { data: techservicesHelper.toPartResponse(row as techservicesHelper.PartEntity) }
+  return {
+    data: techservicesHelper.toPartResponse(
+      { ...row, unitCost: Number(row.unitCost) } as unknown as techservicesHelper.PartEntity
+    ),
+  }
 }
 
 export async function updatePart(ctx: CompanyContext, partId: string, body: PartUpdateBody) {
@@ -271,11 +277,17 @@ export async function updateVisit(ctx: CompanyContext, visitId: string, body: Vi
     if (err) return { badRequest: err }
   }
 
-  const data: Parameters<typeof prisma.serviceVisit.update>[0]['data'] = {}
-  if (body.scheduledStartAt !== undefined) data.scheduledStartAt = body.scheduledStartAt ? new Date(body.scheduledStartAt) : null
-  if (body.scheduledEndAt !== undefined) data.scheduledEndAt = body.scheduledEndAt ? new Date(body.scheduledEndAt) : null
+  const data: Prisma.ServiceVisitUpdateInput = {}
+  if (body.scheduledStartAt !== undefined)
+    data.scheduledStartAt = body.scheduledStartAt ? new Date(body.scheduledStartAt) : undefined
+  if (body.scheduledEndAt !== undefined)
+    data.scheduledEndAt = body.scheduledEndAt ? new Date(body.scheduledEndAt) : { set: null }
   if (body.status !== undefined) data.status = body.status as 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
-  if (body.assignedEmployeeId !== undefined) data.assignedEmployeeId = body.assignedEmployeeId
+  if (body.assignedEmployeeId !== undefined) {
+    data.assignedEmployee = body.assignedEmployeeId
+      ? { connect: { id: body.assignedEmployeeId } }
+      : { disconnect: true }
+  }
   if (body.notes !== undefined) data.notes = body.notes
   if (Object.keys(data).length === 0) return { updated: true }
 

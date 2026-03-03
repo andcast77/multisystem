@@ -14,7 +14,7 @@ export async function list(request: FastifyRequest<{ Params: { companyId: string
     const caller = request.user!
     const result = await companyMembersService.list(companyId, caller)
     if (!result) return sendForbidden(reply, 'No tienes acceso a esta empresa')
-    const data = result.members.map((m) =>
+    const data = result.members.map((m: (typeof result.members)[number]) =>
       companyMembersHelper.toMemberResponse(m, m.membershipRole === 'USER' ? (result.userStoresMap.get(m.userId) ?? []) : undefined)
     )
     return { success: true, data }
@@ -31,7 +31,7 @@ export async function create(request: FastifyRequest<{ Params: { companyId: stri
     const caller = request.user!
     const result = await companyMembersService.create(companyId, caller, body)
     if ('error' in result) {
-      reply.code(result.code)
+      reply.code(result.code ?? 500)
       return { success: false, error: result.error }
     }
     return {
@@ -61,7 +61,7 @@ export async function updateStores(
     const caller = request.user!
     const result = await companyMembersService.updateStores(companyId, userId, caller, body)
     if ('error' in result) {
-      reply.code(result.code)
+      reply.code(result.code ?? 500)
       return { success: false, error: result.error }
     }
     return { success: true, data: { storeIds: result.storeIds } }
