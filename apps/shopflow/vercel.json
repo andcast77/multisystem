@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=@multisystem/shopflow",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
+  "framework": null
+}

@@ -1,0 +1,59 @@
+{
+  "name": "@multisystem/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/src/client.js",
+  "types": "./dist/src/client.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/client.js",
+      "require": "./dist/src/client.js",
+      "types": "./dist/src/client.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "generated",
+    "prisma",
+    "prisma.config.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:deploy:dev": "cross-env MIGRATE_TARGET=development prisma migrate deploy",
+    "migrate:deploy:prod": "cross-env MIGRATE_TARGET=production prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
+    "@neondatabase/serverless": "^1.0.2",
+    "@prisma/adapter-neon": "^7.3.0",
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.3.0",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.13.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^25.2.3",
+    "@types/nodemailer": "^7.0.11",
+    "@types/ws": "^8.18.1",
+    "prisma": "^7.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
