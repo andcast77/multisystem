@@ -1,9 +1,11 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: __dirname,
+    root: path.join(__dirname, "..", ".."),
   },
+  outputFileTracingRoot: path.join(__dirname, "..", ".."),
   poweredByHeader: false,
   compress: true,
   generateEtags: false,
@@ -47,9 +49,6 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
   },
 };
 
