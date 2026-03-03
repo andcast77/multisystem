@@ -3,6 +3,14 @@
  * Rewrite "/(.*)" -> "/api" in vercel.json so this handler receives every request.
  */
 
+/** Web Fetch API Request shape used by Vercel's default handler signature */
+interface FetchRequest {
+  url: string
+  method: string
+  headers: Headers
+  text(): Promise<string>
+}
+
 let appPromise: Promise<import('fastify').FastifyInstance> | null = null
 
 function getApp() {
@@ -27,7 +35,7 @@ function headersFromFastify(headers: Record<string, string | string[] | undefine
 }
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: FetchRequest): Promise<Response> {
     const app = await getApp()
     const url = new URL(request.url)
     // Rewrite sends to /api/:path so pathname is /api/health or /api/api/docs; strip /api prefix for Fastify
