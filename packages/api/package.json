@@ -1,0 +1,39 @@
+{
+  "name": "@multisystem/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:unit": "vitest run src/__tests__/unit",
+    "test:integration": "vitest run src/__tests__/integration",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:endpoints": "node scripts/test-endpoints.js"
+  },
+  "dependencies": {
+    "@multisystem/contracts": "workspace:*",
+    "@multisystem/database": "workspace:*",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/env": "^5.0.3",
+    "bcryptjs": "^3.0.3",
+    "fastify": "^5.7.4",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "@fastify/swagger": "^9.0.0",
+    "@fastify/swagger-ui": "^5.2.5",
+    "esbuild": "^0.27.3"
+  }
+}

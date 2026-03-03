@@ -48,4 +48,14 @@ prisma/migrations/
 # Misc
 .cache/
 .turbo/
-context/
+
+# Git Submodules - ignorar contenido pero permitir referencias
+# Servicios compartidos (submodules)
+services/*/
+!services/*/.git
+!services/*/.gitmodules
+
+# Módulos frontend (submodules)
+modules/*/
+!modules/*/.git
+!modules/*/.gitmodules
