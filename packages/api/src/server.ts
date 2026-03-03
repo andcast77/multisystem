@@ -132,16 +132,20 @@ async function start() {
     await workifyController.registerRoutes(fastify)
     await techservicesController.registerRoutes(fastify)
 
-    // Iniciar servidor
-    const port = parseInt(config.PORT, 10)
-    await fastify.listen({ port, host: '0.0.0.0' })
-    
-    console.log(`🚀 API server listening on port ${port}`)
-    console.log(`📋 CORS origins: ${config.CORS_ORIGIN}`)
+    // On Vercel we export the app for serverless; locally we listen
+    if (!process.env.VERCEL) {
+      const port = parseInt(config.PORT, 10)
+      await fastify.listen({ port, host: '0.0.0.0' })
+      console.log(`🚀 API server listening on port ${port}`)
+      console.log(`📋 CORS origins: ${config.CORS_ORIGIN}`)
+    }
+    return fastify
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
   }
 }
 
-start()
+// Export for Vercel serverless; run listen() when executed directly
+const app = await start()
+export default app
