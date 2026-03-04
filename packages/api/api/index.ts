@@ -18,8 +18,8 @@ let appPromise: Promise<import('fastify').FastifyInstance> | null = null
 
 function getApp() {
   if (!appPromise) {
-    // Use absolute path so it works from Vercel's function runtime (cwd is project root = packages/api)
-    const serverPath = join(process.cwd(), 'dist', 'server.js')
+    // Vercel runs from repo root (/var/task); API dist is at packages/api/dist/server.js
+    const serverPath = join(process.cwd(), 'packages', 'api', 'dist', 'server.js')
     appPromise = import(pathToFileURL(serverPath).href).then((m: { default: import('fastify').FastifyInstance }) => m.default)
   }
   return appPromise
