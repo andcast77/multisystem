@@ -5,12 +5,7 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
   "functions": {
     "api/index.ts": {
-      "includeFiles": [
-        "dist/**",
-        "../database/dist/**",
-        "../database/generated/**",
-        "../contracts/dist/**"
-      ]
+      "includeFiles": "dist/**"
     }
   }
 }
