@@ -1,6 +1,6 @@
 {
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build:api",
+  "buildCommand": "pnpm -w run build:api",
   "framework": null,
   "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
   "functions": {
