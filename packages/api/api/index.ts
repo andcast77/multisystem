@@ -3,8 +3,11 @@
  * Rewrite "/(.*)" -> "/api" in vercel.json so this handler receives every request.
  */
 
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { pathToFileURL } from 'url'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /** Web Fetch API Request shape used by Vercel's default handler signature */
 interface FetchRequest {
@@ -18,8 +21,8 @@ let appPromise: Promise<import('fastify').FastifyInstance> | null = null
 
 function getApp() {
   if (!appPromise) {
-    // Vercel runs from repo root (/var/task); API dist is at packages/api/dist/server.js
-    const serverPath = join(process.cwd(), 'packages', 'api', 'dist', 'server.js')
+    // Path relative to this file: api/index.js -> ../dist/server.js
+    const serverPath = join(__dirname, '..', 'dist', 'server.js')
     appPromise = import(pathToFileURL(serverPath).href).then((m: { default: import('fastify').FastifyInstance }) => m.default)
   }
   return appPromise

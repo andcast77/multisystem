@@ -2,5 +2,10 @@
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm run build:api",
   "framework": null,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/**"
+    }
+  }
 }
