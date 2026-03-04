@@ -4,7 +4,7 @@
   "framework": null,
   "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
   "functions": {
-    "packages/api/api/index.ts": {
+    "api/index.ts": {
       "includeFiles": "packages/api/dist/**"
     }
   }
