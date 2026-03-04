@@ -42,9 +42,10 @@ export default {
     const pathname = url.pathname.replace(/^\/api/, '') || '/'
     const path = pathname + url.search
     const headers: Record<string, string> = {}
-    request.headers.forEach((value, key) => {
+    const reqHeaders = request.headers as unknown as { entries(): IterableIterator<[string, string]> }
+    for (const [key, value] of reqHeaders.entries()) {
       headers[key] = value
-    })
+    }
     const body = await request.text().catch(() => '')
     const payload = body || undefined
 
