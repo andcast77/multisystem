@@ -9,6 +9,16 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+/** HTTP method union expected by Fastify inject (request.method is string) */
+type HTTPMethods = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
+
+/** Shape of the object returned by Fastify inject() when called with options (not chain) */
+interface InjectResponse {
+  statusCode: number
+  headers: Record<string, string | string[] | undefined>
+  body: string | Buffer | null
+}
+
 /** Web Fetch API Request shape used by Vercel's default handler signature */
 interface FetchRequest {
   url: string
@@ -57,17 +67,17 @@ export default {
       const body = await request.text().catch(() => '')
       const payload = body || undefined
 
-      const response = await app.inject({
-        method: request.method,
+      const response = (await app.inject({
+        method: request.method as HTTPMethods,
         url: path,
         headers,
         payload
-      })
+      })) as InjectResponse
 
       const bodyOut = response.body != null ? response.body : undefined
       return new Response(bodyOut, {
         status: response.statusCode,
-        headers: headersFromFastify(response.headers as Record<string, string | string[] | undefined>)
+        headers: headersFromFastify(response.headers)
       })
     } catch (err) {
       console.error('[api]', err)
