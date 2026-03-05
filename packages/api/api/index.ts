@@ -7,10 +7,13 @@ import { join, dirname } from 'path'
 import { pathToFileURL } from 'url'
 import { fileURLToPath } from 'url'
 
-// Prevent unhandled rejections from crashing the function (e.g. from loaded server or deps)
+// Prevent unhandled rejections/uncaught errors from crashing the function (e.g. from loaded server or deps)
 if (typeof process !== 'undefined') {
   process.on('unhandledRejection', (reason, promise) => {
     console.error('[api] unhandledRejection', reason)
+  })
+  process.on('uncaughtException', (err) => {
+    console.error('[api] uncaughtException', err)
   })
 }
 
@@ -49,10 +52,17 @@ function getApp(): Promise<import('fastify').FastifyInstance> {
   if (!appPromise) {
     const relPath = join(__dirname, '..', 'dist', 'server.js')
     const cwdPath = join(process.cwd(), 'dist', 'server.js')
+    const monorepoApiPath = join(process.cwd(), 'packages', 'api', 'dist', 'server.js')
     appPromise = loadServer(relPath).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err)
       if (process.env.VERCEL && /ENOENT|MODULE_NOT_FOUND|cannot find/i.test(msg)) {
-        return loadServer(cwdPath)
+        return loadServer(cwdPath).catch((err2) => {
+          const msg2 = err2 instanceof Error ? err2.message : String(err2)
+          if (/ENOENT|MODULE_NOT_FOUND|cannot find/i.test(msg2)) {
+            return loadServer(monorepoApiPath)
+          }
+          throw err2
+        })
       }
       throw err
     })

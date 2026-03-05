@@ -163,6 +163,13 @@ pnpm test:coverage
 
 ## 🚀 Despliegue
 
+### Vercel (monorepo, Root Directory = `packages/api`)
+
+1. **Root Directory**: deja **Root Directory** = `packages/api` en el proyecto de Vercel.
+2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run build:api`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
+3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
+4. Variables de entorno en Vercel: `DATABASE_URL`, `JWT_SECRET` (producción) y opcionalmente `CORS_ORIGIN`.
+
 ### Render.com (Recomendado - Gratis)
 
 Ver [README_RENDER.md](./README_RENDER.md) para guía rápida o [docs/RENDER_DEPLOYMENT.md](../docs/RENDER_DEPLOYMENT.md) para guía completa.

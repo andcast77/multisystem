@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "turbo run build --filter=@multisystem/api",
+  "buildCommand": "cd ../.. && pnpm install && pnpm run build:api",
   "installCommand": "pnpm install",
   "functions": {
     "api/index.ts": {
