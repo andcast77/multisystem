@@ -1,12 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm install && pnpm run build:api",
+  "buildCommand": "cd ../.. && pnpm install && pnpm exec turbo run build --filter=@multisystem/database && pnpm exec turbo run build --filter=@multisystem/api && mkdir -p packages/api/node_modules/@multisystem && rm -rf packages/api/node_modules/@multisystem/database && cp -r packages/database packages/api/node_modules/@multisystem/database",
   "installCommand": "pnpm install",
   "functions": {
     "api/index.ts": {
       "memory": 1024,
-      "maxDuration": 30,
-      "includeFiles": "../database/dist/generated/**"
+      "maxDuration": 30
     }
   },
   "rewrites": [
