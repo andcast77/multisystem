@@ -29,11 +29,26 @@ interface FetchRequest {
 
 let appPromise: Promise<import('fastify').FastifyInstance> | null = null
 
-function getApp() {
+function loadServer(serverPath: string): Promise<import('fastify').FastifyInstance> {
+  return import(pathToFileURL(serverPath).href)
+    .then((m: { default: import('fastify').FastifyInstance }) => m.default)
+    .catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(`Failed to load server from ${serverPath}: ${msg}`)
+    })
+}
+
+function getApp(): Promise<import('fastify').FastifyInstance> {
   if (!appPromise) {
-    // Path relative to this file: api/index.js -> ../dist/server.js
-    const serverPath = join(__dirname, '..', 'dist', 'server.js')
-    appPromise = import(pathToFileURL(serverPath).href).then((m: { default: import('fastify').FastifyInstance }) => m.default)
+    const relPath = join(__dirname, '..', 'dist', 'server.js')
+    const cwdPath = join(process.cwd(), 'dist', 'server.js')
+    appPromise = loadServer(relPath).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (process.env.VERCEL && /ENOENT|MODULE_NOT_FOUND|cannot find/i.test(msg)) {
+        return loadServer(cwdPath)
+      }
+      throw err
+    })
   }
   return appPromise
 }
