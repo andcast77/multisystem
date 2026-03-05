@@ -7,6 +7,13 @@ import { join, dirname } from 'path'
 import { pathToFileURL } from 'url'
 import { fileURLToPath } from 'url'
 
+// Prevent unhandled rejections from crashing the function (e.g. from loaded server or deps)
+if (typeof process !== 'undefined') {
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[api] unhandledRejection', reason)
+  })
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /** HTTP method union expected by Fastify inject (request.method is string) */
@@ -94,13 +101,16 @@ export default {
         status: response.statusCode,
         headers: headersFromFastify(response.headers)
       })
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[api]', err)
       const message = err instanceof Error ? err.message : String(err)
       // Startup/load failures (e.g. missing env, failed import) -> 503 so client knows service is unavailable
       const status = message && /required|failed|cannot find|ENOENT|MODULE_NOT_FOUND/i.test(message) ? 503 : 500
       return new Response(
-        JSON.stringify({ error: status === 503 ? 'Service Unavailable' : 'Internal Server Error', message: process.env.VERCEL ? message : undefined }),
+        JSON.stringify({
+          error: status === 503 ? 'Service Unavailable' : 'Internal Server Error',
+          message: process.env.VERCEL ? message : undefined
+        }),
         { status, headers: { 'Content-Type': 'application/json' } }
       )
     }
