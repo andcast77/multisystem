@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=@multisystem/workify",
+  "buildCommand": "turbo build",
   "outputDirectory": ".next",
   "installCommand": "pnpm install",
   "framework": "nextjs"
