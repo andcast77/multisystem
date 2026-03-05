@@ -82,9 +82,11 @@ export default {
     } catch (err) {
       console.error('[api]', err)
       const message = err instanceof Error ? err.message : String(err)
+      // Startup/load failures (e.g. missing env, failed import) -> 503 so client knows service is unavailable
+      const status = message && /required|failed|cannot find|ENOENT|MODULE_NOT_FOUND/i.test(message) ? 503 : 500
       return new Response(
-        JSON.stringify({ error: 'Internal Server Error', message: process.env.VERCEL ? message : undefined }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: status === 503 ? 'Service Unavailable' : 'Internal Server Error', message: process.env.VERCEL ? message : undefined }),
+        { status, headers: { 'Content-Type': 'application/json' } }
       )
     }
   }

@@ -79,9 +79,12 @@ async function start() {
       JWT_EXPIRES_IN: string
     }
 
-    // Fail fast in production if JWT_SECRET is missing
+    // Fail fast in production if JWT_SECRET is missing (throw on Vercel so handler returns 503)
     if (config.NODE_ENV === 'production' && (!config.JWT_SECRET || config.JWT_SECRET.trim() === '')) {
       fastify.log.error('JWT_SECRET is required in production. Set it in .env or environment.')
+      if (process.env.VERCEL) {
+        throw new Error('JWT_SECRET is required in production. Set it in .env or environment.')
+      }
       process.exit(1)
     }
 
@@ -142,6 +145,9 @@ async function start() {
     return fastify
   } catch (err) {
     fastify.log.error(err)
+    if (process.env.VERCEL) {
+      throw err
+    }
     process.exit(1)
   }
 }
