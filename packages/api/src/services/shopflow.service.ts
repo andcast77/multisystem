@@ -223,16 +223,16 @@ export async function nextInvoiceNumber(ctx: CompanyContext, reply: FastifyReply
     const config = await prisma.storeConfig.findFirst({
       where: { companyId: ctx.companyId },
       orderBy: { createdAt: 'desc' },
+      select: { id: true },
     })
     if (!config) {
       reply.code(404)
       return { success: false, error: 'Configuración de tienda no encontrada' }
     }
-    const updated = await prisma.storeConfig.update({
-      where: { id: config.id },
-      data: { invoiceNumber: config.invoiceNumber + 1 },
-    })
-    const invoiceNumber = `${updated.invoicePrefix}${updated.invoiceNumber.toString().padStart(6, '0')}`
+    const [result] = await prisma.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>(
+      Prisma.sql`UPDATE store_configs SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW() WHERE id = ${config.id} RETURNING "invoicePrefix", "invoiceNumber"`
+    )
+    const invoiceNumber = `${result.invoicePrefix}${result.invoiceNumber.toString().padStart(6, '0')}`
     return { success: true, data: { invoiceNumber } }
   } catch (error) {
     reply.code(500)

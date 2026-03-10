@@ -1,12 +1,9 @@
-import type { FastifyReply } from 'fastify'
 import { prisma, Prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
+import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/index.js'
+import { toNumber } from '../common/database/index.js'
 
-function num(v: unknown): number {
-  if (v == null) return 0
-  if (typeof v === 'object' && v !== null && 'toNumber' in v) return (v as { toNumber: () => number }).toNumber()
-  return Number(v)
-}
+const num = toNumber
 
 export type Sale = {
   id: string
@@ -69,19 +66,15 @@ export type CreateSaleBody = {
 export async function listSales(
   ctx: ShopflowContext,
   query: ListSalesQuery,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string } | null> {
+) {
   const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   const effectiveStoreId = isStoreAdmin
     ? query.storeId ?? undefined
     : (query.storeId || ctx.storeId) ?? null
   if (!isStoreAdmin && !effectiveStoreId) {
-    reply.code(403).send({
-      success: false,
-      error:
-        'Envía el parámetro storeId (query) o el header X-Store-Id con el id del local de venta para listar ventas (usuario no administrador)',
-    })
-    return null
+    throw new ForbiddenError(
+      'Envía el parámetro storeId (query) o el header X-Store-Id con el id del local de venta para listar ventas (usuario no administrador)',
+    )
   }
 
   const pageNum = parseInt(query.page ?? '1')
@@ -159,8 +152,7 @@ export async function listSales(
 export async function getSaleById(
   ctx: ShopflowContext,
   id: string,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+) {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
     include: {
@@ -170,13 +162,11 @@ export async function getSaleById(
     },
   })
   if (!sale) {
-    reply.code(404)
-    return { success: false, error: 'Venta no encontrada' }
+    throw new NotFoundError('Venta no encontrada')
   }
   const isStoreAdminId = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   if (!isStoreAdminId && ctx.storeId != null && sale.storeId !== ctx.storeId) {
-    reply.code(404)
-    return { success: false, error: 'Venta no encontrada' }
+    throw new NotFoundError('Venta no encontrada')
   }
   return {
     success: true,
@@ -204,32 +194,22 @@ export async function getSaleById(
 export async function createSale(
   ctx: ShopflowContext,
   body: CreateSaleBody,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string } | void> {
+) {
   const { storeId: bodyStoreId, customerId, userId, items, paymentMethod, paidAmount, discount = 0, taxRate, notes } = body
   const effectiveStoreId = bodyStoreId ?? ctx.storeId ?? null
   const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   if (!isStoreAdmin && effectiveStoreId == null) {
-    reply.code(400).send({
-      success: false,
-      error: 'Envía storeId en el body o el header X-Store-Id con el id del local de venta para registrar la venta',
-    })
-    return
+    throw new BadRequestError('Envía storeId en el body o el header X-Store-Id con el id del local de venta para registrar la venta')
   }
   if (!isStoreAdmin && ctx.storeId != null && effectiveStoreId !== ctx.storeId) {
-    reply.code(403).send({
-      success: false,
-      error: 'Solo puedes registrar ventas en tu local de venta asignado',
-    })
-    return
+    throw new ForbiddenError('Solo puedes registrar ventas en tu local de venta asignado')
   }
   if (effectiveStoreId) {
     const storeCheck = await prisma.store.findFirst({
       where: { id: effectiveStoreId, companyId: ctx.companyId },
     })
     if (!storeCheck) {
-      reply.code(400).send({ success: false, error: 'Local de venta no encontrado o no pertenece a la empresa' })
-      return
+      throw new BadRequestError('Local de venta no encontrado o no pertenece a la empresa')
     }
   }
 
@@ -239,19 +219,15 @@ export async function createSale(
       select: { id: true, name: true, stock: true, active: true },
     })
     if (!product) {
-      reply.code(404)
-      return { success: false, error: `Producto con ID ${item.productId} no encontrado` }
+      throw new NotFoundError(`Producto con ID ${item.productId} no encontrado`)
     }
     if (!product.active) {
-      reply.code(400)
-      return { success: false, error: `El producto ${product.name} no está activo` }
+      throw new BadRequestError(`El producto ${product.name} no está activo`)
     }
     if (product.stock < item.quantity) {
-      reply.code(400)
-      return {
-        success: false,
-        error: `Stock insuficiente para el producto ${product.name}. Disponible: ${product.stock}, Solicitado: ${item.quantity}`,
-      }
+      throw new BadRequestError(
+        `Stock insuficiente para el producto ${product.name}. Disponible: ${product.stock}, Solicitado: ${item.quantity}`,
+      )
     }
   }
 
@@ -260,15 +236,14 @@ export async function createSale(
       where: { id: customerId, companyId: ctx.companyId },
     })
     if (!customer) {
-      reply.code(404)
-      return { success: false, error: 'Cliente no encontrado' }
+      throw new NotFoundError('Cliente no encontrado')
     }
   }
 
   const storeConfig = await prisma.storeConfig.findFirst({
     where: { companyId: ctx.companyId },
     orderBy: { createdAt: 'desc' },
-    select: { taxRate: true, invoicePrefix: true, invoiceNumber: true, id: true },
+    select: { taxRate: true, invoicePrefix: true, id: true },
   })
   const configTaxRate = storeConfig ? num(storeConfig.taxRate) : 0
   const finalTaxRate = taxRate ?? configTaxRate
@@ -290,21 +265,17 @@ export async function createSale(
   const total = subtotalAfterDiscount + tax
 
   if (paidAmount < total) {
-    reply.code(400)
-    return { success: false, error: `El monto pagado (${paidAmount}) es menor que el total (${total})` }
+    throw new BadRequestError(`El monto pagado (${paidAmount}) es menor que el total (${total})`)
   }
 
   const created = await prisma.$transaction(async (tx) => {
-    const nextInvoice = storeConfig
-      ? await tx.storeConfig.update({
-          where: { id: storeConfig.id },
-          data: { invoiceNumber: storeConfig.invoiceNumber + 1 },
-          select: { invoicePrefix: true, invoiceNumber: true },
-        })
-      : null
-    const invoiceNumber = nextInvoice
-      ? `${nextInvoice.invoicePrefix}${nextInvoice.invoiceNumber.toString().padStart(6, '0')}`
-      : null
+    let invoiceNumber: string | null = null
+    if (storeConfig) {
+      const [result] = await tx.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>(
+        Prisma.sql`UPDATE store_configs SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW() WHERE id = ${storeConfig.id} RETURNING "invoicePrefix", "invoiceNumber"`
+      )
+      invoiceNumber = `${result.invoicePrefix}${result.invoiceNumber.toString().padStart(6, '0')}`
+    }
 
     const sale = await tx.sale.create({
       data: {
@@ -377,24 +348,14 @@ export async function createSale(
 export async function cancelSale(
   ctx: ShopflowContext,
   id: string,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+) {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
     select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
-  if (!sale) {
-    reply.code(404)
-    return { success: false, error: 'Venta no encontrada' }
-  }
-  if (sale.status === 'CANCELLED') {
-    reply.code(400)
-    return { success: false, error: 'La venta ya está cancelada' }
-  }
-  if (sale.status === 'REFUNDED') {
-    reply.code(400)
-    return { success: false, error: 'No se puede cancelar una venta reembolsada' }
-  }
+  if (!sale) throw new NotFoundError('Venta no encontrada')
+  if (sale.status === 'CANCELLED') throw new BadRequestError('La venta ya está cancelada')
+  if (sale.status === 'REFUNDED') throw new BadRequestError('No se puede cancelar una venta reembolsada')
 
   await prisma.$transaction(async (tx) => {
     await tx.sale.update({
@@ -428,30 +389,18 @@ export async function cancelSale(
 export async function refundSale(
   ctx: ShopflowContext,
   id: string,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+) {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
     select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
-  if (!sale) {
-    reply.code(404)
-    return { success: false, error: 'Venta no encontrada' }
-  }
-  if (sale.status === 'REFUNDED') {
-    reply.code(400)
-    return { success: false, error: 'La venta ya está reembolsada' }
-  }
-  if (sale.status === 'CANCELLED') {
-    reply.code(400)
-    return { success: false, error: 'No se puede reembolsar una venta cancelada' }
-  }
+  if (!sale) throw new NotFoundError('Venta no encontrada')
+  if (sale.status === 'REFUNDED') throw new BadRequestError('La venta ya está reembolsada')
+  if (sale.status === 'CANCELLED') throw new BadRequestError('No se puede reembolsar una venta cancelada')
   if (sale.status !== 'COMPLETED') {
-    reply.code(400)
-    return {
-      success: false,
-      error: `No se puede reembolsar una venta con estado ${sale.status}. Solo las ventas completadas pueden ser reembolsadas.`,
-    }
+    throw new BadRequestError(
+      `No se puede reembolsar una venta con estado ${sale.status}. Solo las ventas completadas pueden ser reembolsadas.`,
+    )
   }
 
   await prisma.$transaction(async (tx) => {

@@ -1,4 +1,5 @@
 import { prisma } from '../db/index.js'
+import { cacheThrough, cacheDel } from '../common/cache/index.js'
 
 /** Keys de módulos conocidos (según seed) */
 export const MODULE_KEYS = ['workify', 'shopflow', 'techservices'] as const
@@ -17,25 +18,38 @@ const DEFAULT_MODULES: CompanyModulesShape = {
   techservices: false,
 }
 
+const MODULE_CACHE_TTL = 300 // 5 minutes
+
 /**
  * Obtiene los módulos habilitados para una empresa vía CompanyModule.
+ * Results are cached in Redis for 5 minutes to avoid hitting the DB on every request.
  */
 export async function getCompanyModules(
   companyId: string
 ): Promise<CompanyModulesShape> {
-  const companyModules = await prisma.companyModule.findMany({
-    where: { companyId, enabled: true },
-    include: { module: true },
-  })
+  return cacheThrough(
+    `modules:${companyId}`,
+    async () => {
+      const companyModules = await prisma.companyModule.findMany({
+        where: { companyId, enabled: true },
+        include: { module: true },
+      })
 
-  const result = { ...DEFAULT_MODULES }
-  for (const cm of companyModules) {
-    const key = cm.module.key as ModuleKeys
-    if (MODULE_KEYS.includes(key)) {
-      result[key] = true
-    }
-  }
-  return result
+      const result = { ...DEFAULT_MODULES }
+      for (const cm of companyModules) {
+        const key = cm.module.key as ModuleKeys
+        if (MODULE_KEYS.includes(key)) {
+          result[key] = true
+        }
+      }
+      return result
+    },
+    MODULE_CACHE_TTL,
+  )
+}
+
+export async function invalidateModuleCache(companyId: string): Promise<void> {
+  await cacheDel(`modules:${companyId}`)
 }
 
 /**

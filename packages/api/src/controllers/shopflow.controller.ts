@@ -525,10 +525,7 @@ export async function listSales(
 ) {
   try {
     const ctx = getCtx(request, true)
-    const result = await shopflowService.listSales(ctx, request.query, reply)
-    if (result === null) return null
-    if (!result.success) return result
-    return result
+    return await shopflowService.listSales(ctx, request.query)
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al obtener ventas')
   }
@@ -537,7 +534,7 @@ export async function listSales(
 export async function getSaleById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   try {
     const ctx = getCtx(request, true)
-    return shopflowService.getSaleById(ctx, request.params.id, reply)
+    return await shopflowService.getSaleById(ctx, request.params.id)
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al obtener venta')
   }
@@ -546,8 +543,7 @@ export async function getSaleById(request: FastifyRequest<{ Params: { id: string
 export async function createSale(request: FastifyRequest<{ Body: Parameters<typeof shopflowService.createSale>[1] }>, reply: FastifyReply) {
   try {
     const ctx = getCtx(request, true)
-    const result = await shopflowService.createSale(ctx, request.body, reply)
-    if (result !== undefined) return result
+    return await shopflowService.createSale(ctx, request.body)
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al crear venta')
   }
@@ -556,7 +552,7 @@ export async function createSale(request: FastifyRequest<{ Body: Parameters<type
 export async function cancelSale(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   try {
     const ctx = getCtx(request, true)
-    return shopflowService.cancelSale(ctx, request.params.id, reply)
+    return await shopflowService.cancelSale(ctx, request.params.id)
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al cancelar venta')
   }
@@ -565,7 +561,7 @@ export async function cancelSale(request: FastifyRequest<{ Params: { id: string 
 export async function refundSale(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   try {
     const ctx = getCtx(request, true)
-    return shopflowService.refundSale(ctx, request.params.id, reply)
+    return await shopflowService.refundSale(ctx, request.params.id)
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al reembolsar venta')
   }
@@ -849,11 +845,11 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { userId: string } }>('/api/shopflow/notifications/unread-count', { preHandler: pre }, handle(getUnreadNotificationCount))
   fastify.get<{ Params: { userId: string } }>('/api/shopflow/notifications/preferences/:userId', { preHandler: pre }, handle(getNotificationPreferences))
   fastify.get<{ Params: { userId: string } }>('/api/shopflow/users/:userId/notification-preferences', { preHandler: pre }, handle(getNotificationPreferences))
-  // Action history (no auth in original)
-  fastify.post('/api/shopflow/action-history', handle(createActionHistory))
-  fastify.get('/api/shopflow/action-history', handle(listActionHistory))
-  fastify.get<{ Params: { userId: string } }>('/api/shopflow/action-history/user/:userId', handle(getActionHistoryByUser))
-  fastify.get<{ Params: { entityType: string; entityId: string } }>('/api/shopflow/action-history/entity/:entityType/:entityId', handle(getActionHistoryByEntity))
+  // Action history
+  fastify.post('/api/shopflow/action-history', { preHandler: pre }, handle(createActionHistory))
+  fastify.get('/api/shopflow/action-history', { preHandler: pre }, handle(listActionHistory))
+  fastify.get<{ Params: { userId: string } }>('/api/shopflow/action-history/user/:userId', { preHandler: pre }, handle(getActionHistoryByUser))
+  fastify.get<{ Params: { entityType: string; entityId: string } }>('/api/shopflow/action-history/entity/:entityType/:entityId', { preHandler: pre }, handle(getActionHistoryByEntity))
   // Export
   fastify.get('/api/shopflow/export/json', { preHandler: pre }, handle(exportJson))
   fastify.get('/api/shopflow/export/csv', { preHandler: pre }, handle(exportCsv))

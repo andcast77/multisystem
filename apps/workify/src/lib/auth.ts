@@ -83,7 +83,8 @@ export async function loginUser(credentials: { email: string; password: string }
   if (!user) throw new Error('Login failed');
   // If API returns token and we're on client, set cookie for same-origin or cross-origin
   if (typeof document !== 'undefined' && data?.token) {
-    document.cookie = `token=${encodeURIComponent(data.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `token=${encodeURIComponent(data.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict${secure}`;
   }
   return user;
 }
@@ -95,7 +96,8 @@ export async function logoutUser(): Promise<void> {
     // ignore
   }
   if (typeof document !== 'undefined') {
-    document.cookie = 'token=; path=/; max-age=0';
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `token=; path=/; max-age=0; SameSite=Strict${secure}`;
   }
   window.location.href = '/login';
 }
@@ -111,7 +113,8 @@ export async function registerUser(data: {
   const user = responseData?.user;
   if (!user) throw new Error('Registration failed');
   if (typeof document !== 'undefined' && responseData?.token) {
-    document.cookie = `token=${encodeURIComponent(responseData.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `token=${encodeURIComponent(responseData.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict${secure}`;
   }
   return user;
 }
