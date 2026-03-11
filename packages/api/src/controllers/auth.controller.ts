@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { FastifyInstance } from 'fastify'
-import { verifyToken, requireAuth } from '../core/auth.js'
+import { requireAuth } from '../core/auth.js'
 import { sendBadRequest, sendForbidden, sendServerError } from '../core/errors.js'
 import { validateOr400 } from '../core/validate.js'
 import { loginBodySchema, registerBodySchema } from '../dto/auth.dto.js'
@@ -44,20 +44,7 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
 
 export async function me(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const authHeader = request.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.code(401)
-      return { success: false, error: 'Token de autenticación requerido' }
-    }
-
-    const token = authHeader.substring(7)
-    const decoded = verifyToken(token)
-
-    if (!decoded) {
-      reply.code(401)
-      return { success: false, error: 'Token inválido o expirado' }
-    }
-
+    const decoded = request.user!
     const result = await authService.me(decoded)
 
     if ('error' in result) {
@@ -92,16 +79,7 @@ export async function verify(request: FastifyRequest<{ Body: { token: string } }
 
 export async function listCompanies(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const authHeader = request.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.code(401)
-      return { success: false, error: 'Token de autenticación requerido' }
-    }
-    const decoded = verifyToken(authHeader.substring(7))
-    if (!decoded) {
-      reply.code(401)
-      return { success: false, error: 'Token inválido o expirado' }
-    }
+    const decoded = request.user!
     const companies = await authService.getCompanies(decoded.id, decoded.isSuperuser ?? false)
     return { success: true, data: companies }
   } catch (error) {
@@ -114,16 +92,7 @@ export async function setContext(
   reply: FastifyReply
 ) {
   try {
-    const authHeader = request.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.code(401)
-      return { success: false, error: 'Token de autenticación requerido' }
-    }
-    const decoded = verifyToken(authHeader.substring(7))
-    if (!decoded) {
-      reply.code(401)
-      return { success: false, error: 'Token inválido o expirado' }
-    }
+    const decoded = request.user!
     const { companyId } = request.body
     if (!companyId) {
       reply.code(400)
@@ -298,10 +267,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
     '/api/auth/register',
     (request, reply) => register(request, reply)
   )
-  fastify.get('/api/auth/me', (request, reply) => me(request, reply))
+  fastify.get('/api/auth/me', { preHandler: [requireAuth] }, (request, reply) => me(request, reply))
   fastify.post<{ Body: { token: string } }>('/api/auth/verify', (request, reply) => verify(request, reply))
-  fastify.get('/api/auth/companies', (request, reply) => listCompanies(request, reply))
-  fastify.post<{ Body: { companyId: string } }>('/api/auth/context', (request, reply) => setContext(request, reply))
+  fastify.get('/api/auth/companies', { preHandler: [requireAuth] }, (request, reply) => listCompanies(request, reply))
+  fastify.post<{ Body: { companyId: string } }>('/api/auth/context', { preHandler: [requireAuth] }, (request, reply) => setContext(request, reply))
   fastify.post<{
     Body: { userId: string; sessionToken: string; ipAddress?: string; userAgent?: string; expiresAt?: string }
   }>('/api/auth/sessions', { preHandler: [requireAuth] }, (request, reply) => createSession(request, reply))

@@ -16,26 +16,27 @@
     "test:endpoints": "node scripts/test-endpoints.js"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/env": "^5.0.3",
     "@multisystem/contracts": "workspace:*",
     "@multisystem/database": "workspace:*",
-    "@fastify/cors": "^11.2.0",
-    "dotenv": "^16.4.5",
-    "@fastify/env": "^5.0.3",
+    "@upstash/redis": "^1.36.4",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^16.4.5",
     "fastify": "^5.7.4",
     "jsonwebtoken": "^9.0.3",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "vitest": "^3.2.4",
-    "@types/ws": "^8.18.1",
+    "@fastify/swagger": "^9.0.0",
+    "@fastify/swagger-ui": "^5.2.5",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "@fastify/swagger": "^9.0.0",
-    "@fastify/swagger-ui": "^5.2.5",
-    "esbuild": "^0.27.3"
+    "vitest": "^3.2.4"
   }
 }

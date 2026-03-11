@@ -22,7 +22,8 @@ import * as companyMembersController from './controllers/company-members.control
 import * as shopflowController from './controllers/shopflow.controller.js'
 import * as workifyController from './controllers/workify.controller.js'
 import * as techservicesController from './controllers/techservices.controller.js'
-import { registerErrorHandler } from './core/errors.js'
+import { globalErrorHandler } from './common/errors/index.js'
+import { registerApiVersioning } from './common/versioned-routes.js'
 
 const __dirname = __dirnameApi
 const fastify = Fastify({ logger: true })
@@ -54,6 +55,14 @@ const envSchema = {
     JWT_EXPIRES_IN: {
       type: 'string',
       default: '7d'
+    },
+    UPSTASH_REDIS_REST_URL: {
+      type: 'string',
+      default: ''
+    },
+    UPSTASH_REDIS_REST_TOKEN: {
+      type: 'string',
+      default: ''
     }
   }
 }
@@ -122,9 +131,9 @@ async function start() {
       }
     })
 
-    registerErrorHandler(fastify)
+    fastify.setErrorHandler(globalErrorHandler)
+    registerApiVersioning(fastify)
 
-    // Registrar rutas desde controllers (cada controller registra sus paths)
     await setupSwagger(fastify)
     await healthController.registerRoutes(fastify)
     await authController.registerRoutes(fastify)
