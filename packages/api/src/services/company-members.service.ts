@@ -3,11 +3,12 @@ import { prisma } from '../db/index.js'
 import type { TokenPayload } from '../core/auth.js'
 import { canAccessCompany, canManageMembers } from '../core/permissions.js'
 import type { CreateMemberBody, UpdateMemberStoresBody } from '../dto/company-members.dto.js'
+import { ForbiddenError, NotFoundError, BadRequestError } from '../common/errors/app-error.js'
 
 const roleOrder = { OWNER: 0, ADMIN: 1, USER: 2 } as const
 
 export async function list(companyId: string, caller: TokenPayload) {
-  if (!canAccessCompany(caller, companyId)) return null
+  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
   const members = await prisma.companyMember.findMany({
     where: { companyId },
     include: { user: true },
@@ -37,10 +38,10 @@ export async function list(companyId: string, caller: TokenPayload) {
 }
 
 export async function create(companyId: string, caller: TokenPayload, body: CreateMemberBody) {
-  if (!canAccessCompany(caller, companyId)) return { error: 'No tienes acceso a esta empresa', code: 403 as const }
-  if (!canManageMembers(caller)) return { error: 'Solo el owner o un admin pueden crear usuarios', code: 403 as const }
+  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
+  if (!canManageMembers(caller)) throw new ForbiddenError('Solo el owner o un admin pueden crear usuarios')
   const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })
-  if (existing) return { error: 'Ya existe un usuario con este email', code: 400 as const }
+  if (existing) throw new BadRequestError('Ya existe un usuario con este email')
   const hashed = await bcrypt.hash(body.password, 10)
   const user = await prisma.user.create({
     data: {
@@ -76,15 +77,15 @@ export async function create(companyId: string, caller: TokenPayload, body: Crea
 }
 
 export async function updateStores(companyId: string, userId: string, caller: TokenPayload, body: UpdateMemberStoresBody) {
-  if (!canAccessCompany(caller, companyId)) return { error: 'No tienes acceso a esta empresa', code: 403 as const }
-  if (!canManageMembers(caller)) return { error: 'Solo el owner o un admin pueden modificar locales de usuarios', code: 403 as const }
+  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
+  if (!canManageMembers(caller)) throw new ForbiddenError('Solo el owner o un admin pueden modificar locales de usuarios')
   const member = await prisma.companyMember.findUnique({
     where: { userId_companyId: { userId, companyId } },
     select: { membershipRole: true },
   })
-  if (!member) return { error: 'Usuario no encontrado en esta empresa', code: 404 as const }
+  if (!member) throw new NotFoundError('Usuario no encontrado en esta empresa')
   if (member.membershipRole !== 'USER') {
-    return { error: 'Solo los usuarios con rol USER tienen locales asignados. Los owners y admins tienen acceso a todos.', code: 400 as const }
+    throw new BadRequestError('Solo los usuarios con rol USER tienen locales asignados. Los owners y admins tienen acceso a todos.')
   }
   let idsToAssign: string[] = []
   if (Array.isArray(body.storeIds) && body.storeIds.length > 0) {

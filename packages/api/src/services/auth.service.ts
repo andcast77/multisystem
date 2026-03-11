@@ -5,6 +5,7 @@ import { getUserCompanies, selectCompanyForUser } from '../core/auth-context.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
 import type { CompanyRow } from '../core/auth-context.js'
+import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../common/errors/app-error.js'
 
 export type LoginResult = {
   user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
@@ -33,7 +34,7 @@ export type MeResult = {
   company?: { id: string; name: string; modules: { workify: boolean; shopflow: boolean; techservices: boolean } }
 }
 
-export async function login(body: LoginBody): Promise<LoginResult | { error: string; code: 401 }> {
+export async function login(body: LoginBody): Promise<LoginResult> {
   const { email, password, companyId: bodyCompanyId } = body
 
   const user = await prisma.user.findUnique({
@@ -51,11 +52,11 @@ export async function login(body: LoginBody): Promise<LoginResult | { error: str
     },
   })
 
-  if (!user) return { error: 'Credenciales inválidas', code: 401 }
-  if (!user.isActive) return { error: 'Usuario inactivo', code: 401 }
+  if (!user) throw new UnauthorizedError('Credenciales inválidas')
+  if (!user.isActive) throw new UnauthorizedError('Usuario inactivo')
 
   const isValidPassword = await bcrypt.compare(password, user.password)
-  if (!isValidPassword) return { error: 'Credenciales inválidas', code: 401 }
+  if (!isValidPassword) throw new UnauthorizedError('Credenciales inválidas')
 
   const companies = await getUserCompanies(user.id, user.isSuperuser ?? false)
   const preferredCompanyId = bodyCompanyId ?? user.shopflowPreferredCompanyId ?? undefined
@@ -98,7 +99,7 @@ export async function login(body: LoginBody): Promise<LoginResult | { error: str
   return result
 }
 
-export async function register(body: RegisterBody): Promise<RegisterResult | { error: string; code: 400 }> {
+export async function register(body: RegisterBody): Promise<RegisterResult> {
   const {
     email,
     password,
@@ -111,7 +112,7 @@ export async function register(body: RegisterBody): Promise<RegisterResult | { e
   } = body
 
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-  if (existing) return { error: 'Ya existe un usuario con este email', code: 400 }
+  if (existing) throw new BadRequestError('Ya existe un usuario con este email')
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -221,9 +222,7 @@ export async function register(body: RegisterBody): Promise<RegisterResult | { e
   }
 }
 
-export async function me(
-  decoded: TokenPayload
-): Promise<MeResult | { error: string; code: 401 | 404 }> {
+export async function me(decoded: TokenPayload): Promise<MeResult> {
   const user = await prisma.user.findUnique({
     where: { id: decoded.id },
     select: {
@@ -237,8 +236,8 @@ export async function me(
     },
   })
 
-  if (!user) return { error: 'Usuario no encontrado', code: 404 }
-  if (!user.isActive) return { error: 'Usuario inactivo', code: 401 }
+  if (!user) throw new NotFoundError('Usuario no encontrado')
+  if (!user.isActive) throw new UnauthorizedError('Usuario inactivo')
 
   let preferredCompanyId: string | null = user.shopflowPreferredCompanyId
 
@@ -294,17 +293,15 @@ export async function me(
   }
 }
 
-export async function verify(
-  token: string
-): Promise<{ valid: true; user: TokenPayload } | { valid: false; error: string; code: 400 | 401 }> {
-  if (!token) return { valid: false, error: 'Token es requerido', code: 400 }
+export async function verify(token: string): Promise<{ valid: true; user: TokenPayload }> {
+  if (!token) throw new BadRequestError('Token es requerido')
   const decoded = verifyToken(token)
-  if (!decoded) return { valid: false, error: 'Token inválido o expirado', code: 401 }
+  if (!decoded) throw new UnauthorizedError('Token inválido o expirado')
   const user = await prisma.user.findUnique({
     where: { id: decoded.id },
     select: { id: true, isActive: true },
   })
-  if (!user || !user.isActive) return { valid: false, error: 'Usuario no encontrado o inactivo', code: 401 }
+  if (!user || !user.isActive) throw new UnauthorizedError('Usuario no encontrado o inactivo')
   return { valid: true, user: decoded }
 }
 
@@ -321,7 +318,7 @@ export type SetContextResult = {
 export async function setContext(
   decoded: TokenPayload,
   companyId: string
-): Promise<SetContextResult | { error: string; code: 403 }> {
+): Promise<SetContextResult> {
   let allowed = false
   let membershipRole: string | null = null
   if (decoded.isSuperuser) {
@@ -344,7 +341,7 @@ export async function setContext(
       allowed = !!ur
     }
   }
-  if (!allowed) return { error: 'No tienes acceso a esta empresa', code: 403 }
+  if (!allowed) throw new ForbiddenError('No tienes acceso a esta empresa')
   const token = generateToken({
     id: decoded.id,
     email: decoded.email,
@@ -372,21 +369,21 @@ export async function createSession(body: {
   ipAddress?: string
   userAgent?: string
   expiresAt?: string
-}): Promise<{ success: true } | { error: string; code: 400 | 404 | 409 }> {
+}): Promise<void> {
   const { userId, sessionToken, ipAddress, userAgent, expiresAt } = body
-  if (!userId || !sessionToken) return { error: 'userId y sessionToken son requeridos', code: 400 }
+  if (!userId || !sessionToken) throw new BadRequestError('userId y sessionToken son requeridos')
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     select: { id: true, role: true },
   })
-  if (!user) return { error: 'Usuario no encontrado', code: 404 }
+  if (!user) throw new NotFoundError('Usuario no encontrado')
   const existingSessions = await prisma.session.findMany({
     where: { userId },
     take: 1,
     select: { id: true },
   })
   if (existingSessions.length > 0 && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
-    return { error: 'Concurrent sessions not allowed for this role', code: 409 }
+    throw new ConflictError('Concurrent sessions not allowed for this role')
   }
   const expiresAtVal = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   await prisma.session.create({
@@ -398,7 +395,6 @@ export async function createSession(body: {
       expiresAt: expiresAtVal,
     },
   })
-  return { success: true }
 }
 
 export async function validateSession(token: string): Promise<{ valid: boolean }> {
@@ -431,18 +427,17 @@ export async function deleteSession(
   token: string,
   callerId: string,
   isSuperuser: boolean
-): Promise<{ success: true } | { error: string; code: 403 | 404 }> {
+): Promise<void> {
   const decodedToken = decodeURIComponent(token)
   const existing = await prisma.session.findMany({
     where: { sessionToken: decodedToken },
     take: 1,
     select: { id: true, userId: true },
   })
-  if (existing.length === 0) return { error: 'Session not found', code: 404 }
+  if (existing.length === 0) throw new NotFoundError('Session not found')
   const sessionUserId = existing[0].userId
-  if (callerId !== sessionUserId && !isSuperuser) return { error: 'No puedes eliminar sesiones de otro usuario', code: 403 }
+  if (callerId !== sessionUserId && !isSuperuser) throw new ForbiddenError('No puedes eliminar sesiones de otro usuario')
   await prisma.session.deleteMany({ where: { sessionToken: decodedToken } })
-  return { success: true }
 }
 
 export async function terminateOthersSessions(
@@ -450,19 +445,16 @@ export async function terminateOthersSessions(
   currentSessionToken: string,
   callerId: string,
   isSuperuser: boolean
-): Promise<{ success: true } | { error: string; code: 400 | 403 }> {
-  if (!userId || !currentSessionToken) return { error: 'userId y currentSessionToken son requeridos', code: 400 }
-  if (callerId !== userId && !isSuperuser) return { error: 'Solo puedes terminar tus propias sesiones', code: 403 }
+): Promise<void> {
+  if (!userId || !currentSessionToken) throw new BadRequestError('userId y currentSessionToken son requeridos')
+  if (callerId !== userId && !isSuperuser) throw new ForbiddenError('Solo puedes terminar tus propias sesiones')
   await prisma.session.deleteMany({
     where: { userId, sessionToken: { not: currentSessionToken } },
   })
-  return { success: true }
 }
 
-export async function cleanupExpiredSessions(
-  isSuperuser: boolean
-): Promise<{ count: number } | { error: string; code: 403 }> {
-  if (!isSuperuser) return { error: 'Solo superusuarios pueden ejecutar esta operación', code: 403 }
+export async function cleanupExpiredSessions(isSuperuser: boolean): Promise<{ count: number }> {
+  if (!isSuperuser) throw new ForbiddenError('Solo superusuarios pueden ejecutar esta operación')
   const deleted = await prisma.session.deleteMany({
     where: { expiresAt: { lte: new Date() } },
   })
@@ -473,12 +465,11 @@ export async function updateConcurrentSessions(
   userId: string,
   callerId: string,
   isSuperuser: boolean
-): Promise<{ success: true } | { error: string; code: 403 | 404 }> {
-  if (callerId !== userId && !isSuperuser) return { error: 'Solo puedes modificar la política de sesiones de tu propio usuario', code: 403 }
+): Promise<void> {
+  if (callerId !== userId && !isSuperuser) throw new ForbiddenError('Solo puedes modificar la política de sesiones de tu propio usuario')
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true },
   })
-  if (!user) return { error: 'Usuario no encontrado', code: 404 }
-  return { success: true }
+  if (!user) throw new NotFoundError('Usuario no encontrado')
 }

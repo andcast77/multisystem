@@ -919,12 +919,8 @@ model Product {
   barcode     String?
   price       Decimal  @db.Decimal(10, 2)
   cost        Decimal? @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  minStock    Int?     @default(0)
-  maxStock    Int?
   categoryId  String?
   supplierId  String?
-  storeId     String?
   active      Boolean  @default(true)
   imageUrl    String?
   createdAt   DateTime @default(now())

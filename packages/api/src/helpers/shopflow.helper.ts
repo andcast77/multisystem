@@ -8,12 +8,8 @@ type ProductRow = {
   barcode: string | null
   price: number
   cost: number | null
-  stock: number
-  minStock: number | null
-  maxStock: number | null
   categoryId: string | null
   supplierId: string | null
-  storeId: string | null
   active: boolean
   imageUrl: string | null
   createdAt: Date

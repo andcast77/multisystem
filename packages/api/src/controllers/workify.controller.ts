@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import { requireAuth } from '../core/auth.js'
 import { requireWorkifyContext } from '../core/auth-context.js'
 import { contextFromRequest } from '../core/auth-context.js'
+import { requireModuleAccess } from '../core/modules.js'
 import { sendNotFound, sendServerError } from '../core/errors.js'
 import * as workifyService from '../services/workify.service.js'
 import * as workifyHelper from '../helpers/workify.helper.js'
@@ -215,7 +216,7 @@ export async function listSpecialAssignments(request: FastifyRequest, reply: Fas
   }
 }
 
-const preWorkify = [requireAuth, requireWorkifyContext]
+const preWorkify = [requireAuth, requireWorkifyContext, requireModuleAccess('workify')]
 
 /** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
 function handle<T extends (req: any, rep: any) => any>(

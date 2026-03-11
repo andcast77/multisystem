@@ -23,6 +23,41 @@ export const registerBodySchema = z.object({
 
 export type RegisterBody = z.infer<typeof registerBodySchema>
 
+/** Input DTO: verify token */
+export const verifyTokenSchema = z.object({
+  token: z.string().min(1),
+})
+
+/** Input DTO: set context (switch company) */
+export const setContextSchema = z.object({
+  companyId: z.string().uuid(),
+})
+
+/** Input DTO: create session */
+export const createSessionSchema = z.object({
+  userId: z.string().uuid(),
+  sessionToken: z.string().min(1),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+  expiresAt: z.string().optional(),
+})
+
+/** Input DTO: terminate other sessions */
+export const terminateOthersSessionsSchema = z.object({
+  userId: z.string().uuid(),
+  currentSessionToken: z.string().min(1),
+})
+
+/** Input DTO: validate session query */
+export const validateSessionQuerySchema = z.object({
+  token: z.string().min(1),
+})
+
+/** Input DTO: list sessions query */
+export const listSessionsQuerySchema = z.object({
+  userId: z.string().uuid(),
+})
+
 /** Response DTO: user summary */
 export type AuthUserResponse = {
   id: string

@@ -43,14 +43,6 @@ export async function updateProduct(ctx: CompanyContext, id: string, body: Produ
   return repos(ctx).products.update(id, body)
 }
 
-export async function updateProductInventory(
-  ctx: CompanyContext,
-  id: string,
-  payload: { stock: number; minStock?: number }
-): Promise<ProductRow | null> {
-  return repos(ctx).products.updateInventory(id, payload)
-}
-
 export async function deleteProduct(ctx: CompanyContext, id: string): Promise<boolean> {
   return repos(ctx).products.delete(id)
 }

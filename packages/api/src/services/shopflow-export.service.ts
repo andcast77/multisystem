@@ -1,11 +1,6 @@
-/**
- * Export helpers and handlers for shopflow (company-scoped data export).
- * Used by shopflow.service / shopflow.controller.
- * Uses Prisma findMany for all tables.
- */
 import { prisma } from '../db/index.js'
-import type { FastifyReply } from 'fastify'
 import type { CompanyContext } from '../core/auth-context.js'
+import { BadRequestError } from '../common/errors/app-error.js'
 
 const ALLOWED_TABLES = [
   'users', 'customers', 'products', 'categories', 'suppliers', 'sales', 'saleItems',
@@ -67,43 +62,27 @@ async function fetchTableData(table: TableKey, companyId: string): Promise<unkno
   }
 }
 
-export async function exportJson(ctx: CompanyContext, reply: FastifyReply, _log: { warn: (a: unknown, b: string) => void }): Promise<{ success: boolean; data?: Record<string, unknown[]>; error?: string; message?: string }> {
-  try {
-    const data: Record<string, unknown[]> = {}
-    for (const table of ALLOWED_TABLES) {
-      try {
-        data[table] = await fetchTableData(table, ctx.companyId)
-      } catch {
-        data[table] = []
-      }
+export async function exportJson(ctx: CompanyContext): Promise<Record<string, unknown[]>> {
+  const data: Record<string, unknown[]> = {}
+  for (const table of ALLOWED_TABLES) {
+    try {
+      data[table] = await fetchTableData(table, ctx.companyId)
+    } catch {
+      data[table] = []
     }
-    return { success: true, data }
-  } catch (error) {
-    reply.code(500)
-    return { success: false, error: 'Error al exportar datos', message: error instanceof Error ? error.message : 'Error desconocido' }
   }
+  return data
 }
 
-export async function exportCsv(
-  ctx: CompanyContext,
-  tableParam: string | undefined,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: { rows: unknown[]; headers: string[] }; error?: string; message?: string }> {
-  try {
-    if (!tableParam || typeof tableParam !== 'string') {
-      reply.code(400)
-      return { success: false, error: 'Query "table" es requerido' }
-    }
-    const safeTable = tableParam.trim() as TableKey
-    if (!ALLOWED_TABLES.includes(safeTable)) {
-      reply.code(400)
-      return { success: false, error: `Tabla no permitida. Permitidas: ${ALLOWED_TABLES.join(', ')}` }
-    }
-    const rows = await fetchTableData(safeTable, ctx.companyId) as Record<string, unknown>[]
-    const headers = rows.length > 0 ? Object.keys(rows[0]) : []
-    return { success: true, data: { rows, headers } }
-  } catch (error) {
-    reply.code(500)
-    return { success: false, error: 'Error al exportar tabla', message: error instanceof Error ? error.message : 'Error desconocido' }
+export async function exportCsv(ctx: CompanyContext, tableParam: string | undefined): Promise<{ rows: unknown[]; headers: string[] }> {
+  if (!tableParam || typeof tableParam !== 'string') {
+    throw new BadRequestError('Query "table" es requerido')
   }
+  const safeTable = tableParam.trim() as TableKey
+  if (!ALLOWED_TABLES.includes(safeTable)) {
+    throw new BadRequestError(`Tabla no permitida. Permitidas: ${ALLOWED_TABLES.join(', ')}`)
+  }
+  const rows = await fetchTableData(safeTable, ctx.companyId) as Record<string, unknown>[]
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : []
+  return { rows, headers }
 }

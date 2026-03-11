@@ -10,12 +10,8 @@ export type ProductRow = {
   barcode: string | null
   price: number
   cost: number | null
-  stock: number
-  minStock: number | null
-  maxStock: number | null
   categoryId: string | null
   supplierId: string | null
-  storeId: string | null
   active: boolean
   imageUrl: string | null
   createdAt: Date
@@ -42,12 +38,8 @@ export type ProductCreateInput = {
   barcode?: string | null
   price: number
   cost?: number | null
-  stock?: number
-  minStock?: number | null
-  maxStock?: number | null
   categoryId?: string | null
   supplierId?: string | null
-  storeId?: string | null
   active?: boolean
   imageUrl?: string | null
 }
@@ -90,7 +82,7 @@ export class ProductRepository extends TenantScopedRepository {
   async search(query: ProductSearchQuery): Promise<PaginatedResult<ProductRow>> {
     const { page, limit, skip } = this.parsePagination(query)
     const sortOrder = query.sortOrder === 'desc' ? 'desc' : 'asc'
-    const validSortCols = ['name', 'price', 'stock', 'createdAt', 'updatedAt'] as const
+    const validSortCols = ['name', 'price', 'createdAt', 'updatedAt'] as const
     const orderByCol = validSortCols.includes(query.sortBy as typeof validSortCols[number])
       ? query.sortBy!
       : 'name'
@@ -112,15 +104,35 @@ export class ProductRepository extends TenantScopedRepository {
     return this.paginatedResult(products.map(mapRow), total, page, limit)
   }
 
-  async findLowStock(minStockThreshold?: number): Promise<ProductRow[]> {
+  async findLowStock(minStockThreshold?: number): Promise<(ProductRow & { totalStock: number })[]> {
     if (minStockThreshold != null && !isNaN(minStockThreshold)) {
-      const rows = await this.db.$queryRaw<ProductRow[]>(
-        Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= ${minStockThreshold}`
+      const rows = await this.db.$queryRaw<(ProductRow & { totalStock: number })[]>(
+        Prisma.sql`
+          SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
+            p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+            p.active, p."imageUrl", p."createdAt", p."updatedAt",
+            COALESCE(SUM(si.quantity), 0)::int as "totalStock"
+          FROM products p
+          LEFT JOIN store_inventory si ON si."productId" = p.id
+          WHERE p."companyId" = ${this.tenantId} AND p.active = true
+          GROUP BY p.id
+          HAVING COALESCE(SUM(si.quantity), 0) <= ${minStockThreshold}
+        `
       )
       return Array.isArray(rows) ? rows : []
     }
-    const rows = await this.db.$queryRaw<ProductRow[]>(
-      Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= COALESCE("minStock", 0)`
+    const rows = await this.db.$queryRaw<(ProductRow & { totalStock: number })[]>(
+      Prisma.sql`
+        SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
+          p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+          p.active, p."imageUrl", p."createdAt", p."updatedAt",
+          COALESCE(SUM(si.quantity), 0)::int as "totalStock"
+        FROM products p
+        LEFT JOIN store_inventory si ON si."productId" = p.id
+        WHERE p."companyId" = ${this.tenantId} AND p.active = true
+        GROUP BY p.id
+        HAVING COALESCE(SUM(si.quantity), 0) <= COALESCE(MIN(si."minStock"), 0)
+      `
     )
     return Array.isArray(rows) ? rows : []
   }
@@ -135,12 +147,8 @@ export class ProductRepository extends TenantScopedRepository {
         barcode: input.barcode ?? null,
         price: input.price,
         cost: input.cost ?? null,
-        stock: input.stock ?? 0,
-        minStock: input.minStock ?? null,
-        maxStock: input.maxStock ?? null,
         categoryId: input.categoryId ?? null,
         supplierId: input.supplierId ?? null,
-        storeId: input.storeId ?? null,
         active: input.active ?? true,
         imageUrl: input.imageUrl ?? null,
       },
@@ -162,34 +170,16 @@ export class ProductRepository extends TenantScopedRepository {
     if (input.barcode !== undefined) data.barcode = input.barcode
     if (input.price !== undefined) data.price = input.price
     if (input.cost !== undefined) data.cost = input.cost
-    if (input.stock !== undefined) data.stock = input.stock
-    if (input.minStock !== undefined) data.minStock = input.minStock
-    if (input.maxStock !== undefined) data.maxStock = input.maxStock
     if (input.categoryId !== undefined) {
       data.category = input.categoryId ? { connect: { id: input.categoryId } } : { disconnect: true }
     }
     if (input.supplierId !== undefined) {
       data.supplier = input.supplierId ? { connect: { id: input.supplierId } } : { disconnect: true }
     }
-    if (input.storeId !== undefined) data.storeId = input.storeId
     if (input.active !== undefined) data.active = input.active
     if (input.imageUrl !== undefined) data.imageUrl = input.imageUrl
 
     if (Object.keys(data).length === 0) return this.findById(id)
-
-    const p = await this.db.product.update({ where: { id }, data })
-    return mapRow(p)
-  }
-
-  async updateInventory(id: string, payload: { stock: number; minStock?: number }): Promise<ProductRow | null> {
-    const existing = await this.db.product.findFirst({
-      where: { ...this.tenantWhere, id },
-      select: { id: true },
-    })
-    if (!existing) return null
-
-    const data: Prisma.ProductUpdateInput = { stock: payload.stock }
-    if (payload.minStock !== undefined) data.minStock = payload.minStock
 
     const p = await this.db.product.update({ where: { id }, data })
     return mapRow(p)
@@ -235,24 +225,35 @@ export class ProductRepository extends TenantScopedRepository {
     sortOrder: string,
   ): Promise<PaginatedResult<ProductRow>> {
     const minStockThreshold = query.minPrice ? parseFloat(query.minPrice) : undefined
-    const safeCol = ['name', 'price', 'stock', 'createdAt', 'updatedAt'].includes(orderCol) ? orderCol : 'name'
+    const safeCol = ['name', 'price', 'createdAt', 'updatedAt'].includes(orderCol) ? orderCol : 'name'
     const direction = sortOrder === 'desc' ? 'DESC' : 'ASC'
 
+    const havingClause = minStockThreshold != null && !isNaN(minStockThreshold)
+      ? Prisma.sql`HAVING COALESCE(SUM(si.quantity), 0) <= ${minStockThreshold}`
+      : Prisma.sql`HAVING COALESCE(SUM(si.quantity), 0) <= COALESCE(MIN(si."minStock"), 0)`
+
+    const baseQuery = Prisma.sql`
+      FROM products p
+      LEFT JOIN store_inventory si ON si."productId" = p.id
+      WHERE p."companyId" = ${this.tenantId} AND p.active = true
+      GROUP BY p.id
+      ${havingClause}
+    `
+
     const [totalResult, rows] = await Promise.all([
-      minStockThreshold != null && !isNaN(minStockThreshold)
-        ? this.db.$queryRaw<[{ count: bigint }]>(
-            Prisma.sql`SELECT COUNT(*)::bigint as count FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= ${minStockThreshold}`
-          )
-        : this.db.$queryRaw<[{ count: bigint }]>(
-            Prisma.sql`SELECT COUNT(*)::bigint as count FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= COALESCE("minStock", 0)`
-          ),
-      minStockThreshold != null && !isNaN(minStockThreshold)
-        ? this.db.$queryRaw<ProductRow[]>(
-            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= ${minStockThreshold} ORDER BY ${Prisma.raw(`"${safeCol}"`)} ${Prisma.raw(direction)} LIMIT ${limit} OFFSET ${skip}`
-          )
-        : this.db.$queryRaw<ProductRow[]>(
-            Prisma.sql`SELECT id, "companyId", name, description, sku, barcode, price::float8, cost::float8, stock, "minStock", "maxStock", "categoryId", "supplierId", "storeId", active, "imageUrl", "createdAt", "updatedAt" FROM products WHERE "companyId" = ${this.tenantId} AND active = true AND stock <= COALESCE("minStock", 0) ORDER BY ${Prisma.raw(`"${safeCol}"`)} ${Prisma.raw(direction)} LIMIT ${limit} OFFSET ${skip}`
-          ),
+      this.db.$queryRaw<[{ count: bigint }]>(
+        Prisma.sql`SELECT COUNT(*)::bigint as count FROM (SELECT p.id ${baseQuery}) sub`
+      ),
+      this.db.$queryRaw<ProductRow[]>(
+        Prisma.sql`
+          SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
+            p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+            p.active, p."imageUrl", p."createdAt", p."updatedAt"
+          ${baseQuery}
+          ORDER BY ${Prisma.raw(`p."${safeCol}"`)} ${Prisma.raw(direction)}
+          LIMIT ${limit} OFFSET ${skip}
+        `
+      ),
     ])
     const total = Number(totalResult[0]?.count ?? 0)
     return this.paginatedResult(Array.isArray(rows) ? rows : [], total, page, limit)

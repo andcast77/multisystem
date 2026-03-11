@@ -198,13 +198,13 @@ export async function createSale(
   const { storeId: bodyStoreId, customerId, userId, items, paymentMethod, paidAmount, discount = 0, taxRate, notes } = body
   const effectiveStoreId = bodyStoreId ?? ctx.storeId ?? null
   const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  if (!isStoreAdmin && effectiveStoreId == null) {
+  if (effectiveStoreId == null) {
     throw new BadRequestError('Envía storeId en el body o el header X-Store-Id con el id del local de venta para registrar la venta')
   }
   if (!isStoreAdmin && ctx.storeId != null && effectiveStoreId !== ctx.storeId) {
     throw new ForbiddenError('Solo puedes registrar ventas en tu local de venta asignado')
   }
-  if (effectiveStoreId) {
+  {
     const storeCheck = await prisma.store.findFirst({
       where: { id: effectiveStoreId, companyId: ctx.companyId },
     })
@@ -216,7 +216,7 @@ export async function createSale(
   for (const item of items) {
     const product = await prisma.product.findFirst({
       where: { id: item.productId, companyId: ctx.companyId },
-      select: { id: true, name: true, stock: true, active: true },
+      select: { id: true, name: true, active: true },
     })
     if (!product) {
       throw new NotFoundError(`Producto con ID ${item.productId} no encontrado`)
@@ -224,9 +224,13 @@ export async function createSale(
     if (!product.active) {
       throw new BadRequestError(`El producto ${product.name} no está activo`)
     }
-    if (product.stock < item.quantity) {
+    const inventory = await prisma.storeInventory.findUnique({
+      where: { storeId_productId: { storeId: effectiveStoreId, productId: item.productId } },
+    })
+    const available = inventory?.quantity ?? 0
+    if (available < item.quantity) {
       throw new BadRequestError(
-        `Stock insuficiente para el producto ${product.name}. Disponible: ${product.stock}, Solicitado: ${item.quantity}`,
+        `Stock insuficiente para el producto ${product.name}. Disponible: ${available}, Solicitado: ${item.quantity}`,
       )
     }
   }
@@ -281,7 +285,7 @@ export async function createSale(
       data: {
         companyId: ctx.companyId,
         storeId: effectiveStoreId,
-        customerId: customerId ?? null,
+        customerId: customerId != null ? customerId : undefined,
         userId,
         invoiceNumber,
         total,
@@ -305,9 +309,9 @@ export async function createSale(
           subtotal: item.subtotal,
         },
       })
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
+      await tx.storeInventory.update({
+        where: { storeId_productId: { storeId: effectiveStoreId, productId: item.productId } },
+        data: { quantity: { decrement: item.quantity } },
       })
     }
 
@@ -351,7 +355,7 @@ export async function cancelSale(
 ) {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
+    select: { id: true, storeId: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
   if (!sale) throw new NotFoundError('Venta no encontrada')
   if (sale.status === 'CANCELLED') throw new BadRequestError('La venta ya está cancelada')
@@ -363,9 +367,10 @@ export async function cancelSale(
       data: { status: 'CANCELLED' },
     })
     for (const item of sale.items) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { increment: item.quantity } },
+      await tx.storeInventory.upsert({
+        where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },
+        create: { companyId: ctx.companyId, storeId: sale.storeId, productId: item.productId, quantity: item.quantity },
+        update: { quantity: { increment: item.quantity } },
       })
     }
   })
@@ -392,7 +397,7 @@ export async function refundSale(
 ) {
   const sale = await prisma.sale.findFirst({
     where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
+    select: { id: true, storeId: true, status: true, items: { select: { productId: true, quantity: true } } },
   })
   if (!sale) throw new NotFoundError('Venta no encontrada')
   if (sale.status === 'REFUNDED') throw new BadRequestError('La venta ya está reembolsada')
@@ -409,9 +414,10 @@ export async function refundSale(
       data: { status: 'REFUNDED' },
     })
     for (const item of sale.items) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { increment: item.quantity } },
+      await tx.storeInventory.upsert({
+        where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },
+        create: { companyId: ctx.companyId, storeId: sale.storeId, productId: item.productId, quantity: item.quantity },
+        update: { quantity: { increment: item.quantity } },
       })
     }
   })

@@ -1,6 +1,6 @@
-import type { FastifyReply } from 'fastify'
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
+import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
 
 export type CreateNotificationBody = {
   userId: string
@@ -13,15 +13,10 @@ export type CreateNotificationBody = {
   expiresAt?: string
 }
 
-export async function createNotification(
-  ctx: CompanyContext,
-  body: CreateNotificationBody,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function createNotification(ctx: CompanyContext, body: CreateNotificationBody) {
   const { userId, type, priority, title, message, data, actionUrl, expiresAt } = body
   if (!userId || !type || !title || !message) {
-    reply.code(400)
-    return { success: false, error: 'userId, type, title y message son requeridos' }
+    throw new BadRequestError('userId, type, title y message son requeridos')
   }
 
   const notification = await prisma.notification.create({
@@ -38,10 +33,7 @@ export async function createNotification(
       status: 'UNREAD',
     },
   })
-  return {
-    success: true,
-    data: { ...notification, data: notification.data ?? null },
-  }
+  return { ...notification, data: notification.data ?? null }
 }
 
 export type ListNotificationsQuery = {
@@ -53,11 +45,7 @@ export type ListNotificationsQuery = {
   limit?: string
 }
 
-export async function listNotifications(
-  ctx: CompanyContext,
-  query: ListNotificationsQuery,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function listNotifications(ctx: CompanyContext, query: ListNotificationsQuery) {
   const pageNum = parseInt(query.page ?? '1')
   const limitNum = parseInt(query.limit ?? '20')
   const skip = (pageNum - 1) * limitNum
@@ -83,132 +71,73 @@ export async function listNotifications(
   const notifications = results.map((row) => ({ ...row, data: row.data ?? null }))
 
   return {
-    success: true,
-    data: {
-      notifications,
-      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
-    },
+    notifications,
+    pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
   }
 }
 
-export async function markNotificationAsRead(
-  ctx: CompanyContext,
-  id: string,
-  body: { userId: string },
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function markNotificationAsRead(ctx: CompanyContext, id: string, body: { userId: string }) {
   const { userId } = body
-  if (!userId) {
-    reply.code(400)
-    return { success: false, error: 'userId es requerido' }
-  }
+  if (!userId) throw new BadRequestError('userId es requerido')
 
   const existing = await prisma.notification.findFirst({
     where: { id, companyId: ctx.companyId },
     select: { id: true, userId: true },
   })
-  if (!existing) {
-    reply.code(404)
-    return { success: false, error: 'Notificación no encontrada' }
-  }
-  if (existing.userId !== userId) {
-    reply.code(403)
-    return { success: false, error: 'Acceso denegado' }
-  }
+  if (!existing) throw new NotFoundError('Notificación no encontrada')
+  if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
+
   await prisma.notification.update({
     where: { id },
     data: { status: 'READ', readAt: new Date() },
   })
-  return { success: true, data: { success: true } }
 }
 
-export async function markNotificationAsUnread(
-  ctx: CompanyContext,
-  id: string,
-  body: { userId: string },
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function markNotificationAsUnread(ctx: CompanyContext, id: string, body: { userId: string }) {
   const { userId } = body
-  if (!userId) {
-    reply.code(400)
-    return { success: false, error: 'userId es requerido' }
-  }
+  if (!userId) throw new BadRequestError('userId es requerido')
 
   const existing = await prisma.notification.findFirst({
     where: { id, companyId: ctx.companyId },
     select: { id: true, userId: true },
   })
-  if (!existing) {
-    reply.code(404)
-    return { success: false, error: 'Notificación no encontrada' }
-  }
-  if (existing.userId !== userId) {
-    reply.code(403)
-    return { success: false, error: 'Acceso denegado' }
-  }
+  if (!existing) throw new NotFoundError('Notificación no encontrada')
+  if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
+
   await prisma.notification.update({
     where: { id },
     data: { status: 'UNREAD', readAt: null },
   })
-  return { success: true, data: { success: true } }
 }
 
-export async function markAllNotificationsRead(
-  ctx: CompanyContext,
-  body: { userId: string },
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function markAllNotificationsRead(ctx: CompanyContext, body: { userId: string }) {
   const { userId } = body
-  if (!userId) {
-    reply.code(400)
-    return { success: false, error: 'userId es requerido' }
-  }
+  if (!userId) throw new BadRequestError('userId es requerido')
 
   const result = await prisma.notification.updateMany({
     where: { userId, status: 'UNREAD' },
     data: { status: 'READ', readAt: new Date() },
   })
-  return { success: true, data: { count: result.count } }
+  return { count: result.count }
 }
 
-export async function deleteNotification(
-  ctx: CompanyContext,
-  id: string,
-  body: { userId: string },
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function deleteNotification(ctx: CompanyContext, id: string, body: { userId: string }) {
   const { userId } = body
-  if (!userId) {
-    reply.code(400)
-    return { success: false, error: 'userId es requerido' }
-  }
+  if (!userId) throw new BadRequestError('userId es requerido')
 
   const existing = await prisma.notification.findFirst({
     where: { id, companyId: ctx.companyId },
     select: { id: true, userId: true },
   })
-  if (!existing) {
-    reply.code(404)
-    return { success: false, error: 'Notificación no encontrada' }
-  }
-  if (existing.userId !== userId) {
-    reply.code(403)
-    return { success: false, error: 'Acceso denegado' }
-  }
+  if (!existing) throw new NotFoundError('Notificación no encontrada')
+  if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
+
   await prisma.notification.delete({ where: { id } })
-  return { success: true, data: { success: true } }
 }
 
-export async function getUnreadCount(
-  ctx: CompanyContext,
-  query: { userId?: string },
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function getUnreadCount(ctx: CompanyContext, query: { userId?: string }) {
   const { userId } = query
-  if (!userId) {
-    reply.code(400)
-    return { success: false, error: 'userId es requerido' }
-  }
+  if (!userId) throw new BadRequestError('userId es requerido')
 
   const count = await prisma.notification.count({
     where: {
@@ -217,14 +146,10 @@ export async function getUnreadCount(
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
   })
-  return { success: true, data: { count } }
+  return { count }
 }
 
-export async function getNotificationPreferences(
-  ctx: CompanyContext,
-  userId: string,
-  reply: FastifyReply
-): Promise<{ success: boolean; data?: unknown; error?: string; message?: string }> {
+export async function getNotificationPreferences(ctx: CompanyContext, userId: string) {
   let prefs = await prisma.notificationPreference.findUnique({
     where: { userId },
   })
@@ -238,5 +163,5 @@ export async function getNotificationPreferences(
       },
     })
   }
-  return { success: true, data: prefs }
+  return prefs
 }

@@ -3,16 +3,17 @@ import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { TokenPayload } from '../core/auth.js'
 import type { UpdateCompanyBody } from '../dto/companies.dto.js'
 import { canAccessCompany, isOwner, canManageCompany } from '../core/permissions.js'
+import { ForbiddenError, NotFoundError } from '../common/errors/app-error.js'
 
-/** Returns company with owner, or null if not found. Caller access must be checked by controller. */
 export async function getById(companyId: string) {
-  return prisma.company.findUnique({
+  const company = await prisma.company.findUnique({
     where: { id: companyId },
     include: { owner: true },
   })
+  if (!company) throw new NotFoundError('Empresa no encontrada')
+  return company
 }
 
-/** Caller access must be checked by controller. */
 export async function getStats(companyId: string) {
   const [totalMembers, ownerCount, adminCount, userCount, lastMember] = await Promise.all([
     prisma.companyMember.count({ where: { companyId } }),
@@ -30,16 +31,16 @@ export async function getStats(companyId: string) {
 
 export async function update(companyId: string, caller: TokenPayload, body: UpdateCompanyBody) {
   if (!canAccessCompany(caller, companyId)) {
-    return { error: 'No tienes acceso a esta empresa', code: 403 as const }
+    throw new ForbiddenError('No tienes acceso a esta empresa')
   }
   if (
     (body.workifyEnabled !== undefined || body.shopflowEnabled !== undefined || body.technicalServicesEnabled !== undefined) &&
     !isOwner(caller)
   ) {
-    return { error: 'Solo el propietario puede activar/desactivar módulos', code: 403 as const }
+    throw new ForbiddenError('Solo el propietario puede activar/desactivar módulos')
   }
   if (!canManageCompany(caller)) {
-    return { error: 'No tienes permisos para editar esta empresa', code: 403 as const }
+    throw new ForbiddenError('No tienes permisos para editar esta empresa')
   }
 
   const companyUpdate: Record<string, unknown> = {}
@@ -76,20 +77,19 @@ export async function update(companyId: string, caller: TokenPayload, body: Upda
   }
 
   const updated = await prisma.company.findUnique({ where: { id: companyId } })
-  if (!updated) return { error: 'Empresa no encontrada', code: 404 as const }
+  if (!updated) throw new NotFoundError('Empresa no encontrada')
   const modules = await getCompanyModules(updated.id)
   return { id: updated.id, name: updated.name, updatedAt: updated.updatedAt, modules }
 }
 
-export async function remove(companyId: string, caller: TokenPayload) {
+export async function remove(companyId: string, caller: TokenPayload): Promise<void> {
   if (!canAccessCompany(caller, companyId)) {
-    return { error: 'No tienes acceso a esta empresa', code: 403 as const }
+    throw new ForbiddenError('No tienes acceso a esta empresa')
   }
   if (!isOwner(caller)) {
-    return { error: 'Solo el propietario puede eliminar la empresa', code: 403 as const }
+    throw new ForbiddenError('Solo el propietario puede eliminar la empresa')
   }
   const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } })
-  if (!company) return { error: 'Empresa no encontrada', code: 404 as const }
+  if (!company) throw new NotFoundError('Empresa no encontrada')
   await prisma.company.delete({ where: { id: companyId } })
-  return { success: true as const }
 }

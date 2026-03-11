@@ -5,7 +5,7 @@
  * sales, loyalty, inventory transfers, notifications, reports, export.
  * Requires shopflow module access via tenant context.
  */
-export { registerRoutes } from '../../controllers/shopflow.controller.js'
+export { registerRoutes } from '../../controllers/shopflow/index.js'
 export { ProductRepository } from '../../repositories/product.repository.js'
 export { StoreRepository } from '../../repositories/store.repository.js'
 export { CustomerRepository } from '../../repositories/customer.repository.js'

@@ -12,6 +12,7 @@ if (existsSync(envPath)) {
 
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
 import env from '@fastify/env'
 import { setupSwagger } from './swagger.js'
 import * as healthController from './controllers/health.controller.js'
@@ -19,7 +20,7 @@ import * as authController from './controllers/auth.controller.js'
 import * as usersController from './controllers/users.controller.js'
 import * as companiesController from './controllers/companies.controller.js'
 import * as companyMembersController from './controllers/company-members.controller.js'
-import * as shopflowController from './controllers/shopflow.controller.js'
+import * as shopflowController from './controllers/shopflow/index.js'
 import * as workifyController from './controllers/workify.controller.js'
 import * as techservicesController from './controllers/techservices.controller.js'
 import { globalErrorHandler } from './common/errors/index.js'
@@ -101,6 +102,11 @@ async function start() {
     await fastify.register(cors, {
       origin: config.CORS_ORIGIN.split(','),
       credentials: true
+    })
+
+    await fastify.register(rateLimit, {
+      max: 100,
+      timeWindow: '1 minute',
     })
 
     // Remove `example` metadata from route schemas at registration time

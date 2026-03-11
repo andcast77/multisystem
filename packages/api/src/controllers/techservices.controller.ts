@@ -2,8 +2,9 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { FastifyInstance } from 'fastify'
 import { requireAuth } from '../core/auth.js'
 import { contextFromRequest, requireWorkifyContext } from '../core/auth-context.js'
+import { requireModuleAccess } from '../core/modules.js'
 import { sendBadRequest, sendNotFound, sendServerError } from '../core/errors.js'
-import { validateOr400 } from '../core/validate.js'
+import { validateBody } from '../core/validate.js'
 import {
   workOrderCreateBodySchema,
   workOrderUpdateBodySchema,
@@ -53,8 +54,7 @@ export async function createWorkOrder(
   request: FastifyRequest<{ Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, workOrderCreateBodySchema, request.body)
-  if (body === null) return
+  const body = validateBody(workOrderCreateBodySchema, request.body)
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.createWorkOrder(ctx, body)
@@ -74,8 +74,7 @@ export async function updateWorkOrder(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, workOrderUpdateBodySchema, request.body ?? {})
-  if (body === null) return
+  const body = validateBody(workOrderUpdateBodySchema, request.body ?? {})
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.updateWorkOrder(ctx, request.params.id, body)
@@ -124,8 +123,7 @@ export async function createAsset(
   request: FastifyRequest<{ Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, assetCreateBodySchema, request.body)
-  if (body === null) return
+  const body = validateBody(assetCreateBodySchema, request.body)
   try {
     const ctx = contextFromRequest(request)
     const data = await techservicesService.createAsset(ctx, body)
@@ -139,8 +137,7 @@ export async function updateAsset(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, assetUpdateBodySchema, request.body ?? {})
-  if (body === null) return
+  const body = validateBody(assetUpdateBodySchema, request.body ?? {})
   try {
     const ctx = contextFromRequest(request)
     const data = await techservicesService.updateAsset(ctx, request.params.id, body)
@@ -184,8 +181,7 @@ export async function createPart(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, partCreateBodySchema, request.body)
-  if (body === null) return
+  const body = validateBody(partCreateBodySchema, request.body)
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.createPart(ctx, request.params.id, body)
@@ -200,8 +196,7 @@ export async function updatePart(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, partUpdateBodySchema, request.body ?? {})
-  if (body === null) return
+  const body = validateBody(partUpdateBodySchema, request.body ?? {})
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.updatePart(ctx, request.params.id, body)
@@ -245,8 +240,7 @@ export async function createVisit(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, visitCreateBodySchema, request.body)
-  if (body === null) return
+  const body = validateBody(visitCreateBodySchema, request.body)
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.createVisit(ctx, request.params.id, body)
@@ -262,8 +256,7 @@ export async function updateVisit(
   request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
   reply: FastifyReply
 ) {
-  const body = validateOr400(reply, visitUpdateBodySchema, request.body ?? {})
-  if (body === null) return
+  const body = validateBody(visitUpdateBodySchema, request.body ?? {})
   try {
     const ctx = contextFromRequest(request)
     const result = await techservicesService.updateVisit(ctx, request.params.id, body)
@@ -305,7 +298,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-const preTech = [requireAuth, requireWorkifyContext]
+const preTech = [requireAuth, requireWorkifyContext, requireModuleAccess('techservices')]
 
 /** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
 function handle<T extends (req: any, rep: any) => any>(

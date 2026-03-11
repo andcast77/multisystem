@@ -39,3 +39,4 @@ export const prisma =
 globalForPrisma.prisma = prisma
 
 export { Prisma } from '../generated/prisma/client'
+export type { PrismaClient } from '../generated/prisma/client'

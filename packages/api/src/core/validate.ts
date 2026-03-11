@@ -1,5 +1,6 @@
 import { FastifyReply } from 'fastify'
 import { z } from 'zod'
+import { BadRequestError } from '../common/errors/app-error.js'
 
 function formatZodError(err: z.ZodError): string {
   const flat = err.flatten()
@@ -13,8 +14,7 @@ function formatZodError(err: z.ZodError): string {
 }
 
 /**
- * Validate with Zod schema. On failure sends 400 with error message and returns null.
- * Handler should check: if (body === null) return (reply already sent).
+ * @deprecated Use `validateBody` instead. This will be removed once all controllers are migrated.
  */
 export function validateOr400<T>(
   reply: FastifyReply,
@@ -28,3 +28,19 @@ export function validateOr400<T>(
   reply.send({ success: false, error: message })
   return null
 }
+
+/**
+ * Validate input against a Zod schema. Throws BadRequestError on failure.
+ * Use in controllers: `const body = validateBody(schema, request.body)`
+ */
+export function validateBody<T>(schema: z.ZodType<T>, value: unknown): T {
+  const result = schema.safeParse(value)
+  if (result.success) return result.data
+  throw new BadRequestError(formatZodError(result.error))
+}
+
+/**
+ * Validate query string against a Zod schema. Throws BadRequestError on failure.
+ * Use in controllers: `const query = validateQuery(schema, request.query)`
+ */
+export const validateQuery = validateBody

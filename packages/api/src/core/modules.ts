@@ -1,5 +1,7 @@
+import type { FastifyRequest, FastifyReply } from 'fastify'
 import { prisma } from '../db/index.js'
 import { cacheThrough, cacheDel } from '../common/cache/index.js'
+import { ForbiddenError } from '../common/errors/app-error.js'
 
 /** Keys de módulos conocidos (según seed) */
 export const MODULE_KEYS = ['workify', 'shopflow', 'techservices'] as const
@@ -124,6 +126,25 @@ export async function findModulesByKeys(
     map.set(m.key, { id: m.id })
   }
   return map
+}
+
+/**
+ * Fastify preHandler factory that gates access based on company module enablement.
+ * Must run AFTER requireCompanyContext (which sets request.companyId).
+ *
+ * Usage: `preHandler: [requireAuth, requireShopflowContext, requireModuleAccess('shopflow')]`
+ */
+export function requireModuleAccess(moduleKey: ModuleKeys) {
+  return async function checkModuleAccess(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
+    const companyId = (request as any).companyId as string | undefined
+    if (!companyId) {
+      throw new ForbiddenError('Company context is required to check module access')
+    }
+    const modules = await getCompanyModules(companyId)
+    if (!modules[moduleKey]) {
+      throw new ForbiddenError(`Module '${moduleKey}' is not enabled for this company`)
+    }
+  }
 }
 
 /**
