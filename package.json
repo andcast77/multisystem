@@ -9,7 +9,7 @@
     "build": "turbo run build",
     "build:hub": "turbo run build --filter=@multisystem/ui --filter=@multisystem/hub",
     "build:api": "turbo run build --filter=@multisystem/api",
-    "vercel:build": "pnpm install && pnpm exec turbo run build --filter=@multisystem/database && pnpm exec turbo run build --filter=@multisystem/api && mkdir -p packages/api/node_modules/@multisystem && rm -rf packages/api/node_modules/@multisystem/database && cp -r packages/database packages/api/node_modules/@multisystem/database",
+    "vercel:build": "pnpm install && pnpm exec turbo run build --filter=@multisystem/database && pnpm exec turbo run build --filter=@multisystem/api && mkdir -p packages/api/node_modules/@multisystem && rm -rf packages/api/node_modules/@multisystem/database && cp -rL packages/database packages/api/node_modules/@multisystem/database",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue"
   },
