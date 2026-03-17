@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./dist/generated/prisma",
+    "outDir": "./dist/generated/prisma",
+    "declaration": true,
+    "declarationMap": false,
+    "noEmit": false,
+    "moduleResolution": "node"
+  },
+  "include": ["dist/generated/prisma/**/*.ts"]
+}

@@ -7,5 +7,5 @@
     "declarationMap": true,
     "noEmit": false
   },
-  "include": ["src/client.ts", "generated/prisma/client.ts"]
+  "include": ["src/client.ts"]
 }
