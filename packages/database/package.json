@@ -15,13 +15,12 @@
   "files": [
     "dist",
     "src",
-    "generated",
     "prisma",
     "prisma.config.ts",
     "README.md"
   ],
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "build": "prisma generate && node scripts/copy-generated-for-tsc.mjs && tsc -p tsconfig.build.json && node scripts/fix-esm-extensions.mjs",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",

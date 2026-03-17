@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { PrismaClient } from '../generated/prisma/client'
+import { PrismaClient } from '../dist/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
