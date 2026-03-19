@@ -10,11 +10,11 @@
 
 ## Tasks
 
-- [ ] Add/extend regression tests to ensure every `/api/users*` route keeps the required preHandlers.
+- [x] Add/extend regression tests to ensure every `/api/users*` route keeps the required preHandlers.
   - Evidence: `packages/api/src/controllers/users.controller.ts`
-- [ ] Add regression tests ensuring service-layer membership checks are always executed before any target user read/update/delete.
+- [x] Add regression tests ensuring service-layer membership checks are always executed before any target user read/update/delete.
   - Evidence: `packages/api/src/services/users.service.ts`
-- [ ] Add cross-tenant negative tests:
+- [x] Add cross-tenant negative tests:
   - caller with wrong role gets `403`
   - caller with correct role but different company gets `403/404` (avoid existence leaks)
   - caller without company context gets `401`
