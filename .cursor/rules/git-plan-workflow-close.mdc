@@ -1,0 +1,25 @@
+---
+description: Close plan -> status/diff -> commit+push (with confirmation)
+alwaysApply: true
+---
+
+# Git Plan Workflow: close
+
+When the user indicates the plan is finished/completed/done:
+
+1. Ensure the plan document filename is prefixed with `[completed]`:
+   - If not prefixed yet, ask for confirmation before renaming to `[completed] <original>.md`.
+2. Review changes:
+   - `git status`
+   - `git diff` (and staged diff if needed)
+3. Propose a concise commit message consistent with repository style.
+4. Ask explicit confirmation before executing side-effect commands:
+   - `git add ...`
+   - `git commit`
+   - `git push` or `git push -u origin HEAD` (only if upstream is missing)
+5. After the commands succeed, report:
+   - branch name used
+   - commit hash
+   - push destination (remote + branch)
+
+Never auto-commit/auto-push without user confirmation.

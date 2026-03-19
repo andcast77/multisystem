@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSuppliers, useDeleteSupplier } from '@/hooks/useSuppliers'
 import { Button } from '@multisystem/ui'
@@ -35,46 +35,26 @@ export function SupplierList() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortCol>('name')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const { data: suppliers, isLoading, error } = useSuppliers()
+  const PAGE_LIMIT = 20
+  const [page, setPage] = useState(1)
+
+  const query = {
+    search: search || undefined,
+    page,
+    limit: PAGE_LIMIT,
+    sortBy,
+    sortOrder,
+  }
+
+  const { data: suppliersResponse, isLoading, error } = useSuppliers(query)
   const deleteSupplier = useDeleteSupplier()
 
-  const filteredAndSorted = useMemo(() => {
-    let list = suppliers?.filter((s) =>
-      search ? s.name.toLowerCase().includes(search.toLowerCase()) ||
-                s.email?.toLowerCase().includes(search.toLowerCase()) ||
-                s.phone?.toLowerCase().includes(search.toLowerCase()) : true
-    ) ?? []
-    
-    return [...list].sort((a, b) => {
-      let aVal: string | boolean
-      let bVal: string | boolean
-      
-      switch (sortBy) {
-        case 'name':
-          aVal = (a.name ?? '').toLowerCase()
-          bVal = (b.name ?? '').toLowerCase()
-          break
-        case 'contact':
-          aVal = (a.email ?? a.phone ?? '').toLowerCase()
-          bVal = (b.email ?? b.phone ?? '').toLowerCase()
-          break
-        case 'location':
-          aVal = (a.city ?? '').toLowerCase()
-          bVal = (b.city ?? '').toLowerCase()
-          break
-        case 'active':
-          aVal = a.active
-          bVal = b.active
-          break
-        default:
-          aVal = ''
-          bVal = ''
-      }
-      
-      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-      return sortOrder === 'asc' ? cmp : -cmp
-    })
-  }, [suppliers, search, sortBy, sortOrder])
+  const suppliers = (suppliersResponse?.suppliers ?? []) as Array<any>
+  const pagination = suppliersResponse?.pagination
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, sortBy, sortOrder])
 
   const toggleSort = (column: SortCol) => {
     if (sortBy === column) {
@@ -158,7 +138,7 @@ export function SupplierList() {
       )}
 
       {/* Suppliers Table */}
-      {!error && !isLoading && filteredAndSorted && filteredAndSorted.length > 0 ? (
+      {!error && !isLoading && suppliers && suppliers.length > 0 ? (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -191,7 +171,7 @@ export function SupplierList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAndSorted.map((supplier) => (
+              {suppliers.map((supplier) => (
                 <TableRow key={supplier.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -267,6 +247,32 @@ export function SupplierList() {
               ))}
             </TableBody>
           </Table>
+
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="text-sm text-muted-foreground">
+                Página {pagination.page} de {pagination.totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page <= 1}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={pagination.page >= pagination.totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : !error && !isLoading ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12">

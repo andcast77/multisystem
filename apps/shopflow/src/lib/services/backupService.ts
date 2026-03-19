@@ -123,29 +123,69 @@ export async function restoreDatabaseBackup(filename: string): Promise<void> {
   }
 }
 
+async function pollExportJob(jobId: string, timeoutMs = 120_000, intervalMs = 1_000): Promise<void> {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const statusResponse = await shopflowApi.get<{
+      success: boolean
+      error?: string
+      data?: { status: string; error?: string | null }
+    }>(`/export/jobs/${jobId}`)
+
+    if (!statusResponse.success || !statusResponse.data) {
+      throw new Error(statusResponse.error || 'Export job status request failed')
+    }
+
+    if (statusResponse.data.status === 'ready') return
+    if (statusResponse.data.status === 'error') {
+      throw new Error(statusResponse.data.error ?? 'Export job failed')
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+
+  throw new Error('Export job timed out')
+}
+
+async function downloadExportJob(jobId: string): Promise<{ filename: string; contentType: string; body: string }> {
+  const response = await shopflowApi.get<{
+    success: boolean
+    error?: string
+    data?: { filename: string; contentType: string; body: string }
+  }>(`/export/jobs/${jobId}/download`)
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'Failed to download export job result')
+  }
+
+  return response.data
+}
+
 /**
  * Export all data to JSON format (via API)
  */
 export async function exportDataToJson(): Promise<BackupMetadata> {
   await ensureBackupDir()
 
-  const response = await shopflowApi.get<{ success: boolean; data?: unknown }>('/export/json')
-  if (!response.success || !response.data) {
+  const response = await shopflowApi.get<{ success: boolean; data?: { jobId: string } }>('/export/json')
+  if (!response.success || !response.data?.jobId) {
     throw new Error('Data export is only available via the API. Use the backend export endpoint.')
   }
 
-  const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss')
-  const filename = `data_export_${timestamp}.json`
-  const filepath = join(BACKUP_DIR, filename)
-  const jsonData = JSON.stringify(response.data, null, 2)
-  await writeFile(filepath, jsonData, 'utf-8')
+  const jobId = response.data.jobId
+  await pollExportJob(jobId)
+  const result = await downloadExportJob(jobId)
+
+  const filepath = join(BACKUP_DIR, result.filename)
+  await writeFile(filepath, result.body, 'utf-8')
 
   const stats = await import('fs/promises').then((fs) => fs.stat(filepath))
   const size = stats.size
 
   return {
-    id: timestamp,
-    filename,
+    id: jobId,
+    filename: result.filename,
     createdAt: new Date(),
     size,
     type: 'data_export',
@@ -159,48 +199,27 @@ export async function exportDataToJson(): Promise<BackupMetadata> {
 export async function exportTableToCsv(tableName: string): Promise<BackupMetadata> {
   await ensureBackupDir()
 
-  const response = await shopflowApi.get<{ success: boolean; data?: { rows: unknown[]; headers: string[] } }>(
+  const response = await shopflowApi.get<{ success: boolean; data?: { jobId: string } }>(
     `/export/csv?table=${encodeURIComponent(tableName)}`
   )
-  if (!response.success || !response.data) {
+
+  if (!response.success || !response.data?.jobId) {
     throw new Error(`Export for table "${tableName}" is only available via the API.`)
   }
 
-  const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss')
-  const filename = `export_${tableName}_${timestamp}.csv`
-  const filepath = join(BACKUP_DIR, filename)
+  const jobId = response.data.jobId
+  await pollExportJob(jobId)
+  const result = await downloadExportJob(jobId)
 
-  const data = response.data.rows
-  const headers = response.data.headers
-
-  // Convert to CSV
-  const csvRows: string[] = []
-  
-  // Add headers
-  csvRows.push(headers.join(','))
-
-  // Add data rows
-  for (const row of data) {
-    const values = headers.map((header) => {
-      const value = (row as Record<string, unknown>)[header]
-      if (value === null || value === undefined) return ''
-      if (typeof value === 'object') {
-        return JSON.stringify(value).replace(/"/g, '""')
-      }
-      return String(value).replace(/"/g, '""').replace(/,/g, ';')
-    })
-    csvRows.push(`"${values.join('","')}"`)
-  }
-
-  const csvContent = csvRows.join('\n')
-  await writeFile(filepath, csvContent, 'utf-8')
+  const filepath = join(BACKUP_DIR, result.filename)
+  await writeFile(filepath, result.body, 'utf-8')
 
   const stats = await import('fs/promises').then((fs) => fs.stat(filepath))
   const size = stats.size
 
   return {
-    id: timestamp,
-    filename,
+    id: jobId,
+    filename: result.filename,
     createdAt: new Date(),
     size,
     type: 'data_export',

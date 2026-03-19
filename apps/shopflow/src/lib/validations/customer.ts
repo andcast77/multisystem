@@ -24,6 +24,10 @@ export const customerQuerySchema = z.object({
   search: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
+  page: z.number().int().positive().optional(),
+  limit: z.number().int().positive().max(100).optional(),
+  sortBy: z.enum(['name', 'email', 'phone', 'city', 'sales']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
 })
 
 export type CustomerQueryInput = z.infer<typeof customerQuerySchema>

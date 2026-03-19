@@ -2,19 +2,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@multisystem/ui'
 import { Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
-import { useProducts } from '@/hooks/useProducts'
-import { useLowStockProducts } from '@/hooks/useInventory'
+import { useInventoryStats } from '@/hooks/useReports'
 
 export function InventoryOverview() {
-  const { data: productsData } = useProducts({ page: 1, limit: 1000, sortBy: 'name', sortOrder: 'asc' })
-  const { data: lowStockData } = useLowStockProducts()
+  const { data: inventoryStats, isLoading } = useInventoryStats()
 
-  const products = productsData?.products || []
-  const lowStockProducts = lowStockData || []
-  const totalProducts = products.length
-  const activeProducts = products.filter((p: any) => p.active).length
-  const totalStock = products.reduce((sum: number, p: any) => sum + p.stock, 0)
-  const totalValue = products.reduce((sum: number, p: any) => sum + (p.stock * p.price), 0)
+  const totalProducts = inventoryStats?.totalProducts ?? 0
+  const activeProducts = totalProducts // report counts active products only
+  const totalStock = inventoryStats?.totalStockUnits ?? 0
+  const totalValue = inventoryStats?.totalRetailValue ?? 0
+  const lowStockProductsCount = inventoryStats?.lowStockProducts ?? 0
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -31,7 +28,7 @@ export function InventoryOverview() {
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalProducts}</div>
+          <div className="text-2xl font-bold">{isLoading ? '—' : totalProducts}</div>
           <p className="text-xs text-muted-foreground">
             {activeProducts} activos
           </p>
@@ -44,7 +41,7 @@ export function InventoryOverview() {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalStock.toLocaleString()}</div>
+          <div className="text-2xl font-bold">{isLoading ? '—' : totalStock.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">
             Unidades en inventario
           </p>
@@ -57,7 +54,7 @@ export function InventoryOverview() {
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
+          <div className="text-2xl font-bold">{isLoading ? '—' : formatCurrency(totalValue)}</div>
           <p className="text-xs text-muted-foreground">
             Valor del inventario
           </p>
@@ -71,7 +68,7 @@ export function InventoryOverview() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-600">
-            {lowStockProducts.length}
+            {isLoading ? '—' : lowStockProductsCount}
           </div>
           <p className="text-xs text-muted-foreground">
             Requieren atención

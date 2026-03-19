@@ -187,14 +187,26 @@ export async function getInventory(
         LIMIT 10
       `
     ),
-    prisma.$queryRaw<[{ total: bigint; lowStock: bigint; outOfStock: bigint; totalValue: number; totalRetailValue: number }]>(
+    prisma.$queryRaw<
+      [
+        {
+          total: bigint
+          lowStock: bigint
+          outOfStock: bigint
+          totalValue: number
+          totalRetailValue: number
+          totalStockUnits: bigint
+        },
+      ]
+    >(
       Prisma.sql`
         SELECT
           COUNT(DISTINCT p.id)::bigint as total,
           COUNT(DISTINCT CASE WHEN COALESCE(agg.qty, 0) <= COALESCE(agg.min_s, 0) THEN p.id END)::bigint as "lowStock",
           COUNT(DISTINCT CASE WHEN COALESCE(agg.qty, 0) = 0 THEN p.id END)::bigint as "outOfStock",
           COALESCE(SUM(COALESCE(agg.qty, 0) * COALESCE(p.cost, 0))::float8, 0) as "totalValue",
-          COALESCE(SUM(COALESCE(agg.qty, 0) * p.price)::float8, 0) as "totalRetailValue"
+          COALESCE(SUM(COALESCE(agg.qty, 0) * p.price)::float8, 0) as "totalRetailValue",
+          COALESCE(SUM(COALESCE(agg.qty, 0))::int, 0) as "totalStockUnits"
         FROM products p
         LEFT JOIN (
           SELECT "productId", SUM(quantity)::int as qty, MIN("minStock")::int as min_s
@@ -215,6 +227,7 @@ export async function getInventory(
     outOfStockProducts: Number(stats?.outOfStock ?? 0),
     totalValue: stats?.totalValue ?? 0,
     totalRetailValue: stats?.totalRetailValue ?? 0,
+    totalStockUnits: Number(stats?.totalStockUnits ?? 0),
     products: productsRaw.map((p) => ({
       id: p.id,
       name: p.name,

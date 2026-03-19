@@ -1,0 +1,23 @@
+---
+description: Enforce company/tenant scoping in DB/API/business logic
+globs: packages/api/src/**/*.ts
+alwaysApply: false
+---
+
+# Multi-Tenant Isolation
+
+Use when writing queries, APIs, services, or repository logic in a multi-company context.
+
+## Required invariants
+- ALWAYS scope data by tenant/company (typically `companyId`) in:
+  - database models (composite keys / tenant columns)
+  - queries and filters (`WHERE` must include the tenant key)
+- NEVER read/mutate tenant-owned rows without that tenant filter.
+- Every request must assume a resolved tenant context (from JWT/session or explicit param after validation).
+
+## Validation requirements
+- Validate authenticated user belongs to that tenant/company.
+- Validate the target resource belongs to that tenant/company (IDs alone are not sufficient).
+
+## Enforcement point
+- Apply isolation consistently in controllers, services, and repositories (not only one layer).

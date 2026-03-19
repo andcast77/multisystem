@@ -1,0 +1,19 @@
+---
+description: Start plan -> create branch from Test (with confirmation)
+alwaysApply: true
+---
+
+# Git Plan Workflow: start
+
+When the user says they are starting/executing a plan (or the plan moves from planning to execution):
+
+1. Extract plan id/slug from the plan filename in the shape:
+   - `.../plan-6_phased_execution_4b1b8fab.plan.md` -> `plan-6_phased_execution_4b1b8fab`
+   - i.e., use the basename without the `.plan.md` suffix.
+2. Ask explicit confirmation before running any `git` command that changes refs (fetch/checkout/branch create).
+3. Create the plan branch from `Test`:
+   - `git fetch --all --prune`
+   - `git checkout Test`
+   - `git pull origin Test`
+   - `git checkout -b <branchName>`
+4. If the branch already exists, ask whether to reuse it or create a new branch (with a different slug).

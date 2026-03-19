@@ -1,0 +1,36 @@
+---
+description: JWT auth + RBAC + tenant access checks
+globs: packages/api/src/**/*.ts
+alwaysApply: false
+---
+
+# Auth JWT + RBAC + Multi-tenant
+
+Use this when implementing or modifying authentication/authorization flows in the API.
+
+## Authentication (JWT)
+- Sign tokens with strong secrets from environment variables (never hardcode secrets).
+- JWT payload should include stable `user id` and the tenant/company scope when applicable.
+- Include `role(s)`/flags needed for RBAC.
+- Set expiration; follow the repo's refresh/session strategy if applicable.
+- Never put secrets, full PII, or passwords in the JWT.
+
+## Authorization (RBAC)
+- Enforce role checks at:
+  - route level (guards/preHandlers)
+  - and/or service level for sensitive operations
+- Validate role (and tenant scope) before business logic.
+- Do not rely on “IDs passed in params” alone for authorization.
+
+## Multi-tenant security
+- ALWAYS verify the authenticated user can act in the target tenant/company:
+  - membership + matching `companyId` between token/context and target resource
+- Never read/mutate another tenant’s data by ID alone.
+
+## Password security
+- Hash passwords (bcrypt/Argon2); never store plain text passwords.
+
+## Error handling
+- `401` -> unauthenticated/invalid token
+- `403` -> authenticated but lacking permission
+- Do not leak internal details (stack, DB messages) to clients.

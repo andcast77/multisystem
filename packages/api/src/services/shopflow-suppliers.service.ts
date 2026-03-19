@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError } from '../common/errors/app-error.js'
+import { parsePagination } from '../common/database/index.js'
 
 export type SupplierBody = {
   name: string
@@ -19,9 +20,14 @@ export type SupplierBody = {
 export type SupplierQuery = {
   search?: string
   active?: string
+  page?: string
+  limit?: string
+  sortBy?: string
+  sortOrder?: string
 }
 
 export async function listSuppliers(ctx: CompanyContext, query: SupplierQuery) {
+  const { page, limit, skip } = parsePagination(query)
   const where: Prisma.SupplierWhereInput = { companyId: ctx.companyId }
   if (query.search) {
     where.OR = [
@@ -33,27 +39,47 @@ export async function listSuppliers(ctx: CompanyContext, query: SupplierQuery) {
   }
   if (query.active !== undefined) where.active = query.active === 'true'
 
-  const suppliers = await prisma.supplier.findMany({
-    where,
-    orderBy: { name: 'asc' },
-    include: { _count: { select: { products: true } } },
-  })
+  const sortOrder = query.sortOrder === 'desc' ? 'desc' : 'asc'
+  const sortBy = query.sortBy ?? 'name'
 
-  return suppliers.map((s) => ({
-    id: s.id,
-    companyId: s.companyId,
-    name: s.name,
-    email: s.email,
-    phone: s.phone,
-    address: s.address,
-    city: s.city,
-    state: s.state,
-    taxId: s.taxId,
-    active: s.active,
-    createdAt: s.createdAt,
-    updatedAt: s.updatedAt,
-    _count: { products: s._count.products },
-  }))
+  const orderBy: Prisma.Enumerable<Prisma.SupplierOrderByWithRelationInput> =
+    sortBy === 'contact'
+      ? [{ email: sortOrder }, { phone: sortOrder }]
+      : sortBy === 'location'
+        ? ({ city: sortOrder } as Prisma.SupplierOrderByWithRelationInput)
+        : sortBy === 'active'
+          ? ({ active: sortOrder } as Prisma.SupplierOrderByWithRelationInput)
+          : ({ name: sortOrder } as Prisma.SupplierOrderByWithRelationInput)
+
+  const [total, suppliers] = await Promise.all([
+    prisma.supplier.count({ where }),
+    prisma.supplier.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: { _count: { select: { products: true } } },
+    }),
+  ])
+
+  return {
+    suppliers: suppliers.map((s) => ({
+      id: s.id,
+      companyId: s.companyId,
+      name: s.name,
+      email: s.email,
+      phone: s.phone,
+      address: s.address,
+      city: s.city,
+      state: s.state,
+      taxId: s.taxId,
+      active: s.active,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      _count: { products: s._count.products },
+    })),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
 }
 
 export async function getSupplierById(ctx: CompanyContext, id: string) {

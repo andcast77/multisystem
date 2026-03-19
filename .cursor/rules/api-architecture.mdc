@@ -1,0 +1,35 @@
+---
+description: API layering (controller -> service -> repository)
+globs: packages/api/src/**/*.ts
+alwaysApply: false
+---
+
+# API Architecture (REST)
+
+Use this when creating/modifying REST endpoints, controllers, services, validation, and repository/database access patterns.
+
+## Structure (no mixing responsibilities)
+- **Controller**: HTTP layer (`req/res`)
+  - validate input (DTO/schema)
+  - call services only
+  - no business logic
+- **Service**: business logic
+  - all business rules
+  - independent of HTTP
+- **Repository**: database access only
+  - contain ONLY DB queries
+  - no business logic
+
+## Consistent response envelope
+Prefer a unified response format like:
+```json
+{
+  "success": true,
+  "data": {},
+  "message": ""
+}
+```
+
+## Error mapping
+- Map errors to correct HTTP status codes.
+- Keep error payloads consistent with the same envelope when possible (`success: false`, `message`, optional `code`).

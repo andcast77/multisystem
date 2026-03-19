@@ -2,14 +2,28 @@ import { shopflowApi, type ApiResult } from '@/lib/api/client'
 import { ApiError, ErrorCodes } from '@/lib/utils/errors'
 import type { CreateSupplierInput, UpdateSupplierInput, SupplierQueryInput } from '@/lib/validations/supplier'
 
+export interface SuppliersResponse {
+  suppliers: Array<any>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
 export async function getSuppliers(query: SupplierQueryInput = {}) {
-  const { search, active } = query
+  const { search, active, page, limit, sortBy, sortOrder } = query
 
   const params = new URLSearchParams()
   if (search) params.append('search', search)
   if (active !== undefined) params.append('active', active.toString())
+  if (page) params.append('page', page.toString())
+  if (limit) params.append('limit', limit.toString())
+  if (sortBy) params.append('sortBy', sortBy)
+  if (sortOrder) params.append('sortOrder', sortOrder)
 
-  const response = await shopflowApi.get<ApiResult<any[]>>(
+  const response = await shopflowApi.get<ApiResult<SuppliersResponse>>(
     `/suppliers?${params.toString()}`
   )
 

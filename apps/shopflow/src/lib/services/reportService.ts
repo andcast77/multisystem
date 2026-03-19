@@ -133,6 +133,7 @@ export async function getInventoryStats(storeId?: string | null) {
       lowStockProducts: number
       outOfStockProducts: number
       totalValue: number
+      totalStockUnits: number
       totalRetailValue: number
       products: Array<{
         id: string

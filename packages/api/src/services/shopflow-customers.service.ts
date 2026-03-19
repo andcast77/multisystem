@@ -5,19 +5,45 @@ import { parsePagination } from '../common/database/index.js'
 
 export async function listCustomers(
   ctx: CompanyContext,
-  query: { search?: string; email?: string; phone?: string; page?: string; limit?: string }
+  query: {
+    search?: string
+    email?: string
+    phone?: string
+    page?: string
+    limit?: string
+    sortBy?: string
+    sortOrder?: string
+  }
 ) {
   const { page, limit, skip } = parsePagination(query)
   const where: Prisma.CustomerWhereInput = { companyId: ctx.companyId }
-  if (query.search) where.name = { contains: query.search, mode: 'insensitive' }
+
+  if (query.search) {
+    where.OR = [
+      { name: { contains: query.search, mode: 'insensitive' } },
+      { email: { contains: query.search, mode: 'insensitive' } },
+      { phone: { contains: query.search, mode: 'insensitive' } },
+    ]
+  }
   if (query.email) where.email = query.email
   if (query.phone) where.phone = query.phone
+
+  const sortOrder = query.sortOrder === 'desc' ? 'desc' : 'asc'
+  const sortBy = query.sortBy ?? 'name'
+  const orderBy =
+    sortBy === 'email'
+      ? ({ email: sortOrder } as Prisma.CustomerOrderByWithRelationInput)
+      : sortBy === 'phone'
+        ? ({ phone: sortOrder } as Prisma.CustomerOrderByWithRelationInput)
+        : sortBy === 'sales'
+          ? ({ _count: { sales: sortOrder } } as Prisma.CustomerOrderByWithRelationInput)
+          : ({ name: sortOrder } as Prisma.CustomerOrderByWithRelationInput)
 
   const [total, customers] = await Promise.all([
     prisma.customer.count({ where }),
     prisma.customer.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy,
       skip,
       take: limit,
       include: { _count: { select: { sales: true } } },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCustomers, useDeleteCustomer } from '@/hooks/useCustomers'
 import { Button } from '@multisystem/ui'
@@ -40,61 +40,29 @@ export function CustomerList({ onCustomerClick }: CustomerListProps) {
   const [sortBy, setSortBy] = useState<SortCol>('name')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
+  const PAGE_LIMIT = 20
+  const [page, setPage] = useState(1)
+
+  const apiSortBy = sortBy === 'city' ? 'name' : sortBy
+
   const query = {
     search: search || undefined,
+    page,
+    limit: PAGE_LIMIT,
+    sortBy: apiSortBy,
+    sortOrder,
   }
 
-  const { data: customers, isLoading, error } = useCustomers(query)
+  const { data: customersResponse, isLoading, error } = useCustomers(query)
   const deleteCustomer = useDeleteCustomer()
 
-  // Type assertion to include _count that comes from API
-  const customersWithCount = (customers || []).map(customer => customer as typeof customer & {
-    _count?: {
-      sales: number
-    }
-  })
+  type CustomerWithCount = Customer & { _count?: { sales: number } }
+  const customers = (customersResponse?.customers ?? []) as CustomerWithCount[]
+  const pagination = customersResponse?.pagination
 
-  const filteredAndSorted = useMemo(() => {
-    let list = customersWithCount.filter((c) =>
-      search ? c.name.toLowerCase().includes(search.toLowerCase()) ||
-                c.email?.toLowerCase().includes(search.toLowerCase()) ||
-                c.phone?.toLowerCase().includes(search.toLowerCase()) : true
-    )
-    
-    return [...list].sort((a, b) => {
-      let aVal: string | number
-      let bVal: string | number
-      
-      switch (sortBy) {
-        case 'name':
-          aVal = (a.name ?? '').toLowerCase()
-          bVal = (b.name ?? '').toLowerCase()
-          break
-        case 'email':
-          aVal = (a.email ?? '').toLowerCase()
-          bVal = (b.email ?? '').toLowerCase()
-          break
-        case 'phone':
-          aVal = (a.phone ?? '').toLowerCase()
-          bVal = (b.phone ?? '').toLowerCase()
-          break
-        case 'city':
-          aVal = (a.city ?? '').toLowerCase()
-          bVal = (b.city ?? '').toLowerCase()
-          break
-        case 'sales':
-          aVal = a._count?.sales ?? 0
-          bVal = b._count?.sales ?? 0
-          break
-        default:
-          aVal = ''
-          bVal = ''
-      }
-      
-      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-      return sortOrder === 'asc' ? cmp : -cmp
-    })
-  }, [customersWithCount, search, sortBy, sortOrder])
+  useEffect(() => {
+    setPage(1)
+  }, [search, sortBy, sortOrder])
 
   const toggleSort = (column: SortCol) => {
     if (sortBy === column) {
@@ -181,7 +149,7 @@ export function CustomerList({ onCustomerClick }: CustomerListProps) {
       )}
 
       {/* Customers Table */}
-      {!error && !isLoading && filteredAndSorted && filteredAndSorted.length > 0 ? (
+      {!error && !isLoading && customers && customers.length > 0 ? (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -220,7 +188,7 @@ export function CustomerList({ onCustomerClick }: CustomerListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAndSorted.map((customer) => (
+              {customers.map((customer) => (
                 <TableRow
                   key={customer.id}
                   className={onCustomerClick ? 'cursor-pointer' : ''}
@@ -303,6 +271,32 @@ export function CustomerList({ onCustomerClick }: CustomerListProps) {
               ))}
             </TableBody>
           </Table>
+
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="text-sm text-muted-foreground">
+                Página {pagination.page} de {pagination.totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page <= 1}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={pagination.page >= pagination.totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : !error && !isLoading ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12">

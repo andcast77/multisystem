@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useStoreConfig } from '@/hooks/useStoreConfig'
 import { useCartStore } from '@/store/cartStore'
@@ -15,7 +15,37 @@ import type { BarcodeScanResult } from '@/lib/services/barcodeService'
 export function ProductPanel() {
   const [search, setSearch] = useState('')
   const { data: storeConfig } = useStoreConfig()
-  const { data, isLoading } = useProducts({ search, page: 1, limit: 100, sortBy: 'name', sortOrder: 'asc' })
+
+  // Virtual grid layout constants (fixed sizing enables windowed rendering).
+  const SCROLL_GAP_X_PX = 16
+  const SCROLL_GAP_Y_PX = 16
+  const CARD_MIN_WIDTH_PX = 160
+  const CARD_HEIGHT_PX = 186
+  const OVERSCAN_ROWS = 2
+
+  // Infinite loading state (small bounded pages + incremental accumulation).
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 100
+  const [products, setProducts] = useState<Array<any>>([])
+  const [totalPages, setTotalPages] = useState<number | null>(null)
+
+  // Virtual grid state.
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(0)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  const appendedPagesRef = useRef<Record<number, boolean>>({})
+
+  const { data, isLoading, isFetching } = useProducts({
+    search,
+    page,
+    limit: PAGE_LIMIT,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
   const addItem = useCartStore((state) => state.addItem)
   const currency = storeConfig?.currency ?? 'USD'
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -25,8 +55,8 @@ export function ProductPanel() {
     // Search for product by barcode
     setSearch(result.code)
     // Try to find and add product automatically
-    if (data?.products) {
-      const product = data.products.find(
+    if (products.length > 0) {
+      const product = products.find(
         (p) => p.barcode === result.code || p.sku === result.code
       )
       if (product && product.stock > 0) {
@@ -47,6 +77,109 @@ export function ProductPanel() {
   useEffect(() => {
     searchInputRef.current?.focus()
   }, [])
+
+  // Reset pagination when search changes (avoid mixing results across queries).
+  useEffect(() => {
+    setPage(1)
+    setProducts([])
+    setTotalPages(null)
+    appendedPagesRef.current = {}
+    setScrollTop(0)
+  }, [search])
+
+  // Append newly fetched page results.
+  useEffect(() => {
+    if (!data) return
+
+    if (typeof data.pagination?.totalPages === 'number') {
+      setTotalPages(data.pagination.totalPages)
+    }
+
+    if (!data.products || data.products.length === 0) return
+    if (appendedPagesRef.current[page]) return
+
+    appendedPagesRef.current[page] = true
+    setProducts((prev) => [...prev, ...data.products])
+  }, [data, page])
+
+  // Keep viewport/container measurements in sync for virtualization.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const update = () => {
+      setViewportHeight(el.clientHeight)
+      setContainerWidth(el.clientWidth)
+    }
+    update()
+
+    const ro = new ResizeObserver(() => update())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const canLoadMore = useMemo(() => {
+    if (totalPages == null) return false
+    return page < totalPages
+  }, [page, totalPages])
+
+  const isAppending = isFetching && page > 1
+
+  // Load next page when the sentinel becomes visible.
+  useEffect(() => {
+    if (!scrollRef.current || !sentinelRef.current) return
+    if (!canLoadMore) return
+
+    const root = scrollRef.current
+    const sentinel = sentinelRef.current
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        if (!first?.isIntersecting) return
+        if (isAppending) return
+        setPage((p) => p + 1)
+      },
+      { root, rootMargin: '300px', threshold: 0 }
+    )
+
+    io.observe(sentinel)
+    return () => io.disconnect()
+  }, [canLoadMore, isAppending])
+
+  const columns = useMemo(() => {
+    if (containerWidth <= 0) return 2
+    const ideal = Math.floor((containerWidth + SCROLL_GAP_X_PX) / (CARD_MIN_WIDTH_PX + SCROLL_GAP_X_PX))
+    return Math.max(1, ideal)
+  }, [containerWidth])
+
+  const cardWidth = useMemo(() => {
+    if (containerWidth <= 0) return CARD_MIN_WIDTH_PX
+    const available = containerWidth - SCROLL_GAP_X_PX * (columns - 1)
+    return Math.max(120, available / columns)
+  }, [containerWidth, columns])
+
+  const rowHeight = CARD_HEIGHT_PX + SCROLL_GAP_Y_PX
+  const totalRows = useMemo(() => Math.ceil(products.length / columns), [products.length, columns])
+
+  const totalHeight = useMemo(() => {
+    if (totalRows <= 0) return 0
+    return totalRows * CARD_HEIGHT_PX + (totalRows - 1) * SCROLL_GAP_Y_PX
+  }, [totalRows])
+
+  const visibleRange = useMemo(() => {
+    if (products.length === 0) return { startIndex: 0, endIndex: 0 }
+
+    const firstVisibleRow = viewportHeight > 0 ? Math.floor(scrollTop / rowHeight) : 0
+    const startRow = Math.max(0, firstVisibleRow - OVERSCAN_ROWS)
+    const defaultVisibleRowCount = OVERSCAN_ROWS * 2 + 5
+    const visibleRowCount = viewportHeight > 0 ? Math.ceil(viewportHeight / rowHeight) + OVERSCAN_ROWS * 2 : defaultVisibleRowCount
+    const endRowExclusive = Math.min(totalRows, startRow + visibleRowCount)
+
+    const startIndex = startRow * columns
+    const endIndex = Math.min(products.length, endRowExclusive * columns)
+    return { startIndex, endIndex }
+  }, [columns, products.length, scrollTop, rowHeight, totalRows, viewportHeight])
 
   const handleAddToCart = (product: {
     id: string
@@ -78,49 +211,87 @@ export function ProductPanel() {
       </div>
 
       {/* Products Grid */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto"
+        onScroll={(e) => {
+          const el = e.currentTarget
+          const next = el.scrollTop
+          if (rafRef.current) cancelAnimationFrame(rafRef.current)
+          rafRef.current = requestAnimationFrame(() => setScrollTop(next))
+        }}
+      >
+        {isLoading && products.length === 0 ? (
           <div className="text-center py-8 text-gray-500">Cargando productos...</div>
-        ) : data?.products && data.products.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {data.products.map((product) => (
-              <Card
-                key={product.id}
-                className={cn(
-                  'cursor-pointer transition-all hover:shadow-md',
-                  product.stock === 0 && 'opacity-50'
-                )}
-                onClick={() => handleAddToCart(product)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-sm line-clamp-2 flex-1 min-w-0">
-                        {product.name}
-                      </h3>
-                      {product.minStock != null && product.stock <= product.minStock && (
-                        <span title="Stock bajo" className="shrink-0">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/80">{product.sku ?? '—'}</p>
-                    <p className="text-[11px] text-muted-foreground/70">Stock: {product.stock}</p>
-                    <div className="mt-auto">
-                      <span className="text-lg font-bold">
-                        {formatCurrency(Number(product.price), currency)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        ) : products.length > 0 ? (
+          <div className="relative w-full" style={{ height: totalHeight }}>
+            {/* Sentinel triggers infinite loading */}
+            <div
+              ref={sentinelRef}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: Math.max(0, totalHeight - 1),
+                width: 1,
+                height: 1,
+              }}
+            />
+
+            {products.slice(visibleRange.startIndex, visibleRange.endIndex).map((product, i) => {
+              const absoluteIndex = visibleRange.startIndex + i
+              const row = Math.floor(absoluteIndex / columns)
+              const col = absoluteIndex % columns
+
+              return (
+                <div
+                  key={product.id}
+                  style={{
+                    position: 'absolute',
+                    width: cardWidth,
+                    height: CARD_HEIGHT_PX,
+                    transform: `translate(${col * (cardWidth + SCROLL_GAP_X_PX)}px, ${
+                      row * rowHeight
+                    }px)`,
+                  }}
+                >
+                  <Card
+                    className={cn(
+                      'cursor-pointer transition-all hover:shadow-md h-full',
+                      product.stock === 0 && 'opacity-50'
+                    )}
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    <CardContent className="p-4 h-full flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 h-full">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-sm line-clamp-2 flex-1 min-w-0">
+                            {product.name}
+                          </h3>
+                          {product.minStock != null && product.stock <= product.minStock && (
+                            <span title="Stock bajo" className="shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground/80">{product.sku ?? '—'}</p>
+                        <p className="text-[11px] text-muted-foreground/70">Stock: {product.stock}</p>
+                        <div className="mt-auto">
+                          <span className="text-lg font-bold">
+                            {formatCurrency(Number(product.price), currency)}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )
+            })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            No se encontraron productos
-          </div>
+          <div className="text-center py-8 text-gray-500">No se encontraron productos</div>
         )}
+
+        {isAppending && <div className="text-center py-4 text-gray-500">Cargando más...</div>}
       </div>
     </div>
   )
