@@ -1,29 +1,13 @@
 import { Prisma, prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
-import { ForbiddenError, NotFoundError } from '../common/errors/app-error.js'
-
-const STORE_REQUIRED_MSG = 'Envía el parámetro storeId (query) o el header X-Store-Id con el id del local de venta para ver reportes (usuario no administrador)'
+import { NotFoundError } from '../common/errors/app-error.js'
+import { resolveEffectiveStoreIdForScopedUser } from '../policies/shopflow-authorization.policy.js'
 
 export async function resolveEffectiveStoreIdForReport(
   ctx: ShopflowContext,
   queryStoreId?: string
 ): Promise<string | undefined> {
-  const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN' || ctx.isSuperuser
-  if (isStoreAdmin) return queryStoreId ?? undefined
-  const fromCtx = ctx.storeId ?? queryStoreId
-  if (fromCtx) return fromCtx
-
-  const store = await prisma.store.findFirst({
-    where: {
-      companyId: ctx.companyId,
-      active: true,
-      userStores: { some: { userId: ctx.userId } },
-    },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-  })
-  if (!store) throw new ForbiddenError(STORE_REQUIRED_MSG)
-  return store.id
+  return resolveEffectiveStoreIdForScopedUser(ctx, queryStoreId)
 }
 
 function buildDateFilter(startDate?: string, endDate?: string): Prisma.SaleWhereInput['createdAt'] {

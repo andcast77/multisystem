@@ -12,11 +12,11 @@ import {
   validateSessionQuerySchema,
   listSessionsQuerySchema,
 } from '../dto/auth.dto.js'
-import { ForbiddenError } from '../common/errors/app-error.js'
 import { ok } from '../common/api-response.js'
 import * as authService from '../services/auth.service.js'
 import { attachAuthSessionCookie, clearAuthSessionCookie } from '../core/session-cookie.js'
 import { getConfig } from '../core/config.js'
+import { assertSelfOrSuperuser } from '../policies/company-authorization.policy.js'
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(loginBodySchema, request.body)
@@ -68,9 +68,7 @@ export async function setContext(request: FastifyRequest, reply: FastifyReply) {
 export async function createSession(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(createSessionSchema, request.body)
   const decoded = request.user!
-  if (decoded.id !== body.userId && !decoded.isSuperuser) {
-    throw new ForbiddenError('Solo puedes crear sesión para tu propio usuario')
-  }
+  assertSelfOrSuperuser(decoded.id, body.userId, decoded.isSuperuser, 'Solo puedes crear sesión para tu propio usuario')
   await authService.createSession(body)
   return { success: true }
 }
@@ -84,9 +82,7 @@ export async function validateSession(request: FastifyRequest, reply: FastifyRep
 export async function listSessions(request: FastifyRequest, reply: FastifyReply) {
   const { userId } = validateQuery(listSessionsQuerySchema, request.query)
   const decoded = request.user!
-  if (decoded.id !== userId && !decoded.isSuperuser) {
-    throw new ForbiddenError('Solo puedes listar tus propias sesiones')
-  }
+  assertSelfOrSuperuser(decoded.id, userId, decoded.isSuperuser, 'Solo puedes listar tus propias sesiones')
   const rows = await authService.listSessions(userId)
   return ok(rows)
 }

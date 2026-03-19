@@ -6,6 +6,7 @@ import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
 import type { CompanyRow } from '../core/auth-context.js'
 import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../common/errors/app-error.js'
+import { assertSelfOrSuperuser, resolveCompanyAccess } from '../policies/company-authorization.policy.js'
 
 export type LoginResult = {
   user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
@@ -319,28 +320,7 @@ export async function setContext(
   decoded: TokenPayload,
   companyId: string
 ): Promise<SetContextResult> {
-  let allowed = false
-  let membershipRole: string | null = null
-  if (decoded.isSuperuser) {
-    const company = await prisma.company.findFirst({
-      where: { id: companyId, isActive: true },
-    })
-    allowed = !!company
-  } else {
-    const member = await prisma.companyMember.findUnique({
-      where: { userId_companyId: { userId: decoded.id, companyId } },
-      select: { membershipRole: true },
-    })
-    if (member) {
-      allowed = true
-      membershipRole = member.membershipRole
-    } else {
-      const ur = await prisma.userRoleAssignment.findFirst({
-        where: { userId: decoded.id, companyId },
-      })
-      allowed = !!ur
-    }
-  }
+  const { allowed, membershipRole } = await resolveCompanyAccess(decoded.id, companyId, decoded.isSuperuser)
   if (!allowed) throw new ForbiddenError('No tienes acceso a esta empresa')
   const token = generateToken({
     id: decoded.id,
@@ -436,7 +416,7 @@ export async function deleteSession(
   })
   if (existing.length === 0) throw new NotFoundError('Session not found')
   const sessionUserId = existing[0].userId
-  if (callerId !== sessionUserId && !isSuperuser) throw new ForbiddenError('No puedes eliminar sesiones de otro usuario')
+  assertSelfOrSuperuser(callerId, sessionUserId, isSuperuser, 'No puedes eliminar sesiones de otro usuario')
   await prisma.session.deleteMany({ where: { sessionToken: decodedToken } })
 }
 
@@ -447,7 +427,7 @@ export async function terminateOthersSessions(
   isSuperuser: boolean
 ): Promise<void> {
   if (!userId || !currentSessionToken) throw new BadRequestError('userId y currentSessionToken son requeridos')
-  if (callerId !== userId && !isSuperuser) throw new ForbiddenError('Solo puedes terminar tus propias sesiones')
+  assertSelfOrSuperuser(callerId, userId, isSuperuser, 'Solo puedes terminar tus propias sesiones')
   await prisma.session.deleteMany({
     where: { userId, sessionToken: { not: currentSessionToken } },
   })
@@ -466,7 +446,7 @@ export async function updateConcurrentSessions(
   callerId: string,
   isSuperuser: boolean
 ): Promise<void> {
-  if (callerId !== userId && !isSuperuser) throw new ForbiddenError('Solo puedes modificar la política de sesiones de tu propio usuario')
+  assertSelfOrSuperuser(callerId, userId, isSuperuser, 'Solo puedes modificar la política de sesiones de tu propio usuario')
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true },

@@ -2,8 +2,9 @@ import bcrypt from 'bcryptjs'
 import type { CreateUserBody, UpdateUserBody } from '../dto/users.dto.js'
 import type { TokenPayload } from '../core/auth.js'
 import { ForbiddenError, NotFoundError, BadRequestError } from '../common/errors/app-error.js'
-import { canAccessCompany } from '../core/permissions.js'
 import { createRepositories } from '../repositories/index.js'
+import { assertCanManageMembers, assertCompanyAccess } from '../policies/company-authorization.policy.js'
+import { assertUserInCompany } from '../policies/shopflow-authorization.policy.js'
 
 function getCallerCompanyId(caller: TokenPayload): string {
   if (!caller.companyId) {
@@ -12,33 +13,18 @@ function getCallerCompanyId(caller: TokenPayload): string {
   return caller.companyId
 }
 
-function assertCompanyAccess(caller: TokenPayload, companyId: string): void {
-  if (!canAccessCompany(caller, companyId)) {
-    throw new ForbiddenError('No tienes permiso para gestionar usuarios de otra empresa')
-  }
-}
-
-async function ensureUserInCompanyOrThrow(userId: string, companyId: string): Promise<void> {
-  const membership = await createRepositories(companyId).companyMembers.existsUserMembership(userId)
-  if (!membership) {
-    throw new ForbiddenError('No tienes permiso para gestionar usuarios de otra empresa')
-  }
-}
-
 export async function listUsers(caller: TokenPayload) {
-  if (caller.role !== 'ADMIN' && caller.role !== 'SUPERADMIN') {
-    throw new ForbiddenError('Solo administradores pueden listar usuarios')
-  }
+  assertCanManageMembers(caller, 'Solo owners o admins pueden listar usuarios')
   const companyId = getCallerCompanyId(caller)
-  assertCompanyAccess(caller, companyId)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
 
   return createRepositories(companyId).users.listActiveByCompany()
 }
 
 export async function getById(id: string, caller: TokenPayload) {
   const companyId = getCallerCompanyId(caller)
-  assertCompanyAccess(caller, companyId)
-  await ensureUserInCompanyOrThrow(id, companyId)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
 
   const user = await createRepositories(companyId).users.findById(id)
   if (!user) throw new NotFoundError('Usuario no encontrado')
@@ -47,7 +33,7 @@ export async function getById(id: string, caller: TokenPayload) {
 
 export async function create(body: CreateUserBody, caller: TokenPayload) {
   const companyId = getCallerCompanyId(caller)
-  assertCompanyAccess(caller, companyId)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
 
   const repos = createRepositories(companyId)
   const existing = await repos.users.findByEmail(body.email)
@@ -66,8 +52,8 @@ export async function create(body: CreateUserBody, caller: TokenPayload) {
 
 export async function update(id: string, body: UpdateUserBody, caller: TokenPayload) {
   const companyId = getCallerCompanyId(caller)
-  assertCompanyAccess(caller, companyId)
-  await ensureUserInCompanyOrThrow(id, companyId)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
 
   const repos = createRepositories(companyId)
   const existing = await repos.users.findIdentityById(id)
@@ -95,8 +81,8 @@ export async function update(id: string, body: UpdateUserBody, caller: TokenPayl
 
 export async function remove(id: string, caller: TokenPayload): Promise<void> {
   const companyId = getCallerCompanyId(caller)
-  assertCompanyAccess(caller, companyId)
-  await ensureUserInCompanyOrThrow(id, companyId)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
 
   const repos = createRepositories(companyId)
   const existing = await repos.users.findById(id)

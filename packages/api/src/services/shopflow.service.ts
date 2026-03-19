@@ -1,16 +1,9 @@
 import { prisma } from '../db/index.js'
 import type { CompanyContext, ShopflowContext } from '../core/auth-context.js'
-import { canManageMembers } from '../core/permissions.js'
 import * as productsService from './products.service.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
 import { createRepositories } from '../repositories/index.js'
-
-async function canAccessUserPreferences(callerId: string, callerIsSuperuser: boolean, companyId: string, callerMembershipRole: string | null, targetUserId: string): Promise<boolean> {
-  if (callerId === targetUserId) return true
-  if (callerIsSuperuser) return true
-  if (!canManageMembers({ membershipRole: callerMembershipRole ?? undefined, isSuperuser: callerIsSuperuser })) return false
-  return createRepositories(companyId).companyMembers.existsUserMembership(targetUserId)
-}
+import { canAccessUserPreferences, hasFullStoreAccess } from '../policies/shopflow-authorization.policy.js'
 
 export async function listProducts(ctx: CompanyContext, query: Record<string, string | undefined>) {
   return productsService.listProducts(ctx, query)
@@ -70,27 +63,24 @@ export async function deleteProduct(ctx: CompanyContext, id: string) {
 
 // --- Stores ---
 export async function listStores(ctx: ShopflowContext, includeInactive?: string) {
-  const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   return createRepositories(ctx.companyId).stores.findAll({
     includeInactive: includeInactive === 'true',
     userId: ctx.userId,
-    fullAccess: hasFullStoreAccess,
+    fullAccess: hasFullStoreAccess(ctx),
   })
 }
 
 export async function getStoreByCode(ctx: ShopflowContext, code: string) {
-  const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   return createRepositories(ctx.companyId).stores.findByCode(code, {
     userId: ctx.userId,
-    fullAccess: hasFullStoreAccess,
+    fullAccess: hasFullStoreAccess(ctx),
   })
 }
 
 export async function getStoreById(ctx: ShopflowContext, id: string) {
-  const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   return createRepositories(ctx.companyId).stores.findById(id, {
     userId: ctx.userId,
-    fullAccess: hasFullStoreAccess,
+    fullAccess: hasFullStoreAccess(ctx),
   })
 }
 

@@ -424,5 +424,43 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(json.data.some((u: any) => u.email === 'ventas@betacorp.com')).toBe(false)
     })
   })
+
+  describe('Dynamic authorization boundaries (post-token changes)', () => {
+    it('membership role upgrade USER -> OWNER is applied without re-login', async () => {
+      await prisma.companyMember.update({
+        where: { userId_companyId: { userId: acmeMembershipUserMismatchId, companyId: acmeCompanyId } },
+        data: { membershipRole: 'OWNER' },
+      })
+
+      const { res } = await injectJson(app, {
+        method: 'GET',
+        url: '/api/users',
+        headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
+      })
+      expect(res.statusCode).toBe(200)
+
+      await prisma.companyMember.update({
+        where: { userId_companyId: { userId: acmeMembershipUserMismatchId, companyId: acmeCompanyId } },
+        data: { membershipRole: 'USER' },
+      })
+    })
+
+    it('company membership removal is applied without re-login', async () => {
+      await prisma.companyMember.delete({
+        where: { userId_companyId: { userId: acmeMembershipUserMismatchId, companyId: acmeCompanyId } },
+      })
+
+      const { res } = await injectJson(app, {
+        method: 'GET',
+        url: '/api/users',
+        headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
+      })
+      expect(res.statusCode).toBe(401)
+
+      await prisma.companyMember.create({
+        data: { userId: acmeMembershipUserMismatchId, companyId: acmeCompanyId, membershipRole: 'USER' },
+      })
+    })
+  })
 })
 

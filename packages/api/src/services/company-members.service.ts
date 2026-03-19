@@ -1,14 +1,14 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../db/index.js'
 import type { TokenPayload } from '../core/auth.js'
-import { canAccessCompany, canManageMembers } from '../core/permissions.js'
 import type { CreateMemberBody, UpdateMemberStoresBody } from '../dto/company-members.dto.js'
 import { ForbiddenError, NotFoundError, BadRequestError } from '../common/errors/app-error.js'
+import { assertCanManageMembers, assertCompanyAccess } from '../policies/company-authorization.policy.js'
 
 const roleOrder = { OWNER: 0, ADMIN: 1, USER: 2 } as const
 
 export async function list(companyId: string, caller: TokenPayload) {
-  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
+  assertCompanyAccess(caller, companyId)
   const members = await prisma.companyMember.findMany({
     where: { companyId },
     include: { user: true },
@@ -38,8 +38,8 @@ export async function list(companyId: string, caller: TokenPayload) {
 }
 
 export async function create(companyId: string, caller: TokenPayload, body: CreateMemberBody) {
-  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
-  if (!canManageMembers(caller)) throw new ForbiddenError('Solo el owner o un admin pueden crear usuarios')
+  assertCompanyAccess(caller, companyId)
+  assertCanManageMembers(caller, 'Solo el owner o un admin pueden crear usuarios')
   const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })
   if (existing) throw new BadRequestError('Ya existe un usuario con este email')
   const hashed = await bcrypt.hash(body.password, 10)
@@ -77,8 +77,8 @@ export async function create(companyId: string, caller: TokenPayload, body: Crea
 }
 
 export async function updateStores(companyId: string, userId: string, caller: TokenPayload, body: UpdateMemberStoresBody) {
-  if (!canAccessCompany(caller, companyId)) throw new ForbiddenError('No tienes acceso a esta empresa')
-  if (!canManageMembers(caller)) throw new ForbiddenError('Solo el owner o un admin pueden modificar locales de usuarios')
+  assertCompanyAccess(caller, companyId)
+  assertCanManageMembers(caller, 'Solo el owner o un admin pueden modificar locales de usuarios')
   const member = await prisma.companyMember.findUnique({
     where: { userId_companyId: { userId, companyId } },
     select: { membershipRole: true },
