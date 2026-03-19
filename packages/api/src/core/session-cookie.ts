@@ -1,7 +1,7 @@
 import type { FastifyReply } from 'fastify'
 import type { AppConfig } from './config.js'
 
-/** HttpOnly session cookie on the API host (Plan A / ADR-auth-token-storage). */
+/** HttpOnly session cookie on the API host (Plan 1 / ADR-auth-token-storage). */
 export const AUTH_SESSION_COOKIE = 'ms_session'
 
 /**

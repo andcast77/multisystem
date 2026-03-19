@@ -1,4 +1,4 @@
-# Plan E — API modularization (optional)
+# [completed] Plan 5 — API modularization (optional)
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §13 Scalability, §14 Medium debt, §18 ideal architecture.
 **Status:** Done 2026-03-18

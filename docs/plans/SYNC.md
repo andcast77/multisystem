@@ -18,15 +18,15 @@ These rules keep **`docs/plans/PLAN-*.md`** accurate without duplicate checklist
 
 ## For humans & AI assistants (auto-update habit)
 
-1. **Before closing a task:** Identify which plan(s) it maps to (A–F).
+1. **Before closing a task:** Identify which plan(s) it maps to (1–6).
 2. **In the same change set** as the code/docs fix: open that `PLAN-*.md` and mark completed items `[x]`.
-3. If one change completes tasks in **multiple** plans (e.g. shared client touches Plan C and indirectly Plan A), update **each** file’s relevant lines.
+3. If one change completes tasks in **multiple** plans (e.g. shared client touches Plan 3 and indirectly Plan 1), update **each** file’s relevant lines.
 4. **Do not** leave plans stale: if the repo already satisfies a checkbox but the box is empty, mark it `[x]` in a small “sync” commit or include it in the next related PR.
 
 ## Cross-plan overlap
 
-- **Plan A** (auth) and **Plan B** (CORS) are independent files—update both if one feature touches both (e.g. BFF affects cookies and origins).
-- **Plan C** + **Plan D** often land in different PRs; sync each file separately.
+- **Plan 1** (auth) and **Plan 2** (CORS) are independent files—update both if one feature touches both (e.g. BFF affects cookies and origins).
+- **Plan 3** + **Plan 4** often land in different PRs; sync each file separately.
 
 ## Verification (optional periodic check)
 

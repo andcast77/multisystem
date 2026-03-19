@@ -4,18 +4,18 @@ Working copies of engineering implementation plans. Source context: [ENGINEERING
 
 | Order | Plan | File |
 |-------|------|------|
-| 1 (first) | B — CORS & environment | [PLAN-B-cors-environment.md](./PLAN-B-cors-environment.md) |
-| 2 | A — Security & auth | [PLAN-A-security-auth-hardening.md](./PLAN-A-security-auth-hardening.md) |
-| 3 (parallel) | C — Unify ApiClient | [PLAN-C-unify-apiclient.md](./PLAN-C-unify-apiclient.md) |
-| 3 (parallel) | D — Tooling & dead code | [PLAN-D-tooling-dead-code.md](./PLAN-D-tooling-dead-code.md) |
-| ongoing | F — Performance | [PLAN-F-performance-followups.md](./PLAN-F-performance-followups.md) |
-| done | E — API modularization | [PLAN-E-api-modularization.md](./PLAN-E-api-modularization.md) |
+| 1 (first) | [completed] 2 — CORS & environment | [\[completed\] PLAN-2-cors-environment.md](./[completed]%20PLAN-2-cors-environment.md) |
+| 2 | [completed] 1 — Security & auth | [\[completed\] PLAN-1-security-auth-hardening.md](./[completed]%20PLAN-1-security-auth-hardening.md) |
+| 3 (parallel) | 3 — Unify ApiClient | [PLAN-3-unify-apiclient.md](./PLAN-3-unify-apiclient.md) |
+| 3 (parallel) | [completed] 4 — Tooling & dead code | [\[completed\] PLAN-4-tooling-dead-code.md](./[completed]%20PLAN-4-tooling-dead-code.md) |
+| ongoing | 6 — Performance | [PLAN-6-performance-followups.md](./PLAN-6-performance-followups.md) |
+| done | [completed] 5 — API modularization | [\[completed\] PLAN-5-api-modularization.md](./[completed]%20PLAN-5-api-modularization.md) |
 
 ## Execution status (reality)
 
-- Recommended historical order remains: `B -> A -> (C + D) -> F`, with `E` optional/done.
-- Actual execution completed: `A -> B` (both completed, no regressions after CORS alignment).
-- Effective remaining focus: `C` (optional docs path) + `D` (done) in parallel context, `F` ongoing.
+- Recommended historical order remains: `2 -> 1 -> (3 + 4) -> 6`, with `5` optional/done.
+- Actual execution completed: `1 -> 2` (both completed, no regressions after CORS alignment).
+- Effective remaining focus: `3` (optional docs path) + `4` (done) in parallel context, `6` ongoing.
 
 ## Syncing checklists
 

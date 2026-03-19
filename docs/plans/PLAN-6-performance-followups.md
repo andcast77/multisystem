@@ -1,4 +1,4 @@
-# Plan F — Performance follow-ups
+# Plan 6 — Performance follow-ups
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §12 Performance.
 

@@ -1,4 +1,4 @@
-# Plan A — Security & auth hardening
+# [completed] Plan 1 — Security & auth hardening
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §11 (JWT cookie, rate limit), §14 High.
 
@@ -7,9 +7,9 @@
 | **Objective** | Remove XSS token theft path; tighten auth endpoint abuse surface. |
 | **Risk addressed** | JWT in JS-readable cookie (High); shared global rate bucket on auth (Low). |
 | **Dependencies** | May require BFF or same-site cookie domain decisions before httpOnly. |
-| **Priority** | Run after Plan B or in parallel once CORS/dev flow is stable. |
+| **Priority** | Run after Plan 2 or in parallel once CORS/dev flow is stable. |
 
-> Retrospective note: this plan was executed before Plan B in this cycle (`A -> B`). After CORS/environment alignment landed in Plan B, cross-origin auth/session behavior remained stable.
+> Retrospective note: this plan was executed before Plan 2 in this cycle (`1 -> 2`). After CORS/environment alignment landed in Plan 2, cross-origin auth/session behavior remained stable.
 
 ## Tasks
 

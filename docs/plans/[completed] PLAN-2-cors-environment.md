@@ -1,4 +1,4 @@
-# Plan B — CORS & environment alignment
+# [completed] Plan 2 — CORS & environment alignment
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §11 CORS.
 
@@ -8,7 +8,7 @@
 | **Risk addressed** | Default origins missing hub (`3001`); misconfig blocks users or invites overly permissive fixes. |
 | **Priority** | **First** — quick win for local and staged multi-app setups. |
 
-> Validation note: although this plan is marked as "First", in this cycle it was completed after Plan A (`A -> B`). Post-alignment verification confirmed stable cross-origin auth/session flows (`HttpOnly` session cookie + allowed origins `3001-3004`).
+> Validation note: although this plan is marked as "First", in this cycle it was completed after Plan 1 (`1 -> 2`). Post-alignment verification confirmed stable cross-origin auth/session flows (`HttpOnly` session cookie + allowed origins `3001-3004`).
 
 ## Tasks
 

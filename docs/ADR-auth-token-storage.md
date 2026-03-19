@@ -1,4 +1,4 @@
-# ADR: Auth token storage (Plan A)
+# ADR: Auth token storage (Plan 1)
 
 ## Decision
 
@@ -26,5 +26,5 @@ We use an **httpOnly, Secure session cookie** (`ms_session`) set **only by the A
 
 ## References
 
-- [PLAN-A-security-auth-hardening.md](plans/PLAN-A-security-auth-hardening.md)
+- [\[completed\] PLAN-1-security-auth-hardening.md](plans/[completed]%20PLAN-1-security-auth-hardening.md)
 - [packages/api/README.md](../packages/api/README.md) — env and CORS

@@ -1,4 +1,4 @@
-# Plan D — Tooling & dead-code hygiene
+# [completed] Plan 4 — Tooling & dead-code hygiene
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §9 Knip, shopflow trees.
 
@@ -6,7 +6,7 @@
 |-------|--------|
 | **Objective** | Trust Knip output; clarify shopflow entry tree. |
 | **Risk addressed** | ~200 false-positive “unused” files without per-app Knip config; legacy `app/` vs `src/`. |
-| **Parallel with** | Plan C. |
+| **Parallel with** | Plan 3. |
 
 ## Tasks
 

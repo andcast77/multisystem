@@ -107,6 +107,7 @@ export type CompanyContext = {
 
 export type ShopflowContext = CompanyContext & { storeId?: string | null }
 export type WorkifyContext = CompanyContext
+export type MembershipRoleName = 'OWNER' | 'ADMIN' | 'USER'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -117,6 +118,7 @@ declare module 'fastify' {
 }
 
 const NO_ACCESS_MSG = 'No tienes acceso a ninguna empresa'
+const FORBIDDEN_MSG = 'No tienes permisos para realizar esta acción'
 
 function getStoreIdFromHeader(request: FastifyRequest): string | undefined {
   const raw = request.headers['x-store-id']
@@ -260,6 +262,41 @@ export async function requireWorkifyContext(
   reply: FastifyReply
 ): Promise<void> {
   await requireCompanyContext(request, reply)
+}
+
+function normalizeRequiredRoles(roles: string[]): MembershipRoleName[] {
+  return roles.map((role) => role.toUpperCase()).filter((role): role is MembershipRoleName => (
+    role === 'OWNER' || role === 'ADMIN' || role === 'USER'
+  ))
+}
+
+/**
+ * PreHandler factory for membership-role checks in resolved company context.
+ * Requires requireAuth + requireCompanyContext to run before this guard.
+ */
+export function requireRole(roles: string[]) {
+  const allowedRoles = new Set(normalizeRequiredRoles(roles))
+
+  return async function roleGuard(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const user = request.user
+    if (!user) {
+      reply.code(401).send({ success: false, error: 'Token de autenticación requerido' })
+      throw new Error('Unauthorized')
+    }
+
+    if (user.isSuperuser) return
+
+    if (!request.companyId) {
+      reply.code(401).send({ success: false, error: NO_ACCESS_MSG })
+      throw new Error('No company access')
+    }
+
+    const membershipRole = (request.membershipRole ?? '').toUpperCase()
+    if (!allowedRoles.has(membershipRole as MembershipRoleName)) {
+      reply.code(403).send({ success: false, error: FORBIDDEN_MSG })
+      throw new Error('Forbidden')
+    }
+  }
 }
 
 export function contextFromRequest(request: FastifyRequest, includeStoreId: true): ShopflowContext

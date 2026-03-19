@@ -1,4 +1,4 @@
-# Plan C — Unify ApiClient
+# Plan 3 — Unify ApiClient
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §6 Frontend, §9 duplicate client.
 
@@ -6,7 +6,7 @@
 |-------|--------|
 | **Objective** | One HTTP client pattern from `@multisystem/shared`. |
 | **Risk addressed** | Duplicate `ApiClient` in shopflow/workify; drift vs `@multisystem/contracts`. |
-| **Parallel with** | Plan D (different touchpoints). |
+| **Parallel with** | Plan 4 (different touchpoints). |
 
 ## Tasks
 
