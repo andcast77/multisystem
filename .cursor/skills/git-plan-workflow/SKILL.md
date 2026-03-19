@@ -24,6 +24,7 @@ Applies a strict workflow for plan-based work in this repository.
 - Create plan branches from `Test`.
 - Use branch naming format: `plan/<plan-slug>`.
 - At plan completion, ask confirmation before running commit/push.
+- At plan completion, rename the plan file to include `[completed]` prefix.
 - Run merge only when the user explicitly requests it.
 - Do not run destructive git operations.
 - Do not modify git configuration.
@@ -53,15 +54,16 @@ If the branch already exists, ask whether to reuse it or create a new slug.
 
 When user indicates completion (examples: "finish", "finished", "completed"), follow:
 
-1. Review changes:
+1. Ensure the plan document filename is prefixed with `[completed]` (for example: `[completed] PLAN-3-unify-apiclient.md`).
+2. Review changes:
    - `git status`
    - `git diff` (and staged diff if needed)
-2. Propose concise commit message aligned with repository style.
-3. Ask explicit confirmation before executing:
+3. Propose concise commit message aligned with repository style.
+4. Ask explicit confirmation before executing:
    - `git add` relevant files
    - `git commit`
    - `git push -u origin HEAD` (if upstream missing) or `git push`
-4. After execution, report key results (branch, commit hash, push target).
+5. After execution, report key results (branch, commit hash, push target).
 
 Never auto-commit/auto-push without user confirmation.
 
