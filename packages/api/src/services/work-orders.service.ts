@@ -185,9 +185,13 @@ export async function updateWorkOrder(
 
   if (Object.keys(data).length === 0) return getWorkOrderById(ctx, id)
 
-  const w = await prisma.workOrder.update({
-    where: { id },
+  const updated = await prisma.workOrder.updateMany({
+    where: { id, companyId: ctx.companyId },
     data,
   })
-  return toWorkOrderRow(w)
+  if (updated.count === 0) return null
+  const w = await prisma.workOrder.findFirst({
+    where: { id, companyId: ctx.companyId },
+  })
+  return w ? toWorkOrderRow(w) : null
 }

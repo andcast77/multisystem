@@ -37,7 +37,14 @@ export class CategoryRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return null
-    return this.db.category.update({ where: { id }, data: input }) as Promise<CategoryRow>
+    const updated = await this.db.category.updateMany({
+      where: { ...this.tenantWhere, id },
+      data: input,
+    })
+    if (updated.count === 0) return null
+    return this.db.category.findFirst({
+      where: { ...this.tenantWhere, id },
+    }) as Promise<CategoryRow | null>
   }
 
   async delete(id: string): Promise<boolean> {
@@ -46,7 +53,7 @@ export class CategoryRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.category.delete({ where: { id } })
-    return true
+    const deleted = await this.db.category.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
   }
 }

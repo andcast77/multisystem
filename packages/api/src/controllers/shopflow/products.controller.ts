@@ -34,6 +34,15 @@ async function listProducts(
   })
 }
 
+async function listProductUnits(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const ctx = getCtx(request, true)
+  const units = await shopflowService.listProductUnits(ctx)
+  return ok({ units })
+}
+
 async function getProductsLowStock(
   request: FastifyRequest<{ Querystring: { minStockThreshold?: string } }>,
   reply: FastifyReply
@@ -96,6 +105,7 @@ async function deleteProduct(
 export function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/api/shopflow/products', { preHandler: pre }, handle(listProducts))
   fastify.get('/api/shopflow/products/low-stock', { preHandler: pre }, handle(getProductsLowStock))
+  fastify.get('/api/shopflow/products/units', { preHandler: pre }, handle(listProductUnits))
   fastify.get<{ Params: { id: string } }>('/api/shopflow/products/:id', { preHandler: pre }, handle(getProductById))
   fastify.post('/api/shopflow/products', { preHandler: pre }, handle(createProduct))
   fastify.put<{ Params: { id: string } }>('/api/shopflow/products/:id', { preHandler: pre }, handle(updateProduct))

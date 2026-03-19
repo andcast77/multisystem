@@ -380,6 +380,21 @@ model Module {
   @@map("modules")
 }
 
+/// Catálogo global de unidades de medida para productos (compartido entre empresas).
+model Unit {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  symbol    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+
+  @@map("units")
+}
+
 /// Relación empresa ↔ módulo: define qué módulos tiene contratados/habilitados una empresa.
 model CompanyModule {
   id        String   @id @default(uuid())
@@ -921,6 +936,7 @@ model Product {
   cost        Decimal? @db.Decimal(10, 2)
   categoryId  String?
   supplierId  String?
+  unitId      String?
   active      Boolean  @default(true)
   imageUrl    String?
   createdAt   DateTime @default(now())
@@ -930,6 +946,7 @@ model Product {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   category         Category?           @relation(fields: [categoryId], references: [id])
   supplier         Supplier?           @relation(fields: [supplierId], references: [id])
+  unit             Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
   saleItems        SaleItem[]
   inventoryTransfers InventoryTransfer[]
   storeInventory   StoreInventory[]
@@ -938,6 +955,7 @@ model Product {
   @@index([companyId])
   @@index([companyId, barcode])
   @@index([categoryId])
+  @@index([unitId])
   @@map("products")
 }
 

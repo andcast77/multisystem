@@ -71,12 +71,16 @@ export class InventoryTransferRepository extends TenantScopedRepository {
   }
 
   async updateStatus(id: string, status: 'COMPLETED' | 'CANCELLED', completedAt?: Date) {
-    return this.db.inventoryTransfer.update({
-      where: { id },
+    const updated = await this.db.inventoryTransfer.updateMany({
+      where: { ...this.tenantWhere, id },
       data: {
         status,
         ...(completedAt ? { completedAt } : {}),
       },
+    })
+    if (updated.count === 0) return null
+    return this.db.inventoryTransfer.findFirst({
+      where: { ...this.tenantWhere, id },
     })
   }
 }

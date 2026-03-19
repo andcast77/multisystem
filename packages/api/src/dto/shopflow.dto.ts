@@ -10,6 +10,7 @@ export const productCreateBodySchema = z.object({
   cost: z.number().nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
   supplierId: z.string().uuid().nullable().optional(),
+  unitId: z.string().uuid().nullable().optional(),
   active: z.boolean().optional(),
   imageUrl: z.string().nullable().optional(),
 })
@@ -230,6 +231,7 @@ export const productListQuerySchema = paginationQuerySchema.extend({
   sku: z.string().optional(),
   barcode: z.string().optional(),
   categoryId: z.string().optional(),
+  unitId: z.string().optional(),
   active: z.string().optional(),
   minPrice: z.string().optional(),
   maxPrice: z.string().optional(),
@@ -282,6 +284,13 @@ export type ProductResponse = {
   cost: number | null
   categoryId: string | null
   supplierId: string | null
+  unitId: string | null
+  unit?: {
+    id: string
+    key: string
+    name: string
+    symbol: string | null
+  } | null
   active: boolean
   imageUrl: string | null
   createdAt: Date

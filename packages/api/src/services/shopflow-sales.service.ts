@@ -347,10 +347,11 @@ export async function cancelSale(
   if (sale.status === 'REFUNDED') throw new BadRequestError('No se puede cancelar una venta reembolsada')
 
   await prisma.$transaction(async (tx) => {
-    await tx.sale.update({
-      where: { id },
+    const updated = await tx.sale.updateMany({
+      where: { id, companyId: ctx.companyId },
       data: { status: 'CANCELLED' },
     })
+    if (updated.count === 0) throw new NotFoundError('Venta no encontrada')
     for (const item of sale.items) {
       await tx.storeInventory.upsert({
         where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },
@@ -394,10 +395,11 @@ export async function refundSale(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.sale.update({
-      where: { id },
+    const updated = await tx.sale.updateMany({
+      where: { id, companyId: ctx.companyId },
       data: { status: 'REFUNDED' },
     })
+    if (updated.count === 0) throw new NotFoundError('Venta no encontrada')
     for (const item of sale.items) {
       await tx.storeInventory.upsert({
         where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },

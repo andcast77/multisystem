@@ -50,6 +50,7 @@ async function main() {
   await clear('sale', () => prisma.sale.deleteMany())
   await clear('inventoryTransfer', () => prisma.inventoryTransfer.deleteMany())
   await clear('product', () => prisma.product.deleteMany())
+  await clear('unit', () => prisma.unit.deleteMany())
   await clear('category', () => prisma.category.deleteMany())
   await clear('supplier', () => prisma.supplier.deleteMany())
   await clear('customer', () => prisma.customer.deleteMany())
@@ -119,6 +120,19 @@ async function main() {
       name: 'Tech Services',
       description: 'Módulo de servicios técnicos',
     },
+  })
+
+  // 1.1 Unidades globales para productos (catálogo compartido)
+  await prisma.unit.createMany({
+    data: [
+      { key: 'UNIT', name: 'Unit', symbol: 'u', isActive: true },
+      { key: 'LITER', name: 'Liter', symbol: 'L', isActive: true },
+      { key: 'KILOGRAM', name: 'Kilogram', symbol: 'kg', isActive: true },
+      { key: 'METER', name: 'Meter', symbol: 'm', isActive: true },
+      { key: 'GRAM', name: 'Gram', symbol: 'g', isActive: true },
+      { key: 'MILLILITER', name: 'Milliliter', symbol: 'ml', isActive: true },
+      { key: 'CENTIMETER', name: 'Centimeter', symbol: 'cm', isActive: true },
+    ],
   })
 
   // 2. Permisos base (hub + módulos)

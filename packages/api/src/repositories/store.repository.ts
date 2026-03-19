@@ -61,7 +61,12 @@ export class StoreRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return null
-    return this.db.store.update({ where: { id }, data: input }) as Promise<StoreRow>
+    const updated = await this.db.store.updateMany({
+      where: { ...this.tenantWhere, id },
+      data: input,
+    })
+    if (updated.count === 0) return null
+    return this.db.store.findFirst({ where: { ...this.tenantWhere, id } }) as Promise<StoreRow | null>
   }
 
   async delete(id: string): Promise<boolean> {
@@ -70,8 +75,8 @@ export class StoreRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.store.delete({ where: { id } })
-    return true
+    const deleted = await this.db.store.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
   }
 
   async findLatestConfig() {
@@ -113,11 +118,14 @@ export class StoreRepository extends TenantScopedRepository {
   }
 
   async updateConfigById(id: string, data: Record<string, unknown>) {
-    return this.db.storeConfig.update({
-      where: { id },
-      // Prisma accepts partial update input and keeps this tenant-scoped by fetched id.
+    const updated = await this.db.storeConfig.updateMany({
+      where: { ...this.tenantWhere, id },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: data as any,
+    })
+    if (updated.count === 0) return null
+    return this.db.storeConfig.findFirst({
+      where: { ...this.tenantWhere, id },
     })
   }
 
@@ -125,7 +133,7 @@ export class StoreRepository extends TenantScopedRepository {
     const [result] = await this.db.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>`
       UPDATE store_configs
       SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW()
-      WHERE id = ${configId}
+      WHERE id = ${configId} AND "companyId" = ${this.tenantId}
       RETURNING "invoicePrefix", "invoiceNumber"
     `
     return result
@@ -170,10 +178,14 @@ export class StoreRepository extends TenantScopedRepository {
   }
 
   async updateTicketConfigById(id: string, data: Record<string, unknown>) {
-    return this.db.ticketConfig.update({
-      where: { id },
+    const updated = await this.db.ticketConfig.updateMany({
+      where: { ...this.tenantWhere, id },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: data as any,
+    })
+    if (updated.count === 0) return null
+    return this.db.ticketConfig.findFirst({
+      where: { ...this.tenantWhere, id },
     })
   }
 }

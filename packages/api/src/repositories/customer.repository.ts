@@ -38,7 +38,14 @@ export class CustomerRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return null
-    return this.db.customer.update({ where: { id }, data: input }) as Promise<CustomerRow>
+    const updated = await this.db.customer.updateMany({
+      where: { ...this.tenantWhere, id },
+      data: input,
+    })
+    if (updated.count === 0) return null
+    return this.db.customer.findFirst({
+      where: { ...this.tenantWhere, id },
+    }) as Promise<CustomerRow | null>
   }
 
   async delete(id: string): Promise<boolean> {
@@ -47,7 +54,7 @@ export class CustomerRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.customer.delete({ where: { id } })
-    return true
+    const deleted = await this.db.customer.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
   }
 }

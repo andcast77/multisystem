@@ -10,6 +10,13 @@ type ProductRow = {
   cost: number | null
   categoryId: string | null
   supplierId: string | null
+  unitId: string | null
+  unit?: {
+    id: string
+    key: string
+    name: string
+    symbol: string | null
+  } | null
   active: boolean
   imageUrl: string | null
   createdAt: Date

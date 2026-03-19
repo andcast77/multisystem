@@ -9,6 +9,10 @@ export async function listProducts(ctx: CompanyContext, query: Record<string, st
   return productsService.listProducts(ctx, query)
 }
 
+export async function listProductUnits(ctx: CompanyContext) {
+  return productsService.listProductUnits(ctx)
+}
+
 export async function getProductBySku(ctx: CompanyContext, sku: string) {
   return productsService.getProductBySku(ctx, sku)
 }

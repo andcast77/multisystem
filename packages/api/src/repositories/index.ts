@@ -15,7 +15,7 @@ import { UserPreferencesRepository } from './user-preferences.repository.js'
 import { PushSubscriptionRepository } from './push-subscription.repository.js'
 import { InventoryTransferRepository } from './inventory-transfer.repository.js'
 
-export { ProductRepository, type ProductRow, type ProductSearchQuery, type ProductCreateInput, type ProductUpdateInput } from './product.repository.js'
+export { ProductRepository, type ProductRow, type UnitRow, type ProductSearchQuery, type ProductCreateInput, type ProductUpdateInput } from './product.repository.js'
 export { StoreRepository, type StoreRow, type StoreCreateInput } from './store.repository.js'
 export { CustomerRepository, type CustomerRow } from './customer.repository.js'
 export { CategoryRepository, type CategoryRow } from './category.repository.js'
