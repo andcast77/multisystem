@@ -400,7 +400,7 @@ flowchart TB
 - Completed in practice: `1 -> 2` (both done).
 - Completed: `4` and `5`.
 - Effective remaining focus: `3 + 4` parallel track context (with `4` already closed), then `6` ongoing.
-- `3` still has one optional documentation task open (`api-sdk`/OpenAPI path note).
+- `3` optional documentation follow-through (`api-sdk`/OpenAPI path note) is now documented in the plan; remaining work is wrapper consistency cleanup when prioritized.
 
 ---
 
