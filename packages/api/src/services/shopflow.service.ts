@@ -1,9 +1,8 @@
-import { Prisma, prisma } from '../db/index.js'
+import { prisma } from '../db/index.js'
 import type { CompanyContext, ShopflowContext } from '../core/auth-context.js'
 import { canManageMembers } from '../core/permissions.js'
 import * as productsService from './products.service.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
-import { parsePagination } from '../common/database/index.js'
 import { createRepositories } from '../repositories/index.js'
 
 async function canAccessUserPreferences(callerId: string, callerIsSuperuser: boolean, companyId: string, callerMembershipRole: string | null, targetUserId: string): Promise<boolean> {
@@ -50,28 +49,16 @@ export async function updateProductInventory(
   productId: string,
   payload: { stock: number; minStock?: number }
 ) {
-  const product = await prisma.product.findFirst({
-    where: { id: productId, companyId: ctx.companyId },
-    select: { id: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const product = await repos.products.findById(productId)
   if (!product) return null
 
   const storeId = ctx.storeId
   if (!storeId) throw new BadRequestError('storeId is required to update inventory (send X-Store-Id header)')
 
-  await prisma.storeInventory.upsert({
-    where: { storeId_productId: { storeId, productId } },
-    create: {
-      companyId: ctx.companyId,
-      storeId,
-      productId,
-      quantity: payload.stock,
-      minStock: payload.minStock ?? 0,
-    },
-    update: {
-      quantity: payload.stock,
-      ...(payload.minStock !== undefined ? { minStock: payload.minStock } : {}),
-    },
+  await repos.inventory.upsert(storeId, productId, {
+    quantity: payload.stock,
+    ...(payload.minStock !== undefined ? { minStock: payload.minStock } : {}),
   })
 
   return productsService.getProductById(ctx, productId)
@@ -84,45 +71,40 @@ export async function deleteProduct(ctx: CompanyContext, id: string) {
 // --- Stores ---
 export async function listStores(ctx: ShopflowContext, includeInactive?: string) {
   const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  return hasFullStoreAccess
-    ? prisma.store.findMany({
-        where: { companyId: ctx.companyId, ...(includeInactive !== 'true' ? { active: true } : {}) },
-        orderBy: { name: 'asc' },
-      })
-    : prisma.store.findMany({
-        where: { companyId: ctx.companyId, ...(includeInactive !== 'true' ? { active: true } : {}), userStores: { some: { userId: ctx.userId } } },
-        orderBy: { name: 'asc' },
-      })
+  return createRepositories(ctx.companyId).stores.findAll({
+    includeInactive: includeInactive === 'true',
+    userId: ctx.userId,
+    fullAccess: hasFullStoreAccess,
+  })
 }
 
 export async function getStoreByCode(ctx: ShopflowContext, code: string) {
   const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  return hasFullStoreAccess
-    ? prisma.store.findFirst({ where: { companyId: ctx.companyId, code } })
-    : prisma.store.findFirst({ where: { companyId: ctx.companyId, code, userStores: { some: { userId: ctx.userId } } } })
+  return createRepositories(ctx.companyId).stores.findByCode(code, {
+    userId: ctx.userId,
+    fullAccess: hasFullStoreAccess,
+  })
 }
 
 export async function getStoreById(ctx: ShopflowContext, id: string) {
   const hasFullStoreAccess = ctx.isSuperuser || ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  return hasFullStoreAccess
-    ? prisma.store.findFirst({ where: { id, companyId: ctx.companyId } })
-    : prisma.store.findFirst({ where: { id, companyId: ctx.companyId, userStores: { some: { userId: ctx.userId } } } })
+  return createRepositories(ctx.companyId).stores.findById(id, {
+    userId: ctx.userId,
+    fullAccess: hasFullStoreAccess,
+  })
 }
 
 export async function createStore(
   ctx: CompanyContext,
   body: { name: string; code: string; address?: string | null; phone?: string | null; email?: string | null; taxId?: string | null }
 ) {
-  return prisma.store.create({
-    data: {
-      companyId: ctx.companyId,
-      name: body.name,
-      code: body.code,
-      address: body.address ?? null,
-      phone: body.phone ?? null,
-      email: body.email ?? null,
-      taxId: body.taxId ?? null,
-    },
+  return createRepositories(ctx.companyId).stores.create({
+    name: body.name,
+    code: body.code,
+    address: body.address ?? null,
+    phone: body.phone ?? null,
+    email: body.email ?? null,
+    taxId: body.taxId ?? null,
   })
 }
 
@@ -131,7 +113,7 @@ export async function updateStore(
   id: string,
   body: Partial<{ name: string; code: string; address: string | null; phone: string | null; email: string | null; taxId: string | null; active: boolean }>
 ) {
-  const existing = await prisma.store.findFirst({ where: { id, companyId: ctx.companyId } })
+  const existing = await createRepositories(ctx.companyId).stores.findById(id, { fullAccess: true })
   if (!existing) throw new NotFoundError('Local no encontrado')
   const updateData: Record<string, unknown> = {}
   if (body.name !== undefined) updateData.name = body.name
@@ -142,63 +124,52 @@ export async function updateStore(
   if (body.taxId !== undefined) updateData.taxId = body.taxId
   if (body.active !== undefined) updateData.active = body.active
   if (Object.keys(updateData).length === 0) return existing
-  return prisma.store.update({ where: { id }, data: updateData })
+  return createRepositories(ctx.companyId).stores.update(id, updateData)
 }
 
 export async function deleteStore(ctx: CompanyContext, id: string) {
-  const existing = await prisma.store.findFirst({ where: { id, companyId: ctx.companyId } })
-  if (!existing) throw new NotFoundError('Local no encontrado')
-  await prisma.store.delete({ where: { id } })
+  const deleted = await createRepositories(ctx.companyId).stores.delete(id)
+  if (!deleted) throw new NotFoundError('Local no encontrado')
 }
 
 // --- Store config ---
 export async function getStoreConfig(ctx: CompanyContext) {
-  let config = await prisma.storeConfig.findFirst({
-    where: { companyId: ctx.companyId },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  let config = await repos.stores.findLatestConfig()
   if (!config) {
-    config = await prisma.storeConfig.create({
-      data: {
-        companyId: ctx.companyId,
-        name: 'My Store',
-        currency: 'USD',
-        taxRate: 0,
-        lowStockAlert: 10,
-        invoicePrefix: 'INV-',
-        invoiceNumber: 1,
-        allowSalesWithoutStock: false,
-      },
+    config = await repos.stores.createConfig({
+      name: 'My Store',
+      currency: 'USD',
+      taxRate: 0,
+      lowStockAlert: 10,
+      invoicePrefix: 'INV-',
+      invoiceNumber: 1,
+      allowSalesWithoutStock: false,
     })
   }
   return config
 }
 
 export async function updateStoreConfig(ctx: CompanyContext, body: Record<string, unknown>) {
-  let config = await prisma.storeConfig.findFirst({
-    where: { companyId: ctx.companyId },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  let config = await repos.stores.findLatestConfig()
   if (!config) {
-    config = await prisma.storeConfig.create({
-      data: {
-        companyId: ctx.companyId,
-        name: (body.name as string) ?? 'My Store',
-        address: (body.address as string) ?? null,
-        phone: (body.phone as string) ?? null,
-        email: (body.email as string) ?? null,
-        taxId: (body.taxId as string) ?? null,
-        currency: ((body.currency as string) ?? 'USD') as 'USD',
-        taxRate: (body.taxRate as number) ?? 0,
-        lowStockAlert: (body.lowStockAlert as number) ?? 10,
-        invoicePrefix: (body.invoicePrefix as string) ?? 'INV-',
-        invoiceNumber: 1,
-        allowSalesWithoutStock: (body.allowSalesWithoutStock as boolean) ?? false,
-      },
+    config = await repos.stores.createConfig({
+      name: (body.name as string) ?? 'My Store',
+      address: (body.address as string) ?? null,
+      phone: (body.phone as string) ?? null,
+      email: (body.email as string) ?? null,
+      taxId: (body.taxId as string) ?? null,
+      currency: ((body.currency as string) ?? 'USD') as 'USD',
+      taxRate: (body.taxRate as number) ?? 0,
+      lowStockAlert: (body.lowStockAlert as number) ?? 10,
+      invoicePrefix: (body.invoicePrefix as string) ?? 'INV-',
+      invoiceNumber: 1,
+      allowSalesWithoutStock: (body.allowSalesWithoutStock as boolean) ?? false,
     })
     return config
   }
-  const data: Prisma.StoreConfigUpdateInput = {}
+  const data: Record<string, unknown> = {}
   if (body.name !== undefined) data.name = body.name as string
   if (body.address !== undefined) data.address = body.address as string | null
   if (body.phone !== undefined) data.phone = body.phone as string | null
@@ -210,69 +181,54 @@ export async function updateStoreConfig(ctx: CompanyContext, body: Record<string
   if (body.invoicePrefix !== undefined) data.invoicePrefix = body.invoicePrefix as string
   if (body.allowSalesWithoutStock !== undefined) data.allowSalesWithoutStock = body.allowSalesWithoutStock as boolean
   if (Object.keys(data).length === 0) throw new BadRequestError('No hay campos para actualizar')
-  return prisma.storeConfig.update({ where: { id: config.id }, data })
+  return repos.stores.updateConfigById(config.id, data)
 }
 
 export async function nextInvoiceNumber(ctx: CompanyContext) {
-  const config = await prisma.storeConfig.findFirst({
-    where: { companyId: ctx.companyId },
-    orderBy: { createdAt: 'desc' },
-    select: { id: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const config = await repos.stores.findLatestConfig()
   if (!config) throw new NotFoundError('Configuración de tienda no encontrada')
-  const [result] = await prisma.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>(
-    Prisma.sql`UPDATE store_configs SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW() WHERE id = ${config.id} RETURNING "invoicePrefix", "invoiceNumber"`
-  )
+  const result = await repos.stores.incrementInvoiceNumberAndGet(config.id)
   return { invoiceNumber: `${result.invoicePrefix}${result.invoiceNumber.toString().padStart(6, '0')}` }
 }
 
 // --- Ticket config ---
 export async function getTicketConfig(ctx: CompanyContext, storeId: string | undefined) {
-  let config = await prisma.ticketConfig.findFirst({
-    where: { companyId: ctx.companyId, storeId: storeId ?? null },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  let config = await repos.stores.findLatestTicketConfig(storeId)
   if (!config) {
-    config = await prisma.ticketConfig.create({
-      data: {
-        companyId: ctx.companyId,
-        storeId: storeId ?? null,
-        ticketType: 'TICKET',
-        thermalWidth: 80,
-        fontSize: 12,
-        copies: 1,
-        autoPrint: true,
-      },
+    config = await repos.stores.createTicketConfig({
+      storeId: storeId ?? null,
+      ticketType: 'TICKET',
+      thermalWidth: 80,
+      fontSize: 12,
+      copies: 1,
+      autoPrint: true,
     })
   }
   return config
 }
 
 export async function updateTicketConfig(ctx: CompanyContext, storeId: string | undefined, body: Record<string, unknown>) {
-  let config = await prisma.ticketConfig.findFirst({
-    where: { companyId: ctx.companyId, storeId: storeId ?? null },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  let config = await repos.stores.findLatestTicketConfig(storeId)
   if (!config) {
-    config = await prisma.ticketConfig.create({
-      data: {
-        companyId: ctx.companyId,
-        storeId: (body.storeId as string) ?? storeId ?? null,
-        ticketType: ((body.ticketType as string) ?? 'TICKET') as 'TICKET',
-        header: (body.header as string) ?? null,
-        description: (body.description as string) ?? null,
-        logoUrl: (body.logoUrl as string) ?? null,
-        footer: (body.footer as string) ?? null,
-        defaultPrinterName: (body.defaultPrinterName as string) ?? null,
-        thermalWidth: (body.thermalWidth as number) ?? 80,
-        fontSize: (body.fontSize as number) ?? 12,
-        copies: (body.copies as number) ?? 1,
-        autoPrint: (body.autoPrint as boolean) ?? true,
-      },
+    config = await repos.stores.createTicketConfig({
+      storeId: (body.storeId as string) ?? storeId ?? null,
+      ticketType: ((body.ticketType as string) ?? 'TICKET') as 'TICKET',
+      header: (body.header as string) ?? null,
+      description: (body.description as string) ?? null,
+      logoUrl: (body.logoUrl as string) ?? null,
+      footer: (body.footer as string) ?? null,
+      defaultPrinterName: (body.defaultPrinterName as string) ?? null,
+      thermalWidth: (body.thermalWidth as number) ?? 80,
+      fontSize: (body.fontSize as number) ?? 12,
+      copies: (body.copies as number) ?? 1,
+      autoPrint: (body.autoPrint as boolean) ?? true,
     })
     return config
   }
-  const data: Prisma.TicketConfigUpdateInput = {}
+  const data: Record<string, unknown> = {}
   if (body.storeId !== undefined) data.storeId = body.storeId as string | null
   if (body.ticketType !== undefined) {
     const v = body.ticketType as string
@@ -288,7 +244,7 @@ export async function updateTicketConfig(ctx: CompanyContext, storeId: string | 
   if (body.copies !== undefined) data.copies = body.copies as number
   if (body.autoPrint !== undefined) data.autoPrint = body.autoPrint as boolean
   if (Object.keys(data).length === 0) return config
-  return prisma.ticketConfig.update({ where: { id: config.id }, data })
+  return repos.stores.updateTicketConfigById(config.id, data)
 }
 
 // --- Loyalty ---
@@ -426,13 +382,10 @@ export {
 export async function getUserPreferences(ctx: CompanyContext, userId: string) {
   const allowed = await canAccessUserPreferences(ctx.userId, ctx.isSuperuser, ctx.companyId, ctx.membershipRole, userId)
   if (!allowed) throw new ForbiddenError('No tienes acceso a las preferencias de este usuario')
-  let preferences = await prisma.userPreferences.findUnique({
-    where: { userId_companyId: { userId, companyId: ctx.companyId } },
-  })
+  const repos = createRepositories(ctx.companyId)
+  let preferences = await repos.userPreferences.findByUserId(userId)
   if (!preferences) {
-    preferences = await prisma.userPreferences.create({
-      data: { userId, companyId: ctx.companyId, language: 'es' },
-    })
+    preferences = await repos.userPreferences.create(userId, 'es')
   }
   return preferences
 }
@@ -440,30 +393,19 @@ export async function getUserPreferences(ctx: CompanyContext, userId: string) {
 export async function updateUserPreferences(ctx: CompanyContext, userId: string, body: { language?: string }) {
   const allowed = await canAccessUserPreferences(ctx.userId, ctx.isSuperuser, ctx.companyId, ctx.membershipRole, userId)
   if (!allowed) throw new ForbiddenError('No tienes acceso a las preferencias de este usuario')
-  let preferences = await prisma.userPreferences.findUnique({
-    where: { userId_companyId: { userId, companyId: ctx.companyId } },
-    select: { id: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const preferences = await repos.userPreferences.findIdByUserId(userId)
   if (!preferences) {
-    return prisma.userPreferences.create({
-      data: { userId, companyId: ctx.companyId, language: body.language ?? 'es' },
-    })
+    return repos.userPreferences.create(userId, body.language ?? 'es')
   }
   if (body.language === undefined) throw new BadRequestError('No hay campos para actualizar')
-  return prisma.userPreferences.update({
-    where: { userId_companyId: { userId, companyId: ctx.companyId } },
-    data: { language: body.language },
-  })
+  return repos.userPreferences.updateLanguage(userId, body.language)
 }
 
 // --- Push subscriptions ---
 export async function listPushSubscriptions(ctx: ShopflowContext, userId: string) {
   if (userId !== ctx.userId) throw new ForbiddenError('Solo puedes ver tus propias suscripciones')
-  const rows = await prisma.pushSubscription.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    select: { endpoint: true, p256dh: true, auth: true },
-  })
+  const rows = await createRepositories(ctx.companyId).pushSubscriptions.listByUserId(userId)
   return rows.map((r) => ({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth }))
 }
 
@@ -471,115 +413,88 @@ export async function createPushSubscription(ctx: ShopflowContext, body: { userI
   const { userId: bodyUserId, endpoint, p256dh, auth } = body
   if (!endpoint || !p256dh || !auth) throw new BadRequestError('endpoint, p256dh y auth son requeridos')
   const userId = bodyUserId && bodyUserId === ctx.userId ? bodyUserId : ctx.userId
-  const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } })
-  if (existing) {
-    return prisma.pushSubscription.update({ where: { endpoint }, data: { userId, p256dh, auth } })
-  }
-  return prisma.pushSubscription.create({ data: { userId, endpoint, p256dh, auth } })
+  return createRepositories(ctx.companyId).pushSubscriptions.upsertByEndpoint({ endpoint, userId, p256dh, auth })
 }
 
 export async function deletePushSubscription(ctx: ShopflowContext, endpoint: string) {
   if (!endpoint) throw new BadRequestError('Query "endpoint" es requerido')
   const decoded = decodeURIComponent(endpoint)
-  const existing = await prisma.pushSubscription.findUnique({ where: { endpoint: decoded } })
+  const repos = createRepositories(ctx.companyId)
+  const existing = await repos.pushSubscriptions.findByEndpoint(decoded)
   if (!existing) throw new NotFoundError('Suscripción no encontrada')
   if (existing.userId !== ctx.userId) throw new ForbiddenError('Solo puedes eliminar tus propias suscripciones')
-  await prisma.pushSubscription.delete({ where: { endpoint: decoded } })
+  await repos.pushSubscriptions.deleteByEndpoint(decoded)
 }
 
 // --- Inventory transfers ---
-const TRANSFER_STATUSES = ['PENDING', 'IN_TRANSIT', 'COMPLETED', 'CANCELLED'] as const
-
 export async function listInventoryTransfers(
   ctx: CompanyContext,
   query: { fromStoreId?: string; toStoreId?: string; productId?: string; status?: string; page?: string; limit?: string },
 ) {
-  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
-  const where: Prisma.InventoryTransferWhereInput = { companyId: ctx.companyId }
-  if (query.fromStoreId) where.fromStoreId = query.fromStoreId
-  if (query.toStoreId) where.toStoreId = query.toStoreId
-  if (query.productId) where.productId = query.productId
-  if (query.status && TRANSFER_STATUSES.includes(query.status as (typeof TRANSFER_STATUSES)[number])) where.status = query.status as (typeof TRANSFER_STATUSES)[number]
-  const [total, transfers] = await Promise.all([
-    prisma.inventoryTransfer.count({ where }),
-    prisma.inventoryTransfer.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limitNum }),
-  ])
-  return { transfers, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } }
+  const result = await createRepositories(ctx.companyId).inventoryTransfers.list(query)
+  return {
+    transfers: result.items,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    },
+  }
 }
 
 export async function createInventoryTransfer(
   ctx: CompanyContext,
   body: { fromStoreId: string; toStoreId: string; productId: string; quantity: number; notes?: string | null; createdById: string },
 ) {
+  const repos = createRepositories(ctx.companyId)
   const { fromStoreId, toStoreId, productId, quantity, notes, createdById } = body
   if (fromStoreId === toStoreId) throw new BadRequestError('Origen y destino no pueden ser la misma tienda')
-  const product = await prisma.product.findFirst({
-    where: { id: productId, companyId: ctx.companyId },
-    select: { id: true },
-  })
+  const product = await repos.products.findById(productId)
   if (!product) throw new NotFoundError('Producto no encontrado')
 
-  const sourceInventory = await prisma.storeInventory.findUnique({
-    where: { storeId_productId: { storeId: fromStoreId, productId } },
-  })
+  const sourceInventory = await repos.inventory.findByStoreAndProduct(fromStoreId, productId)
   if (!sourceInventory || sourceInventory.quantity < quantity) {
     throw new BadRequestError('Stock insuficiente en el local de origen')
   }
 
-  return prisma.inventoryTransfer.create({
-    data: { companyId: ctx.companyId, fromStoreId, toStoreId, productId, quantity, notes: notes ?? null, status: 'PENDING', createdById },
+  return repos.inventoryTransfers.createPending({
+    fromStoreId,
+    toStoreId,
+    productId,
+    quantity,
+    notes: notes ?? null,
+    createdById,
   })
 }
 
 export async function completeInventoryTransfer(ctx: CompanyContext, id: string) {
-  const existing = await prisma.inventoryTransfer.findFirst({
-    where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true, productId: true, quantity: true, fromStoreId: true, toStoreId: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const existing = await repos.inventoryTransfers.findByIdForCompletion(id)
   if (!existing) throw new NotFoundError('Transferencia no encontrada')
   if (existing.status !== 'PENDING' && existing.status !== 'IN_TRANSIT') {
     throw new BadRequestError('Solo se pueden completar transferencias pendientes')
   }
 
   await prisma.$transaction(async (tx) => {
-    const source = await tx.storeInventory.findUnique({
-      where: { storeId_productId: { storeId: existing.fromStoreId, productId: existing.productId } },
-    })
+    const txRepos = createRepositories(ctx.companyId, tx)
+    const source = await txRepos.inventory.findByStoreAndProduct(existing.fromStoreId, existing.productId)
     if (!source || source.quantity < existing.quantity) {
       throw new BadRequestError('Stock insuficiente en el local de origen para completar la transferencia')
     }
 
-    await tx.storeInventory.update({
-      where: { id: source.id },
-      data: { quantity: { decrement: existing.quantity } },
-    })
-
-    await tx.storeInventory.upsert({
-      where: { storeId_productId: { storeId: existing.toStoreId, productId: existing.productId } },
-      create: {
-        companyId: ctx.companyId,
-        storeId: existing.toStoreId,
-        productId: existing.productId,
-        quantity: existing.quantity,
-      },
-      update: { quantity: { increment: existing.quantity } },
-    })
-
-    await tx.inventoryTransfer.update({
-      where: { id },
-      data: { status: 'COMPLETED', completedAt: new Date() },
-    })
+    await txRepos.inventory.decrementById(source.id, existing.quantity)
+    await txRepos.inventory.incrementOrCreate(existing.toStoreId, existing.productId, existing.quantity)
+    await txRepos.inventoryTransfers.updateStatus(id, 'COMPLETED', new Date())
   })
 
-  return prisma.inventoryTransfer.findFirstOrThrow({ where: { id, companyId: ctx.companyId } })
+  return createRepositories(ctx.companyId).inventoryTransfers.findById(id)
 }
 
 export async function cancelInventoryTransfer(ctx: CompanyContext, id: string) {
-  const existing = await prisma.inventoryTransfer.findFirst({
-    where: { id, companyId: ctx.companyId },
-    select: { id: true, status: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const existing = await repos.inventoryTransfers.findById(id)
   if (!existing) throw new NotFoundError('Transferencia no encontrada')
   if (existing.status === 'COMPLETED') throw new BadRequestError('No se puede cancelar una transferencia completada')
-  return prisma.inventoryTransfer.update({ where: { id }, data: { status: 'CANCELLED' } })
+  return repos.inventoryTransfers.updateStatus(id, 'CANCELLED')
 }

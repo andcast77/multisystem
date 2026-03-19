@@ -46,6 +46,8 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
   let acmeOriginalPointsPerDollar: number
   let betaOriginalPointsPerDollar: number
+  let acmeOriginalStoreName: string
+  let betaOriginalStoreName: string
 
   let betaCustomerId: string
 
@@ -100,6 +102,22 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     })
     expect(betaGetRes.statusCode).toBe(200)
     betaOriginalPointsPerDollar = betaGetJson.data.pointsPerDollar
+
+    const { res: acmeStoreConfigRes, json: acmeStoreConfigJson } = await injectJson(app, {
+      method: 'GET',
+      url: '/api/shopflow/store-config',
+      headers: { Authorization: `Bearer ${acmeOwnerToken}` },
+    })
+    expect(acmeStoreConfigRes.statusCode).toBe(200)
+    acmeOriginalStoreName = acmeStoreConfigJson.data.name
+
+    const { res: betaStoreConfigRes, json: betaStoreConfigJson } = await injectJson(app, {
+      method: 'GET',
+      url: '/api/shopflow/store-config',
+      headers: { Authorization: `Bearer ${betaOwnerToken}` },
+    })
+    expect(betaStoreConfigRes.statusCode).toBe(200)
+    betaOriginalStoreName = betaStoreConfigJson.data.name
   })
 
   it('Cross-tenant loyalty config reads/writes are isolated', async () => {
@@ -174,6 +192,60 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     expect(res.statusCode).toBe(403)
     expect(json.message).toBe('No tienes acceso a las preferencias de este usuario')
+  })
+
+  it('Cross-tenant store config reads/writes are isolated', async () => {
+    const updatedName = `Acme Store ${Date.now()}`
+    const { res: acmeUpdateRes, json: acmeUpdateJson } = await injectJson(app, {
+      method: 'PUT',
+      url: '/api/shopflow/store-config',
+      headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
+      payload: { name: updatedName },
+    })
+    expect(acmeUpdateRes.statusCode).toBe(200)
+    expect(acmeUpdateJson.data.name).toBe(updatedName)
+
+    const { res: betaGetRes, json: betaGetJson } = await injectJson(app, {
+      method: 'GET',
+      url: '/api/shopflow/store-config',
+      headers: { Authorization: `Bearer ${betaOwnerToken}` },
+    })
+    expect(betaGetRes.statusCode).toBe(200)
+    expect(betaGetJson.data.name).toBe(betaOriginalStoreName)
+
+    const { res: revertRes } = await injectJson(app, {
+      method: 'PUT',
+      url: '/api/shopflow/store-config',
+      headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
+      payload: { name: acmeOriginalStoreName },
+    })
+    expect(revertRes.statusCode).toBe(200)
+  })
+
+  it('Push subscription deletion is forbidden across users', async () => {
+    const endpoint = `https://push.example/${randomUUID()}`
+    const { res: createRes } = await injectJson(app, {
+      method: 'POST',
+      url: '/api/shopflow/push-subscriptions',
+      headers: { Authorization: `Bearer ${betaOwnerToken}`, 'content-type': 'application/json' },
+      payload: { endpoint, p256dh: 'p256dh-value', auth: 'auth-value' },
+    })
+    expect(createRes.statusCode).toBe(200)
+
+    const { res: forbiddenDeleteRes, json: forbiddenDeleteJson } = await injectJson(app, {
+      method: 'DELETE',
+      url: `/api/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
+      headers: { Authorization: `Bearer ${acmeOwnerToken}` },
+    })
+    expect(forbiddenDeleteRes.statusCode).toBe(403)
+    expect(forbiddenDeleteJson.message).toBe('Solo puedes eliminar tus propias suscripciones')
+
+    const { res: cleanupDeleteRes } = await injectJson(app, {
+      method: 'DELETE',
+      url: `/api/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
+      headers: { Authorization: `Bearer ${betaOwnerToken}` },
+    })
+    expect(cleanupDeleteRes.statusCode).toBe(200)
   })
 })
 

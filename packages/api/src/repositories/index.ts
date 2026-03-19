@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@multisystem/database'
+import type { TransactionClient } from '../common/database/index.js'
 import { prisma } from '../db/index.js'
 import { ProductRepository } from './product.repository.js'
 import { StoreRepository } from './store.repository.js'
@@ -10,6 +11,9 @@ import { UsersRepository } from './users.repository.js'
 import { CompanyMemberRepository } from './company-member.repository.js'
 import { SalesRepository } from './sales.repository.js'
 import { LoyaltyRepository } from './loyalty.repository.js'
+import { UserPreferencesRepository } from './user-preferences.repository.js'
+import { PushSubscriptionRepository } from './push-subscription.repository.js'
+import { InventoryTransferRepository } from './inventory-transfer.repository.js'
 
 export { ProductRepository, type ProductRow, type ProductSearchQuery, type ProductCreateInput, type ProductUpdateInput } from './product.repository.js'
 export { StoreRepository, type StoreRow, type StoreCreateInput } from './store.repository.js'
@@ -21,6 +25,9 @@ export { UsersRepository, USER_SELECT, type UserRow } from './users.repository.j
 export { CompanyMemberRepository } from './company-member.repository.js'
 export { SalesRepository } from './sales.repository.js'
 export { LoyaltyRepository } from './loyalty.repository.js'
+export { UserPreferencesRepository } from './user-preferences.repository.js'
+export { PushSubscriptionRepository } from './push-subscription.repository.js'
+export { InventoryTransferRepository } from './inventory-transfer.repository.js'
 
 export type Repositories = {
   products: ProductRepository
@@ -33,6 +40,9 @@ export type Repositories = {
   companyMembers: CompanyMemberRepository
   sales: SalesRepository
   loyalty: LoyaltyRepository
+  userPreferences: UserPreferencesRepository
+  pushSubscriptions: PushSubscriptionRepository
+  inventoryTransfers: InventoryTransferRepository
 }
 
 /**
@@ -40,7 +50,7 @@ export type Repositories = {
  * Use this in controllers/services after resolving the tenant context.
  * Pass a transaction client to share a single transaction across repos.
  */
-export function createRepositories(tenantId: string, db?: PrismaClient): Repositories {
+export function createRepositories(tenantId: string, db?: PrismaClient | TransactionClient): Repositories {
   const client = db ?? prisma
   return {
     products: new ProductRepository(client, tenantId),
@@ -53,5 +63,8 @@ export function createRepositories(tenantId: string, db?: PrismaClient): Reposit
     companyMembers: new CompanyMemberRepository(client, tenantId),
     sales: new SalesRepository(client, tenantId),
     loyalty: new LoyaltyRepository(client, tenantId),
+    userPreferences: new UserPreferencesRepository(client, tenantId),
+    pushSubscriptions: new PushSubscriptionRepository(client, tenantId),
+    inventoryTransfers: new InventoryTransferRepository(client, tenantId),
   }
 }
