@@ -22,9 +22,13 @@ Applies a strict workflow for plan-based work in this repository.
 - Always ask for explicit confirmation before running `git commit`, `git push`, or `merge`.
   - Plan branch creation/switching (fetch/checkout/branch create) is treated as required infrastructure for every plan build/run, so it proceeds automatically.
 - Create the plan branch at plan execution start (including when running a plan build/run).
+- Always start implementation on a NEW plan branch created from `Test`.
+  - Never implement directly on `Test`.
+  - Never reuse an old plan branch.
 - Create plan branches from `Test`.
 - Use branch naming format: `plan/<plan-slug>-run-<YYYYMMDD-HHmmss>`.
 - At plan completion, ask confirmation before running commit/push.
+- Before marking plan as completed, ensure the plan checklist is fully checked (`- [x]`).
 - At plan completion, rename the repository plan document under `docs/plans/` to include `[completed]` prefix.
 - Run merge only when the user explicitly requests it.
 - Do not run destructive git operations.
@@ -64,17 +68,20 @@ When a plan moves from planning to execution, including when running a plan buil
 
 When user indicates completion (examples: "finish", "finished", "completed"), follow:
 
-1. Ensure the plan document filename is prefixed with `[completed]` (for example: `[completed] PLAN-3-unify-apiclient.md`).
+1. Ensure checklist progress in the repository plan markdown (`docs/plans/...`) is complete:
+   - Mark completed tasks as `- [x]`.
+   - If any task remains unfinished, ask the user before checking it.
+2. Ensure the plan document filename is prefixed with `[completed]` (for example: `[completed] PLAN-3-unify-apiclient.md`).
    - This rename is applied to the repository plan markdown under `docs/plans/` (not the local Cursor plan file under `.cursor/plans/`).
-2. Review changes:
+3. Review changes:
    - `git status`
    - `git diff` (and staged diff if needed)
-3. Propose concise commit message aligned with repository style.
-4. Ask explicit confirmation before executing:
+4. Propose concise commit message aligned with repository style.
+5. Ask explicit confirmation before executing:
    - `git add` relevant files
    - `git commit`
    - `git push -u origin HEAD` (if upstream missing) or `git push`
-5. After execution, report key results (branch, commit hash, push target).
+6. After execution, report key results (branch, commit hash, push target).
 
 Never auto-commit/auto-push without user confirmation.
 

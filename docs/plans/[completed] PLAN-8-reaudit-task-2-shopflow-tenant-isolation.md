@@ -10,14 +10,14 @@
 
 ## Tasks
 
-- [ ] Enforce tenant scoping invariants in Shopflow loyalty/customer/points/config paths.
+- [x] Enforce tenant scoping invariants in Shopflow loyalty/customer/points/config paths.
   - Evidence: `packages/api/src/services/shopflow.service.ts` (`updateLoyaltyConfig()` and `getCustomerPoints()`).
-- [ ] Remove/replace any null/global `companyId` write paths.
+- [x] Remove/replace any null/global `companyId` write paths.
   - Evidence: `packages/api/src/services/shopflow.service.ts` (`updateLoyaltyConfig()`).
-- [ ] Add regression tests that attempt cross-tenant access for:
+- [x] Add regression tests that attempt cross-tenant access for:
   - loyalty config reads/writes
   - customer points reads
-- [ ] Verify corrected behavior returns `403/404` appropriately without leaking resource existence.
+- [x] Verify corrected behavior returns `403/404` appropriately without leaking resource existence.
 
 ## Definition of done
 

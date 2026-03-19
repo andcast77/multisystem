@@ -7,6 +7,9 @@ alwaysApply: true
 
 Only merge when the user explicitly requests it (examples: `merge to Test`, `merge to master`):
 
+Prerequisite:
+- Implementation must have been done on a dedicated plan branch created from `Test` (not directly on `Test` and not on a reused old plan branch).
+
 1. Confirm the source branch:
    - by default the current plan branch `<branchName>` from the plan close step
    - or ask if the user specifies a different source
