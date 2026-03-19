@@ -35,7 +35,7 @@ En la raíz del monorepo: **`pnpm run dev:hub`** (construye `@multisystem/ui` y 
 
 ## Variables de entorno
 
-Crear **`.env`** en `apps/hub/` (el archivo `env.example` puede estar desactualizado; prioridad):
+Crear **`.env`** en `apps/hub/` usando **`.env.example`** como plantilla:
 
 | Variable | Uso |
 |----------|-----|

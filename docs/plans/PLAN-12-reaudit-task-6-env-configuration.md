@@ -10,14 +10,14 @@
 
 ## Tasks
 
-- [ ] Unify env variable naming for CORS: `CORS_ORIGIN` vs `CORS_ORIGINS`.
-  - Evidence: `packages/api/src/plugins/core/env.plugin.ts`, `apps/hub/env.example`
-- [ ] Standardize base URL env responsibilities between Vite and Next:
+- [x] Unify env variable naming for CORS: `CORS_ORIGIN` vs `CORS_ORIGINS`.
+  - Evidence: `packages/api/src/plugins/core/env.plugin.ts`, `apps/hub/.env.example`
+- [x] Standardize base URL env responsibilities between Vite and Next:
   - Vite: prefer `VITE_*` for build-time API base URL.
   - Next: prefer `NEXT_PUBLIC_*` for browser runtime API base URL.
-  - Evidence: `apps/hub/env.example`, `packages/api/.env.example`
-- [ ] Ensure docs and templates match runtime defaults.
-- [ ] Add an “env contract sanity” checklist for any new app:
+  - Evidence: `apps/hub/.env.example`, `packages/api/.env.example`
+- [x] Ensure docs and templates match runtime defaults.
+- [x] Add an “env contract sanity” checklist for any new app:
   - update CORS origins
   - update base URL env name
   - update any module-specific header requirements
