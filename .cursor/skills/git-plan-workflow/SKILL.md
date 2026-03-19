@@ -3,7 +3,7 @@ name: git-plan-workflow
 description: >-
   Standardizes git workflow per plan in this repository. Use when the user asks
   to start or finish a plan, create plan branches, run commit/push after plan
-  completion, or request merges to testing/master.
+  completion, or request merges to Test/master.
 ---
 
 # Git Plan Workflow
@@ -15,7 +15,7 @@ Applies a strict workflow for plan-based work in this repository.
 - User starts a new plan and needs a branch.
 - User says the plan is finished.
 - User asks for `git commit` and `git push`.
-- User asks to merge into `testing`, `master`, or another target branch.
+- User asks to merge into `Test`, `master`, or another target branch.
 
 ## Core Rules
 
@@ -51,7 +51,7 @@ If the branch already exists, ask whether to reuse it or create a new slug.
 
 ### 2) Close Plan (Commit + Push with Confirmation)
 
-When user indicates completion (examples: "plan terminado", "ya está", "no lo se"), follow:
+When user indicates completion (examples: "finish", "finished", "completed"), follow:
 
 1. Review changes:
    - `git status`
@@ -67,10 +67,10 @@ Never auto-commit/auto-push without user confirmation.
 
 ### 3) Merge Only by Explicit User Command
 
-When user explicitly says merge (examples: "merge a testing", "merge a master"):
+When user explicitly says merge (examples: "merge a Test", "merge a master"):
 
 1. Confirm source branch (current `plan/<slug>` unless user says another).
-2. Confirm destination branch requested by user (`testing`, `master`, or custom).
+2. Confirm destination branch requested by user (`Test`, `master`, or custom).
 3. Ask explicit confirmation before executing the merge command.
 4. Validate clean state and sync:
    - `git status`
@@ -90,8 +90,8 @@ If there is ambiguity about source/target branch, ask before merging.
 
 ## Trigger Examples
 
-- "Crea rama para el plan de token storage."
-- "Terminé el plan, haz commit y push."
-- "No lo se." (treat as plan-close signal, still ask confirmation before commit/push)
-- "Haz merge a testing."
-- "Haz merge a master."
+- "Create branch for the token storage plan."
+- "I finished the plan, commit and push."
+- "done." (treat as plan-close signal, still ask confirmation before commit/push)
+- "Merge to Test."
+- "Merge to master."
