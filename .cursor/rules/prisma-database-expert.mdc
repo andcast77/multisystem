@@ -1,12 +1,12 @@
 ---
-description: Prisma schema + queries + migrations best practices
+description: Enforce Prisma query, schema, and migration safety practices
 globs: packages/database/prisma/**/*
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Prisma Database Expert
 
-Use when editing Prisma schema, writing Prisma queries, and reviewing migrations/performance.
+Use when editing Prisma schema or reviewing Prisma usage in API services/repositories.
 
 ## Modeling / schema
 - Normalize entities; avoid denormalization unless you have a clear read-path reason.
@@ -15,12 +15,14 @@ Use when editing Prisma schema, writing Prisma queries, and reviewing migrations
 - Minimize nullable fields unless domain truly allows absence.
 
 ## Queries
-- Use `select`/`include` intentionally to limit payload.
-- Avoid N+1; batch queries or use filtered relation queries where appropriate.
-- Paginate list endpoints (`skip`/`take` or cursor-based when appropriate).
+- Must use `select`/`include` intentionally to limit payload.
+- Must avoid N+1; batch queries or use filtered relation queries where appropriate.
+- Must paginate list endpoints (`skip`/`take` or cursor-based when appropriate).
+- Must include tenant/company scope filters for tenant-owned data.
+- Must prefer repository-layer query primitives over direct Prisma in services for high-risk domains.
 
 ## Performance / indexes
-- Consider indexes for tenant/company scoping + FK + fields used in `where`/`orderBy`.
+- Must consider indexes for tenant/company scoping + FK + fields used in `where`/`orderBy`.
 
 ## Migrations
-- Review generated SQL; validate with `prisma validate` / migrate safely (non-prod first) for risky changes.
+- Must review generated SQL and validate with `prisma validate`; run risky migrations safely in non-production first.

@@ -1,36 +1,39 @@
 ---
-description: JWT auth + RBAC + tenant access checks
+description: Enforce JWT authentication and RBAC authorization rules
 globs: packages/api/src/**/*.ts
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Auth JWT + RBAC + Multi-tenant
 
-Use this when implementing or modifying authentication/authorization flows in the API.
+Use this for authentication and authorization decisions. Layering responsibilities are defined by `api-architecture.mdc`.
 
 ## Authentication (JWT)
-- Sign tokens with strong secrets from environment variables (never hardcode secrets).
-- JWT payload should include stable `user id` and the tenant/company scope when applicable.
-- Include `role(s)`/flags needed for RBAC.
-- Set expiration; follow the repo's refresh/session strategy if applicable.
-- Never put secrets, full PII, or passwords in the JWT.
+- Must sign tokens with strong secrets from environment variables (never hardcode secrets).
+- JWT payload should include stable `user id` and tenant/company scope when applicable.
+- Must include `role(s)`/flags needed for RBAC.
+- Must set expiration and follow the repo refresh/session strategy when applicable.
+- Must not put secrets, full PII, or passwords in the JWT.
 
 ## Authorization (RBAC)
 - Enforce role checks at:
-  - route level (guards/preHandlers)
-  - and/or service level for sensitive operations
-- Validate role (and tenant scope) before business logic.
-- Do not rely on “IDs passed in params” alone for authorization.
+  - policy/guard level (preferred)
+  - service level for sensitive operations when required
+- Must validate role (and tenant scope) before business logic.
+- Must not rely on IDs passed in params alone for authorization.
+- `/api/users*` management operations must enforce strong policy checks (not authentication-only).
+- Role checks must be paired with company/tenant scope checks for read/write/delete operations.
 
 ## Multi-tenant security
-- ALWAYS verify the authenticated user can act in the target tenant/company:
+- Must verify the authenticated user can act in the target tenant/company:
   - membership + matching `companyId` between token/context and target resource
-- Never read/mutate another tenant’s data by ID alone.
+- Must not read/mutate another tenant's data by ID alone.
+- Should keep authorization decisions in policy/authorization modules and avoid duplicating checks across unrelated layers.
 
 ## Password security
-- Hash passwords (bcrypt/Argon2); never store plain text passwords.
+- Must hash passwords (bcrypt/Argon2) and must never store plain text passwords.
 
 ## Error handling
 - `401` -> unauthenticated/invalid token
 - `403` -> authenticated but lacking permission
-- Do not leak internal details (stack, DB messages) to clients.
+- Must not leak internal details (stack, DB messages) to clients.

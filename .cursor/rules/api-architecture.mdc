@@ -1,35 +1,52 @@
 ---
-description: API layering (controller -> service -> repository)
+description: Enforce REST API layering and response contracts
 globs: packages/api/src/**/*.ts
-alwaysApply: false
+alwaysApply: true
 ---
 
 # API Architecture (REST)
 
-Use this when creating/modifying REST endpoints, controllers, services, validation, and repository/database access patterns.
+Use this to design or modify REST endpoints, controllers, services, authorization policies, and repository/database access.
 
 ## Structure (no mixing responsibilities)
 - **Controller**: HTTP layer (`req/res`)
-  - validate input (DTO/schema)
-  - call services only
-  - no business logic
+  - must validate input (DTO/schema)
+  - must call services only (or policy checks + services)
+  - must not contain business logic
+- **Policy/Authorization**: access checks
+  - must enforce authentication/role/resource-scope checks
+  - must deny by default when scope cannot be proven
+  - must not do DB writes or HTTP response shaping
 - **Service**: business logic
-  - all business rules
-  - independent of HTTP
+  - must contain business rules
+  - must be independent of HTTP
+  - must not return transport-shaped envelopes (`success`, `data`, `error`)
 - **Repository**: database access only
-  - contain ONLY DB queries
-  - no business logic
+  - must contain only DB queries/persistence operations
+  - must not contain business logic
+  - high-risk domains must migrate direct service Prisma access to repositories incrementally
 
-## Consistent response envelope
-Prefer a unified response format like:
+## Response contract (consistent)
+Use one response envelope for success/error (except explicit `204 No Content`):
 ```json
 {
   "success": true,
   "data": {},
-  "message": ""
+  "message": "",
+  "code": "OPTIONAL_MACHINE_CODE"
 }
 ```
 
 ## Error mapping
-- Map errors to correct HTTP status codes.
-- Keep error payloads consistent with the same envelope when possible (`success: false`, `message`, optional `code`).
+- Must map errors to correct HTTP status codes.
+- Must keep payloads consistent with the same envelope (`success: false`, `message`, optional `code` and `details`).
+- Must not leak internal errors, SQL details, or stack traces to clients.
+
+## Collection endpoints
+- Must standardize pagination/filter/sort contract (`page`, `pageSize`, `sort`, `order`, `filters`).
+- Must validate and clamp pagination bounds at the controller layer.
+
+## Multi-tenant safety
+- Any tenant/company/store scoped resource must be filtered by scope in queries.
+- Authorization must validate membership/ownership before service mutations.
+- Must not rely on nullable/global tenant fallbacks for tenant-owned resources.

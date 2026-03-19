@@ -1,23 +1,28 @@
 ---
-description: Enforce company/tenant scoping in DB/API/business logic
+description: Enforce strict multi-tenant data isolation across layers
 globs: packages/api/src/**/*.ts
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Multi-Tenant Isolation
 
-Use when writing queries, APIs, services, or repository logic in a multi-company context.
+Use for tenant isolation invariants. Layering responsibilities are defined by `api-architecture.mdc`, and auth semantics by `auth-jwt-roles.mdc`.
 
 ## Required invariants
-- ALWAYS scope data by tenant/company (typically `companyId`) in:
+- Must scope data by tenant/company (typically `companyId`) in:
   - database models (composite keys / tenant columns)
   - queries and filters (`WHERE` must include the tenant key)
-- NEVER read/mutate tenant-owned rows without that tenant filter.
+- Must not read/mutate tenant-owned rows without that tenant filter.
 - Every request must assume a resolved tenant context (from JWT/session or explicit param after validation).
+- Must not use null/global tenant fallback paths for tenant-owned data access.
 
 ## Validation requirements
-- Validate authenticated user belongs to that tenant/company.
-- Validate the target resource belongs to that tenant/company (IDs alone are not sufficient).
+- Must validate that the authenticated user belongs to that tenant/company.
+- Must validate that the target resource belongs to that tenant/company (IDs alone are not sufficient).
+- Must resolve tenant context before writes and before returning tenant-owned reads.
 
 ## Enforcement point
-- Apply isolation consistently in controllers, services, and repositories (not only one layer).
+- Must enforce tenant filters at repository/query boundaries.
+- Must enforce tenant access/membership checks at policy/authorization boundaries.
+- Services may keep defensive checks for critical mutations, but they must not be the only enforcement point.
+- High-risk services (users/shopflow) must include regression tests for cross-company and cross-store boundaries.
