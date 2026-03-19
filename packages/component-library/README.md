@@ -1,26 +1,22 @@
 # @multisystem/ui
 
-Shared UI component library for multisystem projects.
+Biblioteca de componentes React compartida para las apps Multisystem. **Carpeta del repo:** `packages/component-library`. **Nombre npm:** `@multisystem/ui`.
 
-## Installation
+## En este monorepo
 
-Each multisystem project installs `@multisystem/ui` independently: from GitHub releases in production (e.g. `github:andcast77/multisystem-components#v1.0.0`) or via `file:../component-library` for local development when working inside the container folder.
+Las apps **hub**, **shopflow**, **workify** y **techservices** declaran `"@multisystem/ui": "workspace:*"`. Tras clonar, `pnpm install` en la raíz enlaza el paquete local.
 
-```bash
-# Install dependencies in each app
-cd hub && pnpm install
-cd shopflow && pnpm install
-cd workify && pnpm install
-cd techservices && pnpm install
-```
+El script raíz `pnpm run dev:hub` ejecuta antes `pnpm --filter @multisystem/ui build` para asegurar `dist/` actualizado.
 
-## Usage
+### Consumo externo (opcional)
 
-Import components from the shared package:
+Fuera del monorepo se puede instalar desde releases GitHub (p. ej. `github:…/multisystem-components#v1.x`) o `file:../component-library`, según cómo publiques el paquete.
+
+## Uso
 
 ```tsx
 import { Button, Card, Input, Badge } from "@multisystem/ui";
-import "@multisystem/ui/styles.css";
+import "@multisystem/ui/styles"; // o `@multisystem/ui/index.css` (export del paquete)
 
 export function MyComponent() {
   return (
@@ -33,36 +29,45 @@ export function MyComponent() {
 }
 ```
 
-## Components
+En **Next.js**, suele hacer falta `transpilePackages: ["@multisystem/ui"]` en `next.config`. Las apps que usan **Tailwind** pueden incluir `./node_modules/@multisystem/ui/dist/**/*.{js,ts,jsx,tsx}` en `content` si mezclas utilidades con la UI.
 
-All components are built with Radix UI primitives and styled with Tailwind CSS.
+## Componentes
 
-- **Alert** - Display alert messages
-- **Alert Dialog** - Modal dialogs for critical actions
-- **Badge** - Small status indicators
-- **Button** - Interactive buttons with variants
-- **Card** - Container component
-- **Checkbox** - Form checkboxes
-- **Dialog** - Modal dialogs
-- **Dropdown Menu** - Contextual menus
-- **Input** - Text input fields
-- **Label** - Form labels
-- **Scroll Area** - Scrollable containers
-- **Select** - Dropdown selects
-- **Separator** - Visual dividers
-- **Skeleton** - Loading placeholders
-- **Switch** - Toggle switches
-- **Table** - Data tables
-- **Textarea** - Multi-line text input
+Primitivas **Radix UI**; estilos con **SCSS** (clases tipo `ui-btn`, `ui-card`, …) compilados a un CSS único en `dist/`. Patrón cercano a shadcn (composición, `cn()` con **clsx**).
 
-## Theming
+| Área | Componentes |
+|------|----------------|
+| Feedback | Alert, Alert Dialog, Progress, Skeleton |
+| Formulario | Button, Checkbox, Input, **InputField**, Label, Select, Switch, Textarea |
+| Layout / navegación | Card, Dialog, Dropdown Menu, Scroll Area, **Sidebar** (nav + tipos `NavGroup`, `SidebarUser`), Separator, Tabs |
+| Datos | Badge, Table |
 
-The package uses CSS variables for theming. Import the global styles in your app:
+También se exporta **`cn`** desde `lib/utils`.
 
-```css
-@import "@multisystem/ui/styles.css";
+## Temas
+
+Variables CSS y partials SCSS en `src/styles/` (`_variables.scss`, `_theme.scss`, `components/_*.scss`). Importar una vez los estilos del paquete en el entry de la app (ver arriba).
+
+## Estructura del paquete
+
+```
+packages/component-library/
+├── src/
+│   ├── components/     # *.tsx
+│   ├── styles/         # main.scss → bundle CSS
+│   ├── lib/utils.ts
+│   └── index.ts        # reexports
+├── vite.config.ts      # build ES + CSS
+├── tsconfig.build.json
+└── package.json
 ```
 
-## Development
+## Scripts
 
-Components follow shadcn/ui patterns with Radix UI and class-variance-authority.
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm build` | `tsc` + Vite (JS + CSS en `dist/`) |
+| `pnpm dev` | Vite build en modo watch |
+| `prepublishOnly` | Ejecuta `build` antes de publicar |
+
+**Peer:** `react` y `react-dom` ≥ 19.2.4.

@@ -67,17 +67,9 @@ export function VerifyEmailPage() {
           setStatus('success')
           setMessage(res.message || 'Email verificado exitosamente')
 
-          // Guardar token en cookie si existe
-          if (res.token) {
-            // Import dinámico para evitar SSR issues
-            const { setTokenCookie } = await import('@/lib/auth')
-            setTokenCookie(res.token)
-          }
-
-          // Redirigir al dashboard después de 2 segundos
           setTimeout(() => {
             if (isMounted) {
-              navigate('/dashboard', { replace: true })
+              navigate('/login', { replace: true })
             }
           }, 2000)
         } else {
@@ -147,7 +139,7 @@ export function VerifyEmailPage() {
             {status === 'success' && (
               <div className="text-center">
                 <p className="text-sm text-slate-600 mb-4">
-                  Serás redirigido al login en 3 segundos...
+                  Serás redirigido al inicio de sesión en unos segundos…
                 </p>
                 <Button
                   onClick={() => navigate('/login', { replace: true })}

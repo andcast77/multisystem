@@ -3,18 +3,6 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-/** Read token from cookie (client-only). Cookie name must match login. */
-function getTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/token=([^;]+)/)
-  if (!match) return null
-  try {
-    return decodeURIComponent(match[1].trim())
-  } catch {
-    return null
-  }
-}
-
 class ApiClient {
   private baseURL: string
 
@@ -30,11 +18,6 @@ class ApiClient {
 
     const headers = new Headers(options.headers)
     headers.set('Content-Type', 'application/json')
-
-    const token = getTokenFromCookie()
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
 
     const response = await fetch(url, {
       headers,
@@ -90,8 +73,7 @@ const apiClient = new ApiClient(API_URL)
 
 /** Auth headers for fetch (e.g. FormData). */
 export function getAuthHeaders(): HeadersInit {
-  const token = getTokenFromCookie()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return {}
 }
 
 // Workify API: prefix /api/workify (central API)

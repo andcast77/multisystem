@@ -2,7 +2,6 @@
  * API client for Hub - auth endpoints and authenticated requests.
  */
 
-import { getTokenFromCookie } from "./auth";
 import type { Company, CompanyStats, CompanyMember, UpdateCompanyInput } from "@/types/company";
 import type {
   LoginResponse,
@@ -33,11 +32,6 @@ async function request<T>(
   const url = `${API_URL}${endpoint}`;
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-
-  const token = getTokenFromCookie();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   const res = await fetch(url, { headers, credentials: "include", ...options });
   const data = await res.json();
@@ -81,6 +75,9 @@ export const authApi = {
     }),
 
   companies: () => request<CompaniesResponse>("/api/auth/companies"),
+
+  logout: () =>
+    request<{ success: boolean }>("/api/auth/logout", { method: "POST" }),
 
   // Email verification endpoints
   verifyEmail: (token: string) =>

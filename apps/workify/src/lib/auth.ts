@@ -78,15 +78,14 @@ export async function checkAuthStatus(): Promise<UserWithRelations | null> {
 }
 
 export async function loginUser(credentials: { email: string; password: string }): Promise<UserWithRelations> {
-  const data = await authApi.post<{ user: UserWithRelations; token?: string }>('/login', credentials);
-  const user = data?.user;
-  if (!user) throw new Error('Login failed');
-  // If API returns token and we're on client, set cookie for same-origin or cross-origin
-  if (typeof document !== 'undefined' && data?.token) {
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `token=${encodeURIComponent(data.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict${secure}`;
-  }
-  return user;
+  const res = await authApi.post<{
+    success?: boolean
+    data?: { user: UserWithRelations }
+    error?: string
+  }>('/login', credentials)
+  const user = res && typeof res === 'object' && 'data' in res ? (res as { data?: { user: UserWithRelations } }).data?.user : undefined
+  if (!user) throw new Error('Login failed')
+  return user
 }
 
 export async function logoutUser(): Promise<void> {
@@ -109,14 +108,14 @@ export async function registerUser(data: {
   firstName: string;
   lastName: string;
 }): Promise<UserWithRelations> {
-  const responseData = await authApi.post<{ user: UserWithRelations; token?: string }>('/register', data);
-  const user = responseData?.user;
-  if (!user) throw new Error('Registration failed');
-  if (typeof document !== 'undefined' && responseData?.token) {
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `token=${encodeURIComponent(responseData.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict${secure}`;
-  }
-  return user;
+  const res = await authApi.post<{
+    success?: boolean
+    data?: { user: UserWithRelations }
+    error?: string
+  }>('/register', data)
+  const user = res && typeof res === 'object' && 'data' in res ? (res as { data?: { user: UserWithRelations } }).data?.user : undefined
+  if (!user) throw new Error('Registration failed')
+  return user
 }
 
 // ========================================

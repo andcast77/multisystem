@@ -16,6 +16,7 @@
     "test:endpoints": "node scripts/test-endpoints.js"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
     "@fastify/env": "^5.0.3",
     "@fastify/rate-limit": "^10.3.0",

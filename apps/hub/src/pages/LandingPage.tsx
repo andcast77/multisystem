@@ -1,17 +1,31 @@
 import { Link, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Hero } from "@/components/Hero";
 import { ModuleCard } from "@/components/ModuleCard";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
 import { ShoppingCart, Users, Wrench, Settings } from "lucide-react";
-import { getTokenFromCookie } from "@/lib/auth";
+import { hasApiSession } from "@/lib/auth";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export function LandingPage() {
-  const hasToken = !!getTokenFromCookie();
+  const [session, setSession] = useState<boolean | null>(null);
 
-  // Redirect logged-in users to dashboard
-  if (hasToken) {
+  useEffect(() => {
+    hasApiSession(API_URL).then(setSession);
+  }, []);
+
+  if (session === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 text-sm">
+        Cargando…
+      </div>
+    );
+  }
+
+  if (session) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -38,43 +52,37 @@ export function LandingPage() {
             <div className="max-w-7xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
-                  Módulos disponibles
+                  Módulos integrados
                 </h2>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Accede a los módulos que tu empresa tiene activados
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Una plataforma, múltiples soluciones para tu negocio
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <ModuleCard
-                  icon={<ShoppingCart className="w-8 h-8 text-primary" />}
-                  title="ShopFlow"
-                  description="Sistema de punto de venta y gestión de inventario"
-                  features={["Gestión de productos", "Punto de venta rápido", "Reportes de ventas"]}
-                  href="/shopflow"
+                  title="ShopFlow POS"
+                  description="Punto de venta y gestión de inventario"
+                  icon={<ShoppingCart className="w-8 h-8 text-violet-600" />}
+                  href="http://localhost:3004"
                 />
-
                 <ModuleCard
-                  icon={<Users className="w-8 h-8 text-primary" />}
                   title="Workify"
-                  description="Sistema de gestión de empleados y horarios"
-                  features={["Gestión de turnos", "Control de asistencia", "Nómina integrada"]}
-                  href="/workify"
+                  description="Gestión de recursos humanos"
+                  icon={<Users className="w-8 h-8 text-blue-600" />}
+                  href="http://localhost:3003"
                 />
-
                 <ModuleCard
-                  icon={<Wrench className="w-8 h-8 text-primary" />}
-                  title="Servicios Técnicos"
-                  description="Ordenes de trabajo, activos y visitas técnicas"
-                  features={["Órdenes de trabajo", "Gestión de activos", "Visitas técnicas"]}
-                  href="/techservices"
+                  title="Tech Services"
+                  description="Órdenes de servicio técnico"
+                  icon={<Wrench className="w-8 h-8 text-amber-600" />}
+                  href="http://localhost:3005"
                 />
-
                 <ModuleCard
-                  icon={<Settings className="w-8 h-8 text-muted-foreground" />}
-                  title="Configuración"
-                  description="Configuración del sistema multisystem"
-                  disabled={true}
+                  title="Hub"
+                  description="Panel y empresas"
+                  icon={<Settings className="w-8 h-8 text-slate-600" />}
+                  href="/dashboard"
                 />
               </div>
             </div>

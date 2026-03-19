@@ -22,13 +22,6 @@ import {
   DialogTrigger,
 } from '@multisystem/ui'
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 días
-const TOKEN_COOKIE_NAME = 'token'
-
-function setTokenCookie(token: string) {
-  document.cookie = `${TOKEN_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
-}
-
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +43,6 @@ export default function RegisterPage() {
         | {
             success: true
             data: {
-              token: string
               user: { id: string; email: string; role: string; name: string; companyId?: string }
               company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean }
             }
@@ -71,12 +63,6 @@ export default function RegisterPage() {
         return
       }
 
-      if (!res.data.token) {
-        setError('La API no devolvió un token')
-        return
-      }
-
-      setTokenCookie(res.data.token)
       window.location.href = '/dashboard'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')

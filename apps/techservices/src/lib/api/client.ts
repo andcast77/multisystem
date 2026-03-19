@@ -1,16 +1,5 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-function getTokenFromCookie(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/token=([^;]+)/);
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1].trim());
-  } catch {
-    return null;
-  }
-}
-
 class ApiClient {
   private baseURL: string;
 
@@ -22,11 +11,6 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     const headers = new Headers(options.headers);
     headers.set("Content-Type", "application/json");
-
-    const token = getTokenFromCookie();
-    if (token && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
 
     const response = await fetch(url, {
       headers,

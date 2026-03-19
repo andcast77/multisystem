@@ -3,18 +3,6 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-/** Read token from cookie (client-only). Cookie name must match login page. */
-function getTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/token=([^;]+)/)
-  if (!match) return null
-  try {
-    return decodeURIComponent(match[1].trim())
-  } catch {
-    return null
-  }
-}
-
 /** Current store ID for X-Store-Id header (set by StoreContext). */
 declare global {
   interface Window {
@@ -43,10 +31,6 @@ class ApiClient {
     const headers = new Headers(options.headers)
     headers.set('Content-Type', 'application/json')
 
-    const token = getTokenFromCookie()
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
     const storeId = getStoreIdHeader()
     if (storeId && !headers.has('X-Store-Id')) {
       headers.set('X-Store-Id', storeId)
@@ -108,8 +92,7 @@ class ApiClient {
 
 /** Auth headers for fetch to external API (e.g. FormData uploads). */
 export function getAuthHeaders(): HeadersInit {
-  const token = getTokenFromCookie()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return {}
 }
 
 // Unified API Client

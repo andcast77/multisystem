@@ -156,7 +156,11 @@ export default function RegisterForm() {
 
     startTransition(async () => {
       try {
-        const data = await authApi.post<{ user?: unknown; token?: string; error?: string }>('/register', {
+        const res = await authApi.post<{
+          success?: boolean;
+          data?: { user?: unknown };
+          error?: string;
+        }>('/register', {
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
           companyName: formData.companyName.trim(),
@@ -165,18 +169,15 @@ export default function RegisterForm() {
           csrfToken,
         });
 
-        if (data?.error) {
-          setError(data.error);
+        const err = (res as { error?: string })?.error;
+        if (err) {
+          setError(err);
           return;
         }
-
-        if (!data?.user || !data?.token) {
+        const user = (res as { data?: { user?: unknown } })?.data?.user ?? (res as { user?: unknown }).user;
+        if (!user) {
           setError('Respuesta del servidor inválida');
           return;
-        }
-
-        if (typeof document !== 'undefined' && data.token) {
-          document.cookie = `token=${encodeURIComponent(data.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
         }
         window.location.href = '/dashboard';
       } catch (error) {

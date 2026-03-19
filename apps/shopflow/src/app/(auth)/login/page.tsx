@@ -15,62 +15,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@mult
 
 type CompanyOption = { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean }
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 días
-const TOKEN_COOKIE_NAME = 'token'
-
-function setTokenCookie(token: string) {
-  document.cookie = `${TOKEN_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
-}
-
-function getTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const [rawName, ...rest] = cookie.trim().split('=')
-    if (rawName === TOKEN_COOKIE_NAME) {
-      try {
-        return decodeURIComponent(rest.join('='))
-      } catch {
-        return null
-      }
-    }
-  }
-  return null
-}
-
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(() => Boolean(getTokenFromCookie()))
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [companies, setCompanies] = useState<CompanyOption[] | null>(null)
   const [selectingCompany, setSelectingCompany] = useState(false)
 
-  // Verificar si el usuario ya está autenticado (solo vía API)
   useEffect(() => {
     let isActive = true
-    const token = getTokenFromCookie()
-
-    if (!token) {
-      setIsCheckingAuth(false)
-      return
-    }
-
-    const checkAuth = async () => {
+    ;(async () => {
       try {
         await authApi.get('/me')
-        window.location.href = '/dashboard'
-        return
+        if (isActive) window.location.href = '/dashboard'
       } catch {
-        // Si la API falla, mostrar el formulario
-      } finally {
-        if (isActive) {
-          setIsCheckingAuth(false)
-        }
+        if (isActive) setIsCheckingAuth(false)
       }
-    }
-
-    checkAuth()
-
+    })()
     return () => {
       isActive = false
     }
@@ -93,7 +54,6 @@ export default function LoginPage() {
         | {
             success: true
             data: {
-              token: string
               user: { id: string; email: string; role: string; name: string }
               companyId?: string
               company?: { id: string; name: string }
@@ -108,32 +68,22 @@ export default function LoginPage() {
         return
       }
 
-      const { token, companyId, company, companies: companiesList } = res.data
+      const { companyId, company, companies: companiesList } = res.data
 
-      if (!token) {
-        setError('La API no devolvió un token')
-        return
-      }
-
-      setTokenCookie(token)
-
-      // Si ya hay empresa en el token, ir al dashboard
       if (companyId ?? company) {
         window.location.href = '/dashboard'
         return
       }
 
-      // Superuser o varias empresas: seleccionar primera por defecto y redirigir
       if (companiesList && companiesList.length > 0) {
         const withShopflow = companiesList.filter((c) => c.shopflowEnabled)
         const listToShow = withShopflow.length > 0 ? withShopflow : companiesList
         if (listToShow.length > 0) {
-          const ctx = await authApi.post<{ success: boolean; data?: { token: string }; error?: string }>(
+          const ctx = await authApi.post<{ success: boolean; data?: { companyId?: string }; error?: string }>(
             '/context',
             { companyId: listToShow[0].id }
           )
-          if (ctx && typeof ctx === 'object' && 'data' in ctx && ctx.success && ctx.data?.token) {
-            setTokenCookie(ctx.data.token)
+          if (ctx && typeof ctx === 'object' && ctx.success) {
             window.location.href = '/dashboard'
             return
           }
@@ -155,15 +105,14 @@ export default function LoginPage() {
     setError(null)
     setIsLoading(true)
     try {
-      const res = await authApi.post<{ success: boolean; data?: { token: string }; error?: string }>(
+      const res = await authApi.post<{ success: boolean; data?: { companyId?: string }; error?: string }>(
         '/context',
         { companyId }
       )
-      if (!res || typeof res !== 'object' || !('data' in res) || !res.success || !res.data?.token) {
+      if (!res || typeof res !== 'object' || !res.success) {
         setError((res as { error?: string })?.error ?? 'Error al seleccionar empresa')
         return
       }
-      setTokenCookie(res.data.token)
       window.location.href = '/dashboard'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al seleccionar empresa')

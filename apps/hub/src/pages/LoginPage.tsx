@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
-import { setTokenCookie } from "@/lib/auth";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import {
   Button,
@@ -52,9 +51,6 @@ export function LoginPage() {
 
       const res = await authApi.login(data.email, data.password);
       if (!res.success || !res.data) return;
-
-      const { token } = res.data;
-      setTokenCookie(token);
 
       navigate("/dashboard", { replace: true });
     } catch (err: any) {

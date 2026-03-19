@@ -40,7 +40,7 @@ const envSchema = {
     },
     CORS_ORIGIN: {
       type: 'string',
-      default: 'http://localhost:3003,http://localhost:3004,http://localhost:3005'
+      default: 'http://localhost:3001,http://localhost:3003,http://localhost:3004,http://localhost:3005'
     },
     DATABASE_URL: {
       type: 'string'
@@ -89,24 +89,59 @@ async function start() {
       JWT_EXPIRES_IN: string
     }
 
-    // Fail fast in production if JWT_SECRET is missing (throw on Vercel so handler returns 503)
-    if (config.NODE_ENV === 'production' && (!config.JWT_SECRET || config.JWT_SECRET.trim() === '')) {
-      fastify.log.error('JWT_SECRET is required in production. Set it in .env or environment.')
+    const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
+    const deployed =
+      process.env.VERCEL === '1' ||
+      config.NODE_ENV === 'production' ||
+      config.NODE_ENV === 'staging'
+    if (!isTest && deployed && (!config.JWT_SECRET || config.JWT_SECRET.trim() === '')) {
+      fastify.log.error('JWT_SECRET is required in deployed environments (production, staging, Vercel).')
       if (process.env.VERCEL) {
-        throw new Error('JWT_SECRET is required in production. Set it in .env or environment.')
+        throw new Error('JWT_SECRET is required. Set it in project environment variables.')
       }
       process.exit(1)
+    }
+    if (
+      !isTest &&
+      config.NODE_ENV === 'development' &&
+      (!config.JWT_SECRET || config.JWT_SECRET.trim() === '')
+    ) {
+      fastify.log.warn(
+        'JWT_SECRET is unset; API falls back to a dev default. Set JWT_SECRET in packages/api/.env for realistic auth behavior.'
+      )
+    }
+
+    function normalizedApiPath(url: string): string {
+      const path = url.split('?')[0]
+      if (path.startsWith('/api/v1/')) return path.replace('/api/v1/', '/api/')
+      return path
+    }
+    function isAuthPublicPath(url: string): boolean {
+      const p = normalizedApiPath(url)
+      return (
+        p === '/api/auth/login' || p === '/api/auth/register' || p === '/api/auth/verify'
+      )
     }
 
     // Registrar CORS con orígenes desde .env
     await fastify.register(cors, {
-      origin: config.CORS_ORIGIN.split(','),
+      origin: config.CORS_ORIGIN.split(',').map((o: string) => o.trim()),
       credentials: true
     })
 
     await fastify.register(rateLimit, {
       max: 100,
       timeWindow: '1 minute',
+      skip: (request) => isAuthPublicPath(request.url),
+    } as Parameters<typeof fastify.register>[1])
+
+    await fastify.register(async function authPublicScope(f) {
+      await f.register(rateLimit, {
+        max: 20,
+        timeWindow: '1 minute',
+        name: 'ms-auth-public',
+      } as Parameters<typeof f.register>[1])
+      await authController.registerPublicAuthRoutes(f)
     })
 
     // Remove `example` metadata from route schemas at registration time
@@ -140,9 +175,15 @@ async function start() {
     fastify.setErrorHandler(globalErrorHandler)
     registerApiVersioning(fastify)
 
-    await setupSwagger(fastify)
+    const enableApiDocs =
+      config.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true'
+    if (enableApiDocs) {
+      await setupSwagger(fastify)
+    } else {
+      fastify.log.info('OpenAPI UI disabled in production. Set ENABLE_API_DOCS=true to enable /api/docs.')
+    }
     await healthController.registerRoutes(fastify)
-    await authController.registerRoutes(fastify)
+    await authController.registerProtectedAuthRoutes(fastify)
     await usersController.registerRoutes(fastify)
     await companiesController.registerRoutes(fastify)
     await companyMembersController.registerRoutes(fastify)

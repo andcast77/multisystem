@@ -1,37 +1,24 @@
-## 📄 Documentación Swagger
-## Comportamiento del endpoint raíz
-
-Usa `/api/docs` para consultar la documentación interactiva de la API.
-
-La API cuenta con documentación interactiva generada automáticamente mediante Swagger/OpenAPI.
-
-### Acceso a la documentación
-
-Inicia el servidor y accede a:
-
-```
-http://localhost:3000/api/docs
-```
-
-Aquí podrás explorar todos los endpoints, parámetros, modelos y ejemplos de respuesta.
-
-### Ejemplo de uso
-
-1. Abre tu navegador y visita `/api/docs`.
-2. Explora los endpoints disponibles (usuarios, autenticación, salud, etc).
-3. Prueba peticiones directamente desde la interfaz.
-
-### Actualización automática
-
-La documentación se actualiza automáticamente al agregar o modificar rutas y modelos en el código.
-
-### Recursos
-
-- [Swagger UI](https://swagger.io/tools/swagger-ui/)
-- [OpenAPI Specification](https://swagger.io/specification/)
 # Multisystem API
 
-API compartida Fastify para la plataforma Multisystem. Servicio backend que proporciona endpoints HTTP para los módulos frontend.
+API compartida **Fastify 5** para Multisystem: JWT, multi-empresa (contexto de compañía/miembro) y rutas agrupadas por módulo (**shopflow**, **workify**, **techservices**). Acceso a datos con **@multisystem/database** (Prisma).
+
+## 📄 Swagger / OpenAPI
+
+- **No producción:** **`/api/docs`**.
+- **Producción:** UI **off** salvo **`ENABLE_API_DOCS=true`** (usar solo en entornos controlados).
+
+- [Swagger UI](https://swagger.io/tools/swagger-ui/) · [OpenAPI Specification](https://swagger.io/specification/)
+
+## 🔑 Sesión y auth
+
+- Tras **login / register / POST /api/auth/context**, la API envía cookie **`ms_session`** (**httpOnly**, **Secure**, **SameSite=None**) en el host de la API. Los frontends deben usar **`credentials: 'include'`** y tener su origen en **`CORS_ORIGIN`**.
+- **`Authorization: Bearer`** sigue soportado (tests, scripts).
+- **`JWT_SECRET`:** obligatorio en **Vercel**, **`NODE_ENV=production`**, **`staging`** y cualquier despliegue; en desarrollo local se avisa si falta. Ver [ADR-auth-token-storage.md](../../docs/ADR-auth-token-storage.md).
+
+## ⏱ Rate limiting
+
+- **Global:** 100 req/min por IP en el resto de rutas.
+- **`POST /api/auth/login`**, **`register`**, **`verify`:** excluidas del bucket global; bucket dedicado **20 req/min** (`ms-auth-public`).
 
 ## 🚀 Inicio Rápido
 
@@ -71,20 +58,33 @@ pnpm build
 pnpm start
 ```
 
-## 📁 Estructura del Proyecto
+## 📁 Estructura del paquete
 
 ```
-api/
+packages/api/
+├── api/index.ts              # Handler serverless (Vercel)
 ├── src/
-│   ├── routes/          # Rutas de la API
-│   │   ├── health.ts    # Health check endpoint
-│   │   ├── users.ts     # Rutas de usuarios
-│   │   └── index.ts     # Registro de rutas
-│   └── server.ts        # Servidor Fastify principal
+│   ├── server.ts             # Fastify: env, CORS, rate limit, registro de controllers
+│   ├── swagger.ts
+│   ├── db/                   # Acceso Prisma
+│   ├── controllers/          # Rutas (health, auth, users, companies, company-members, shopflow/*, workify, techservices)
+│   ├── services/
+│   ├── repositories/
+│   ├── dto/
+│   ├── core/                 # auth, config, permisos, módulos por empresa (`modules.ts`)
+│   ├── common/               # errores, caché (Redis opcional), helpers DB
+│   ├── helpers/
+│   ├── modules/              # auth, shopflow, workify, techservices, tenant
+│   └── __tests__/            # Vitest (unit + integration)
+├── vercel.json
 ├── package.json
 ├── tsconfig.json
-└── .env.example         # Ejemplo de variables de entorno
+└── .env.example
 ```
+
+### Versión en URL
+
+Peticiones a **`/api/v1/...`** se reescriben a **`/api/...`** (mismos handlers). Así los clientes pueden anclar versión sin duplicar código de rutas.
 
 ## 🔧 Scripts Disponibles
 
@@ -106,7 +106,7 @@ Copia `.env.example` a `.env` y configura:
 PORT=3000
 
 # Orígenes CORS permitidos (separados por coma)
-CORS_ORIGIN=http://localhost:3003,http://localhost:3004,http://localhost:3005
+CORS_ORIGIN=http://localhost:3001,http://localhost:3003,http://localhost:3004,http://localhost:3005
 
 # URL de conexión a Neon PostgreSQL
 # Formato: postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require
@@ -114,33 +114,33 @@ DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?ss
 
 # Entorno de ejecución
 NODE_ENV=development
+
+# JWT (obligatorio en producción)
+JWT_SECRET=tu-secreto
+JWT_EXPIRES_IN=7d
+
+# Opcional: caché (Upstash Redis), p. ej. módulos por empresa. Sin Redis, no hay caché (siempre BD).
+# UPSTASH_REDIS_REST_URL=
+# UPSTASH_REDIS_REST_TOKEN=
 ```
 
-### Variables para Render.com
+### Variables para Render
 
-Ver `.env.render.example` para configuración específica de Render.
+Ver **`.env.render.example`** en este paquete para un ejemplo orientado a Render.
 
-## 🌐 Endpoints
+## 🌐 Áreas de endpoints (detalle en Swagger)
 
-### Health Check
+| Prefijo / área | Contenido (resumen) |
+|----------------|---------------------|
+| `GET /health` | Health check |
+| `/api/auth/*` | Registro, login, logout, sesión, empresas del usuario |
+| `/api/users` | Usuarios (protegido) |
+| `/api/companies`, miembros | Empresas y membresías |
+| `/api/shopflow/*` | Ventas, productos, clientes, tiendas, reportes, export, notificaciones, etc. |
+| Rutas **workify** | Órdenes de trabajo (módulo habilitado por empresa) |
+| Rutas **techservices** | Servicios técnicos / mantenimiento (módulo habilitado) |
 
-```bash
-GET /health
-```
-
-Respuesta:
-```json
-{
-  "status": "ok"
-}
-```
-
-### Usuarios
-
-```bash
-GET /api/users
-GET /api/users/:id
-```
+Muchas rutas exigen **sesión (cookie) o Bearer JWT** y contexto de compañía. Listado y esquemas: **`/api/docs`** (si está habilitado).
 
 ## 🧪 Testing
 
@@ -170,25 +170,18 @@ pnpm test:coverage
 3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
 4. Variables de entorno en Vercel: `DATABASE_URL`, `JWT_SECRET` (producción) y opcionalmente `CORS_ORIGIN`.
 
-### Render.com (Recomendado - Gratis)
+### Render.com
 
-Ver [README_RENDER.md](./README_RENDER.md) para guía rápida o [docs/RENDER_DEPLOYMENT.md](../docs/RENDER_DEPLOYMENT.md) para guía completa.
-
-**Configuración rápida**:
-- Root Directory: `/` (si es repo separado) o `api` (si está en monorepo)
-- Build Command: `pnpm install --prod=false && pnpm build`
-- Start Command: `pnpm start`
-- Health Check Path: `/health`
+Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace (p. ej. `pnpm install` y build del paquete API). **Health check:** `GET /health`. Variables: `DATABASE_URL`, `JWT_SECRET`, etc. (ver `.env.render.example`).
 
 ## 📝 Notas
 
-- La API usa Fastify como framework web
-- TypeScript para type safety
-- Prisma Client para acceso a base de datos (a través de `@multisystem/database`)
-- CORS configurado para permitir requests desde frontends
+- **Fastify 5**, TypeScript, **Zod** donde aplica.
+- **Prisma** vía `@multisystem/database`; adaptadores Neon/pg según entorno.
+- **Rate limit:** ver sección arriba.
+- CORS desde `CORS_ORIGIN` (lista separada por comas).
 
-## 🔗 Enlaces Útiles
+## 🔗 Enlaces útiles
 
-- [Documentación de Fastify](https://www.fastify.io/)
-- [Guía de despliegue en Render](./docs/RENDER_DEPLOYMENT.md)
+- [Fastify](https://www.fastify.io/)
 - [Neon PostgreSQL](https://neon.tech/)

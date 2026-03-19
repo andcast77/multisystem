@@ -1,101 +1,71 @@
-# Multisystem Hub
+# Multisystem Hub (`@multisystem/hub`)
 
-Landing page de la plataforma Multisystem. Punto de entrada unificado para acceder a los distintos módulos del ecosistema.
+App **Vite + React 19** en **`apps/hub`**: portal multi-empresa — landing pública, autenticación contra la API compartida y **dashboard** para ver empresa, módulos contratados y enlaces a **Workify**, **Shopflow** y **Techservices**.
 
-**Hub no incluye servicios ni módulos propios** — es únicamente una página de bienvenida que enlaza a las aplicaciones independientes.
+Forma parte del **monorepo** (`pnpm` workspaces); no es un repo aislado.
 
-## Arquitectura del Proyecto
+## Funcionalidad
 
-La carpeta raíz `multisystem/` es solo una **carpeta contenedora**; no es un monorepo único. El Hub es un **proyecto independiente** dentro de ese contenedor; cada módulo es un monorepo propio y se mantiene en su propia rama de Git. Estructura:
+| Área | Rutas / notas |
+|------|----------------|
+| Pública | `/` landing, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` |
+| Protegidas (JWT en cookie `token`) | `/dashboard` — resumen, tarjetas de módulos habilitados, stats; `/dashboard/members` — miembros; `/dashboard/settings` — empresa y módulos (según rol) |
 
-```
-multisystem/                 # Carpeta contenedora (no workspace raíz)
-├── hub/                     ← Este proyecto (landing)
-├── api/                     # API REST compartida (Fastify)
-├── database/                # Base de datos (Prisma + Neon PostgreSQL)
-├── shopflow/                # Módulo POS e inventario
-├── workify/                 # Módulo de empleados y horarios
-├── techservices/           # Módulo de servicios técnicos
-└── component-library/       # Biblioteca UI (@multisystem/ui)
-```
+La API es **`@multisystem/api`** (Fastify). En desarrollo, Vite hace **proxy** de `/api` → `VITE_API_URL` o `http://localhost:3000`.
 
-### Responsabilidades
+## Stack
 
-| Proyecto | Descripción |
-|----------|-------------|
-| **Hub** | Landing page estática. Enlaces a ShopFlow, Workify y TechServices. Health check en `/health`. |
-| **database** | Schema Prisma, migraciones y cliente. Consumido por la API. |
-| **api** | API REST compartida. Consumida por los frontends como proyecto independiente. |
-| **shopflow** | Sistema de punto de venta y gestión de inventario. Consume la API. |
-| **workify** | Sistema de gestión de empleados y horarios. Consume la API. |
-| **techservices** | Sistema de órdenes de trabajo y activos técnicos. Consume la API. |
+- **React Router 7**, **TanStack Query**, **react-hook-form** + **Zod**
+- **@multisystem/ui**, **@multisystem/contracts**, **@multisystem/shared** (reexport cookie auth en `src/lib/auth.ts`)
 
-Cada módulo es un proyecto independiente que consume los servicios de base de datos y API según sus necesidades.
-
-## Inicio Rápido
-
-### Prerrequisitos
-
-- Node.js 20+
-- pnpm
-
-### Instalación
-
-```bash
-pnpm install
-```
-
-### Desarrollo
-
-```bash
-# Solo el Hub (landing) en http://localhost:3001
-pnpm dev
-
-# Todos los proyectos del ecosistema
-pnpm projects
-```
-
-### Scripts
+## Scripts (desde `apps/hub` o con filter)
 
 | Comando | Descripción |
 |---------|-------------|
-| `pnpm dev` | Inicia el Hub en modo desarrollo (puerto 3001) |
-| `pnpm build` | Build de producción |
-| `pnpm start` | Inicia el servidor de producción |
-| `pnpm lint` | Ejecuta ESLint |
-| `pnpm api` | Inicia el servicio API |
-| `pnpm shopflow` | Inicia el módulo ShopFlow |
-| `pnpm workify` | Inicia el módulo Workify |
-| `pnpm projects` | Inicia API, ShopFlow, Workify y Hub |
+| `pnpm dev` | Vite, puerto **3001** |
+| `pnpm build` | Build estático → `dist/` |
+| `pnpm preview` | Preview del build |
+| `pnpm lint` | ESLint |
 
-## Estructura del Hub
+```bash
+pnpm --filter @multisystem/hub dev
+```
+
+En la raíz del monorepo: **`pnpm run dev:hub`** (construye `@multisystem/ui` y levanta API + Hub).
+
+## Variables de entorno
+
+Crear **`.env`** en `apps/hub/` (el archivo `env.example` puede estar desactualizado; prioridad):
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_API_URL` | Base URL de la API (p. ej. `http://localhost:3000`). Por defecto en código: `http://localhost:3000`. |
+| `VITE_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). |
+| `VITE_WORKIFY_URL` | Workify (**`http://localhost:3003`**). |
+| `VITE_TECHSERVICES_URL` | Techservices (p. ej. `http://localhost:3004`). |
+
+Asegurar que **`CORS_ORIGIN`** en la API incluya `http://localhost:3001`.
+
+## Estructura (src)
 
 ```
 src/
-└── app/
-    ├── layout.tsx      # Layout raíz
-    ├── page.tsx        # Página principal (landing)
-    ├── globals.css     # Estilos globales
-    └── health/
-        └── route.ts    # Health check GET /health
+├── App.tsx                 # Rutas React Router
+├── main.tsx
+├── pages/                  # Landing, Login, Dashboard, Members, Settings, …
+├── components/             # Layout dashboard, ModuleCard, ProtectedRoute, …
+├── hooks/                  # useUser, useCompany, useCompanyMembers, …
+├── lib/                    # api-client (tipos @multisystem/contracts), auth
+├── providers/QueryProvider.tsx
+└── app/                    # Rutas/layout Next-style (conviven con Pages; el enrutado principal es App.tsx)
 ```
 
 ## Despliegue
 
-El Hub está configurado para Vercel:
+- **`vercel.json`**: ejemplo con `turbo build` / `dist` — ajustar al pipeline real del monorepo (root directory, variables `VITE_*` en build).
 
-- **Build**: `pnpm build`
-- **Health check**: `GET /health`
-- **Rewrites**: `/api/*`, `/shopflow/*` y `/workify/*` se redirigen a los servicios desplegados externamente
+## Enlaces
 
-## Variables de Entorno
-
-Copia `env.example` a `.env` si necesitas configurar URLs de los módulos o la API. Para el Hub como landing estática, no son obligatorias en desarrollo local.
-
-## Enlaces Relacionados
-
-- **Base de datos**: `database` — Schema Prisma, migraciones y cliente
-- **API compartida**: `api` — Endpoints REST para los frontends
-- **ShopFlow**: `shopflow` — Punto de venta e inventario
-- **Workify**: `workify` — Empleados y horarios
-- **TechServices**: `techservices` — Órdenes de trabajo y activos
+- [README raíz](../../README.md) — monorepo, BD, `dev:hub`
+- [API](../../packages/api/README.md)
+- [Shared](../../packages/shared/README.md) — cookie + cliente

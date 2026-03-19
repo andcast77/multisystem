@@ -2,8 +2,9 @@
 
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
-import { setTokenCookie } from "@/lib/auth";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import {
   Button,
@@ -14,28 +15,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@multisystem/ui";
-
-import type { CompanyRow } from "@multisystem/contracts";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
-  const [companies, setCompanies] = useState<CompanyRow[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [isSelectingCompany, setIsSelectingCompany] = useState(false);
-  const [token, setToken] = useState("");
 
   const {
     register,
@@ -63,11 +47,6 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(data.email, data.password);
       if (!res.success || !res.data) return;
-
-      const { token: newToken, company, companies: companiesList } = res.data;
-      setTokenCookie(newToken);
-      setToken(newToken);
-
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login error:", err);

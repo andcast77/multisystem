@@ -12,13 +12,6 @@ type CompanyOption = {
   technicalServicesEnabled?: boolean;
 };
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const TOKEN_COOKIE_NAME = "token";
-
-function setTokenCookie(token: string) {
-  document.cookie = `${TOKEN_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
-}
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +30,6 @@ export default function LoginPage() {
       const res = await authApi.post<{
         success?: boolean;
         data?: {
-          token?: string;
           companyId?: string;
           company?: CompanyOption;
           companies?: CompanyOption[];
@@ -45,13 +37,12 @@ export default function LoginPage() {
         error?: string;
       }>("/login", { email, password });
 
-      if (!res?.success || !res.data?.token) {
+      if (!res?.success || !res.data) {
         setError(res?.error || "Error al iniciar sesion");
         return;
       }
 
-      const { token, company, companies: companyList } = res.data;
-      setTokenCookie(token);
+      const { company, companies: companyList } = res.data;
 
       if (company) {
         window.location.href = "/dashboard";
@@ -66,11 +57,10 @@ export default function LoginPage() {
       }
 
       if (companyList && companyList.length === 1) {
-        const ctx = await authApi.post<{ success?: boolean; data?: { token?: string } }>("/context", {
+        const ctx = await authApi.post<{ success?: boolean; error?: string }>("/context", {
           companyId: companyList[0].id,
         });
-        if (ctx?.success && ctx.data?.token) {
-          setTokenCookie(ctx.data.token);
+        if (ctx?.success) {
           window.location.href = "/dashboard";
           return;
         }
@@ -93,16 +83,14 @@ export default function LoginPage() {
     try {
       const res = await authApi.post<{
         success?: boolean;
-        data?: { token?: string };
         error?: string;
       }>("/context", {
         companyId: selectedCompanyId,
       });
-      if (!res?.success || !res.data?.token) {
+      if (!res?.success) {
         setError(res?.error ?? "Error al seleccionar empresa");
         return;
       }
-      setTokenCookie(res.data.token);
       window.location.href = "/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexion");
