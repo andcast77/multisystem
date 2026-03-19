@@ -5,20 +5,20 @@
 | Field | Detail |
 |---|---|
 | **Objective** | Reduce authorization drift by consolidating duplicated authorization checks into reusable policy helpers. |
-| **Current re-audit status** | Partially implemented (guards exist; service-level duplication remains). |
+| **Current re-audit status** | Completed (authorization checks centralized into policy helpers and covered by regression tests). |
 | **Risk if it persists** | Inconsistent authorization over time as new endpoints/features are added. |
 
 ## Tasks
 
-- [ ] Inventory duplicated authorization checks across services (especially Users + Shopflow).
+- [x] Inventory duplicated authorization checks across services (especially Users + Shopflow).
   - Evidence: `packages/api/src/services/users.service.ts`, `packages/api/src/services/shopflow.service.ts`
-- [ ] Extract reusable policy helpers and standardize the canonical sources for:
+- [x] Extract reusable policy helpers and standardize the canonical sources for:
   - user management permissions
   - store-level access rules (from `X-Store-Id` + `companyId`)
-- [ ] Ensure request-level guards remain first line of defense.
+- [x] Ensure request-level guards remain first line of defense.
   - Evidence: `packages/api/src/core/auth-context.ts` (`requireRole`, `requireCompanyContext`, `requireShopflowContext`)
-- [ ] Refactor services to call policy helpers instead of embedding repeated authorization logic.
-- [ ] Add regression tests covering authorization boundaries (role changes, store changes, company changes).
+- [x] Refactor services to call policy helpers instead of embedding repeated authorization logic.
+- [x] Add regression tests covering authorization boundaries (role changes, store changes, company changes).
 
 ## Definition of done
 

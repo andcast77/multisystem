@@ -30,13 +30,15 @@ Ensures a robust, optimized, and scalable database design using Prisma.
 - **Naming**: clear, consistent, aligned with the rest of the schema (camelCase in Prisma models per project convention).
 
 - **Queries**:
-  - Use `select` / `include` intentionally to limit payload
-  - Avoid N+1 (batch with `include`, `findMany` + map, or filtered relation queries)
-  - Use pagination for list endpoints (`skip`/`take` or cursor-based when appropriate)
+  - Must use `select` / `include` intentionally to limit payload
+  - Must avoid N+1 (batch with `include`, `findMany` + map, or filtered relation queries)
+  - Must use pagination for list endpoints (`skip`/`take` or cursor-based when appropriate)
+  - Must include tenant/company scope filters for tenant-owned data
+  - Must prefer repository-layer query primitives over direct Prisma in services for high-risk domains
 
-- **Indexes**: tenant/company scope + FKs + columns used in `where` / `orderBy` / joins; document composite indexes when filters combine fields.
+- **Indexes**: must consider tenant/company scope + FKs + columns used in `where` / `orderBy` / joins; document composite indexes when filters combine fields.
 
-- **Migrations**: review generated SQL; validate with `prisma validate` / migrate in non-prod first when risky.
+- **Migrations**: must review generated SQL; validate with `prisma validate` / migrate in non-prod first when risky.
 
 - **Ambiguity**: if the model boundary or cardinality is unclear, ask before implementing.
 
@@ -47,3 +49,9 @@ Ensures a robust, optimized, and scalable database design using Prisma.
 - Schema y migraciones viven en **`packages/database/prisma/`** (CLI desde ese paquete o como indique el README del monorepo).
 - Datos multi-empresa: indexar y filtrar por **`companyId`** (u otra clave de aislamiento del dominio) donde aplique.
 - Split multi-archivo de schema: ver **`packages/database/prisma/PRISMA_SCHEMA_SPLIT.md`** si se trabaja en reorganización por dominio.
+
+## Source of truth
+
+- Rule: `.cursor/rules/prisma-database-expert.mdc`
+- Related: `.cursor/rules/multi-tenant-architecture.mdc`
+- Precedence/conflicts: `.cursor/rules/architecture-governance.mdc`

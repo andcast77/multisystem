@@ -40,16 +40,19 @@ Ensures secure authentication, authorization, and role-based access control in a
 - Example domain roles (ajustar al módulo/producto): `admin`, `cobrador`, `cliente` — mapear siempre a comprobaciones explícitas en código.
 
 - Enforce at:
-  - **Route level** (guard / preHandler)
+  - **Policy/guard level** (preferred)
   - **Service level** for sensitive or cross-cutting operations
 
 - Validate role (and tenant scope) **before** business logic.
+- `/api/users*` management operations must enforce strong policy checks (not authentication-only).
+- Pair role checks with company/tenant scope checks for read/write/delete operations.
 
 ### Multi-tenant security
 
-- **ALWAYS** validate that the authenticated user may act in the target tenant (ej. membership + matching company/tenant id en token vs recurso).
+- Must validate that the authenticated user may act in the target tenant (ej. membership + matching company/tenant id en token vs recurso).
 
 - Never serve or mutate another tenant’s data by ID alone.
+- Must not use null/global tenant fallback paths for tenant-owned resources.
 
 - Combine **role checks** + **tenant/company checks**.
 
@@ -80,6 +83,7 @@ Ensures secure authentication, authorization, and role-based access control in a
 - Centralizar lógica de auth (emisión/verificación de token, helpers de acceso).
 
 - No duplicar la misma regla de autorización en muchos sitios sin abstraer.
+- Priorizar módulos/policies de autorización para reducir drift entre servicios.
 
 - Validar input (login/register) con esquema (ej. Zod).
 
@@ -88,6 +92,12 @@ Ensures secure authentication, authorization, and role-based access control in a
 - Si falta autenticación o autorización en un flujo sensible: **STOP** y añadirla antes de seguir.
 
 - Si el modelo de seguridad no está claro: **preguntar** antes de implementar.
+
+## Source of truth
+
+- Rule: `.cursor/rules/auth-jwt-roles.mdc`
+- Related: `.cursor/rules/multi-tenant-architecture.mdc`
+- Precedence/conflicts: `.cursor/rules/architecture-governance.mdc`
 
 ---
 
