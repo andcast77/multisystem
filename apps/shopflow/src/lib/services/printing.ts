@@ -2,6 +2,7 @@
 import type { PrinterInfo } from './printers'
 import type { TicketConfig } from '@/types'
 import { getSavedSerialPorts } from './printers'
+import { shopflowApi } from '@/lib/api/client'
 // openSerialPort, writeToSerialPort, closeSerialPort from printerDetection reserved for future serial write
 
 /**
@@ -158,22 +159,11 @@ export async function printToNetworkPrinter(
   const commands = generateESCPOSCommands(content, ticketConfig)
 
   try {
-    const { API_URL, getAuthHeaders } = await import('@/lib/api/client')
-    const url = `${API_URL.replace(/\/$/, '')}/api/shopflow/printers/network-print`
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      credentials: 'include',
-      body: JSON.stringify({
+    await shopflowApi.post('/printers/network-print', {
         ip,
         port,
         data: Array.from(commands),
-      }),
     })
-
-    if (!response.ok) {
-      throw new Error('Error al imprimir en impresora de red')
-    }
   } catch (error) {
     console.error('Error printing to network printer:', error)
     throw error

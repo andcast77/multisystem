@@ -61,30 +61,40 @@ export default function EmployeeImportModal({ isOpen, onClose, onImportSuccess }
     formData.append('fieldMapping', JSON.stringify(fieldMapping));
 
     try {
-      const { API_URL, getAuthHeaders } = await import('@/lib/api/client');
+      const { API_URL } = await import('@/lib/api/client');
       const response = await fetch(`${API_URL}/api/workify/employees/import`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         credentials: 'include',
         body: formData,
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
+      const imported = typeof result?.data?.imported === 'number'
+        ? result.data.imported
+        : typeof result?.imported === 'number'
+          ? result.imported
+          : 0;
+      const errors = Array.isArray(result?.data?.errors)
+        ? result.data.errors
+        : Array.isArray(result?.errors)
+          ? result.errors
+          : [];
+      const message = result?.message || result?.error || 'Error en la importación';
 
       if (response.ok) {
         setImportResult({
           success: true,
-          message: `Importación exitosa: ${result.imported} empleados importados`,
-          imported: result.imported,
-          errors: result.errors || []
+          message: `Importación exitosa: ${imported} empleados importados`,
+          imported,
+          errors
         });
         onImportSuccess();
       } else {
         setImportResult({
           success: false,
-          message: result.message || 'Error en la importación',
+          message,
           imported: 0,
-          errors: result.errors || []
+          errors
         });
       }
     } catch {
