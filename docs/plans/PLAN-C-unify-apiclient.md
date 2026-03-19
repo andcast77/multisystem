@@ -10,12 +10,12 @@
 
 ## Tasks
 
-- [ ] Inventory app-local `ApiClient` (shopflow, workify, others).
-- [ ] Extend `@multisystem/shared` if gaps (e.g. Shopflow `X-Store-Id`, Next-specific fetch).
-- [ ] Migrate apps to shared client; delete duplicates.
+- [x] Inventory app-local `ApiClient` (shopflow, workify, others).
+- [x] Shopflow `X-Store-Id` handled via a thin per-app wrapper (no change required in `@multisystem/shared`).
+- [x] Migrate apps to shared client; delete duplicates.
 - [ ] Optional: document **ideal** `api-sdk` / OpenAPI path (see audit §18).
 
 ## Definition of done
 
-- No duplicate ApiClient classes across apps.
-- Module-specific headers live in shared or documented thin wrappers only.
+- No duplicate ApiClient classes across apps (migration completed for `shopflow`, `workify`, `techservices`, and `hub`).
+- Module-specific headers live in shared or documented thin wrappers only (Shopflow `X-Store-Id` is injected in `apps/shopflow/src/lib/api/client.ts`).

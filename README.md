@@ -181,6 +181,22 @@ Crear `.env` en `packages/api/` o en la raíz:
 | `JWT_EXPIRES_IN` | Expiración del token | 7d |
 | `NODE_ENV` | Entorno | development |
 
+#### CORS (desarrollo)
+
+Fuente de verdad para orígenes de desarrollo (para que los frontends puedan hacer requests autenticados con cookie):
+- `http://localhost:3001` (hub)
+- `http://localhost:3002` (shopflow)
+- `http://localhost:3003` (workify)
+- `http://localhost:3004` (techservices)
+
+Asegúrate de que `packages/api/.env` tenga `CORS_ORIGIN` con esa lista (en el ejemplo y en el fallback del código).
+
+#### Al añadir una nueva app (frontend)
+
+- Añadir la app a la tabla de “Apps” con su puerto.
+- Incluir `http://localhost:<puerto>` en la lista de “CORS (desarrollo)” y en `CORS_ORIGIN` de `packages/api/.env`.
+- Añadir/actualizar el `env.example` de la app para su `NEXT_PUBLIC_API_URL` o `VITE_*` (según stack).
+
 Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local` de cada app si la API no está en `http://localhost:3000`.
 
 **Shopflow** (Vite): principalmente `NEXT_PUBLIC_API_URL` en `lib/api/client.ts` (fallback `http://localhost:3000`); ver [Shopflow README](./apps/shopflow/README.md).

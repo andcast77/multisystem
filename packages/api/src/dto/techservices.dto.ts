@@ -57,6 +57,8 @@ export type WorkOrderResponse = {
 export const assetListQuerySchema = z.object({
   search: z.string().optional(),
   active: z.enum(['true', 'false']).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 })
 export type AssetListQuery = z.infer<typeof assetListQuerySchema>
 

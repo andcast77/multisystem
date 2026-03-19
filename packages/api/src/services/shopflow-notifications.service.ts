@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
+import { parsePagination } from '../common/database/index.js'
 
 export type CreateNotificationBody = {
   userId: string
@@ -46,9 +47,7 @@ export type ListNotificationsQuery = {
 }
 
 export async function listNotifications(ctx: CompanyContext, query: ListNotificationsQuery) {
-  const pageNum = parseInt(query.page ?? '1')
-  const limitNum = parseInt(query.limit ?? '20')
-  const skip = (pageNum - 1) * limitNum
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
 
   const where: Prisma.NotificationWhereInput = {
     companyId: ctx.companyId,

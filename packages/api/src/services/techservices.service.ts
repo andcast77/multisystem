@@ -3,6 +3,7 @@ import type { CompanyContext } from '../core/auth-context.js'
 import { getCompanyModules } from '../core/modules.js'
 import * as workOrdersService from './work-orders.service.js'
 import * as techservicesHelper from '../helpers/techservices.helper.js'
+import { parsePagination } from '../common/database/index.js'
 import type {
   WorkOrderListQuery,
   WorkOrderCreateBody,
@@ -72,6 +73,7 @@ export async function updateWorkOrder(ctx: CompanyContext, id: string, body: Wor
 // ----- Assets -----
 
 export async function listAssets(ctx: CompanyContext, query: AssetListQuery) {
+  const { page, limit, skip } = parsePagination(query)
   const where: Prisma.TechnicalAssetWhereInput = { companyId: ctx.companyId }
   if (query.active === 'true') where.isActive = true
   else if (query.active === 'false') where.isActive = false
@@ -87,11 +89,19 @@ export async function listAssets(ctx: CompanyContext, query: AssetListQuery) {
       { model: { contains: term, mode: 'insensitive' } },
     ]
   }
-  const rows = await prisma.technicalAsset.findMany({
-    where,
-    orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
-  })
-  return rows.map((r) => techservicesHelper.toAssetResponse(r as techservicesHelper.AssetEntity))
+  const [total, rows] = await Promise.all([
+    prisma.technicalAsset.count({ where }),
+    prisma.technicalAsset.findMany({
+      where,
+      orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+      skip,
+      take: limit,
+    }),
+  ])
+  return {
+    items: rows.map((r) => techservicesHelper.toAssetResponse(r as techservicesHelper.AssetEntity)),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
 }
 
 export async function getAssetById(ctx: CompanyContext, id: string) {

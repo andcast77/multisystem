@@ -1,29 +1,43 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError } from '../common/errors/app-error.js'
+import { parsePagination } from '../common/database/index.js'
 
-export async function listCustomers(ctx: CompanyContext, query: { search?: string; email?: string; phone?: string }) {
+export async function listCustomers(
+  ctx: CompanyContext,
+  query: { search?: string; email?: string; phone?: string; page?: string; limit?: string }
+) {
+  const { page, limit, skip } = parsePagination(query)
   const where: Prisma.CustomerWhereInput = { companyId: ctx.companyId }
   if (query.search) where.name = { contains: query.search, mode: 'insensitive' }
   if (query.email) where.email = query.email
   if (query.phone) where.phone = query.phone
 
-  const customers = await prisma.customer.findMany({
-    where,
-    orderBy: { name: 'asc' },
-    include: { _count: { select: { sales: true } } },
-  })
-  return customers.map((c) => ({
-    id: c.id,
-    companyId: c.companyId,
-    name: c.name,
-    email: c.email,
-    phone: c.phone,
-    address: c.address,
-    createdAt: c.createdAt,
-    updatedAt: c.updatedAt,
-    _count: { sales: c._count.sales },
-  }))
+  const [total, customers] = await Promise.all([
+    prisma.customer.count({ where }),
+    prisma.customer.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      skip,
+      take: limit,
+      include: { _count: { select: { sales: true } } },
+    }),
+  ])
+
+  return {
+    customers: customers.map((c) => ({
+      id: c.id,
+      companyId: c.companyId,
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      address: c.address,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      _count: { sales: c._count.sales },
+    })),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
 }
 
 export async function getCustomerById(ctx: CompanyContext, id: string) {

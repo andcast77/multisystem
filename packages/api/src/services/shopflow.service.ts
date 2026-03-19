@@ -3,6 +3,7 @@ import type { CompanyContext, ShopflowContext } from '../core/auth-context.js'
 import { canManageMembers } from '../core/permissions.js'
 import * as productsService from './products.service.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
+import { parsePagination } from '../common/database/index.js'
 
 async function canAccessUserPreferences(callerId: string, callerIsSuperuser: boolean, companyId: string, callerMembershipRole: string | null, targetUserId: string): Promise<boolean> {
   if (callerId === targetUserId) return true
@@ -513,9 +514,7 @@ export async function listInventoryTransfers(
   ctx: CompanyContext,
   query: { fromStoreId?: string; toStoreId?: string; productId?: string; status?: string; page?: string; limit?: string },
 ) {
-  const pageNum = parseInt(query.page ?? '1')
-  const limitNum = Math.min(parseInt(query.limit ?? '20') || 20, 100)
-  const skip = (pageNum - 1) * limitNum
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
   const where: Prisma.InventoryTransferWhereInput = { companyId: ctx.companyId }
   if (query.fromStoreId) where.fromStoreId = query.fromStoreId
   if (query.toStoreId) where.toStoreId = query.toStoreId

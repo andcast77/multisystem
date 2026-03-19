@@ -74,13 +74,25 @@ packages/api/
 │   ├── core/                 # auth, config, permisos, módulos por empresa (`modules.ts`)
 │   ├── common/               # errores, caché (Redis opcional), helpers DB
 │   ├── helpers/
-│   ├── modules/              # auth, shopflow, workify, techservices, tenant
+│   ├── modules/              # (legacy) re-exports por dominio
+│   ├── plugins/              # Fastify plugins por dominio (core/auth/tenant/shopflow/workify/techservices)
 │   └── __tests__/            # Vitest (unit + integration)
 ├── vercel.json
 ├── package.json
 ├── tsconfig.json
 └── .env.example
 ```
+
+## 🧩 Arquitectura por plugins (Fastify)
+
+La API sigue siendo **un solo deployable** (`src/server.ts`), pero las rutas se registran mediante plugins por dominio para reducir el “blast radius” y mantener límites claros.
+
+### Orden de registro (importante)
+
+1. **Core**: `env` → `cors` → `rate-limit` (incluye scope público de auth) → `schema-sanitizer` → `errors` → `versioning` → `swagger`
+2. **Dominios**: `health` → `auth-protected` → `users` → `tenant` → `shopflow` → `workify` → `techservices`
+
+Mantener este orden ayuda a asegurar que CORS, rate limiting, manejo de errores, versionado y Swagger se apliquen de forma consistente antes de registrar las rutas de dominio.
 
 ### Versión en URL
 
@@ -106,7 +118,7 @@ Copia `.env.example` a `.env` y configura:
 PORT=3000
 
 # Orígenes CORS permitidos (separados por coma)
-CORS_ORIGIN=http://localhost:3001,http://localhost:3003,http://localhost:3004,http://localhost:3005
+CORS_ORIGIN=http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004
 
 # URL de conexión a Neon PostgreSQL
 # Formato: postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require

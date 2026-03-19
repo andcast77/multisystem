@@ -1,7 +1,7 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/index.js'
-import { toNumber } from '../common/database/index.js'
+import { parsePagination, toNumber } from '../common/database/index.js'
 
 const num = toNumber
 
@@ -77,9 +77,7 @@ export async function listSales(
     )
   }
 
-  const pageNum = parseInt(query.page ?? '1')
-  const limitNum = parseInt(query.limit ?? '20')
-  const skip = (pageNum - 1) * limitNum
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
 
   const where: Prisma.SaleWhereInput = { companyId: ctx.companyId }
   if (effectiveStoreId) where.storeId = effectiveStoreId

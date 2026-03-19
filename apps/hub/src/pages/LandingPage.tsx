@@ -76,7 +76,7 @@ export function LandingPage() {
                   title="Tech Services"
                   description="Órdenes de servicio técnico"
                   icon={<Wrench className="w-8 h-8 text-amber-600" />}
-                  href="http://localhost:3005"
+                  href="http://localhost:3004"
                 />
                 <ModuleCard
                   title="Hub"

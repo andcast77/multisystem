@@ -329,6 +329,8 @@ Themes map to **§19** and to working plans in **`docs/plans/`** ([index](plans/
 | 6 | Monolithic API growth | Plan E — API modularization (optional) | [PLAN-E-api-modularization.md](plans/PLAN-E-api-modularization.md) |
 | 7 | FE perf / BE payloads | Plan F — Performance follow-ups | [PLAN-F-performance-followups.md](plans/PLAN-F-performance-followups.md) |
 
+Execution tracking note (current cycle): recommended sequencing was `B -> A`, but implemented sequencing completed as `A -> B` with stable post-alignment behavior.
+
 ---
 
 ## 18. Ideal target architecture
@@ -381,7 +383,13 @@ flowchart TB
 | E — API modularization (optional) | [plans/PLAN-E-api-modularization.md](plans/PLAN-E-api-modularization.md) |
 | F — Performance follow-ups | [plans/PLAN-F-performance-followups.md](plans/PLAN-F-performance-followups.md) |
 
-**Suggested order:** **B** → **A** → **C** + **D** in parallel → **F** ongoing → **E** when justified. **A** and **B** highest priority for production risk; edit checkboxes in each plan file as work completes.
+**Suggested order (historical recommendation):** **B** → **A** → **C** + **D** in parallel → **F** ongoing → **E** when justified.
+
+**Execution status (current repo):**
+- Completed in practice: `A -> B` (both done).
+- Completed: `D` and `E`.
+- Effective remaining focus: `C + D` parallel track context (with `D` already closed), then `F` ongoing.
+- `C` still has one optional documentation task open (`api-sdk`/OpenAPI path note).
 
 ---
 

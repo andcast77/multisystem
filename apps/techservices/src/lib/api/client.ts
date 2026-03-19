@@ -1,68 +1,8 @@
+import { ApiClient as SharedApiClient } from "@multisystem/shared";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-class ApiClient {
-  private baseURL: string;
-
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers = new Headers(options.headers);
-    headers.set("Content-Type", "application/json");
-
-    const response = await fetch(url, {
-      headers,
-      credentials: "include",
-      ...options,
-    });
-
-    if (!response.ok) {
-      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.error) errorMessage = errorData.error;
-        else if (errorData.message) errorMessage = errorData.message;
-      } catch {
-        // ignore
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
-  }
-
-  get<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET", ...options });
-  }
-
-  post<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "POST",
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    });
-  }
-
-  put<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "PUT",
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    });
-  }
-
-  delete<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "DELETE",
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    });
-  }
-}
-
-const apiClient = new ApiClient(API_URL);
+const apiClient = new SharedApiClient(API_URL);
 
 export const techServicesApi = {
   get: <T>(endpoint: string, options?: RequestInit) =>

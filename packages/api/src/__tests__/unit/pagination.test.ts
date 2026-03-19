@@ -7,6 +7,21 @@ describe('parsePagination', () => {
     expect(result).toEqual({ page: 1, limit: 20, skip: 0 })
   })
 
+  it('accepts custom defaultLimit', () => {
+    const result = parsePagination({}, { defaultLimit: 50 })
+    expect(result).toEqual({ page: 1, limit: 50, skip: 0 })
+  })
+
+  it('clamps limit to custom maxLimit', () => {
+    const result = parsePagination({ limit: '999' }, { maxLimit: 25 })
+    expect(result.limit).toBe(25)
+  })
+
+  it('clamps page to minimum 1 even with bad input', () => {
+    const result = parsePagination({ page: '0' })
+    expect(result.page).toBe(1)
+  })
+
   it('parses string page and limit', () => {
     const result = parsePagination({ page: '3', limit: '10' })
     expect(result).toEqual({ page: 3, limit: 10, skip: 20 })

@@ -1,6 +1,7 @@
 # Plan E — API modularization (optional)
 
 **Audit refs:** [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §13 Scalability, §14 Medium debt, §18 ideal architecture.
+**Status:** Done 2026-03-18
 
 | Field | Detail |
 |-------|--------|
@@ -10,9 +11,9 @@
 
 ## Tasks
 
-- [ ] Sketch Fastify **plugins** per domain: `auth`, `shopflow`, `workify`, `techservices`, shared `core/`.
-- [ ] Move routes incrementally; keep **one** deployable entry.
-- [ ] Document path to separate deployables / gateway (audit §18 diagram) if needed later.
+- [x] Sketch Fastify **plugins** per domain: `auth`, `shopflow`, `workify`, `techservices`, shared `core/`.
+- [x] Move routes incrementally; keep **one** deployable entry.
+- [x] Document path to separate deployables / gateway (audit §18 diagram) if needed later.
 
 ## Definition of done
 

@@ -102,7 +102,8 @@ export async function getTopProducts(
   query: { storeId?: string; limit?: string; startDate?: string; endDate?: string; categoryId?: string },
 ) {
   const effectiveStoreId = await resolveEffectiveStoreIdForReport(ctx, query.storeId)
-  const limit = parseInt(query.limit || '10')
+  const requestedLimit = parseInt(query.limit || '10', 10)
+  const limit = Math.min(50, Math.max(1, isNaN(requestedLimit) ? 10 : requestedLimit))
 
   const whereSale: Prisma.SaleWhereInput = { companyId: ctx.companyId, status: 'COMPLETED' }
   if (effectiveStoreId !== undefined) whereSale.storeId = effectiveStoreId

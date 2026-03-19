@@ -9,6 +9,8 @@
 | **Dependencies** | May require BFF or same-site cookie domain decisions before httpOnly. |
 | **Priority** | Run after Plan B or in parallel once CORS/dev flow is stable. |
 
+> Retrospective note: this plan was executed before Plan B in this cycle (`A -> B`). After CORS/environment alignment landed in Plan B, cross-origin auth/session behavior remained stable.
+
 ## Tasks
 
 - [x] Choose strategy: **httpOnly API session cookie** (`ms_session`) set only by the API (JWT not readable from JS). Decision documented in [ADR-auth-token-storage.md](../ADR-auth-token-storage.md).

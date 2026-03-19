@@ -9,7 +9,13 @@ Working copies of engineering implementation plans. Source context: [ENGINEERING
 | 3 (parallel) | C — Unify ApiClient | [PLAN-C-unify-apiclient.md](./PLAN-C-unify-apiclient.md) |
 | 3 (parallel) | D — Tooling & dead code | [PLAN-D-tooling-dead-code.md](./PLAN-D-tooling-dead-code.md) |
 | ongoing | F — Performance | [PLAN-F-performance-followups.md](./PLAN-F-performance-followups.md) |
-| when justified | E — API modularization | [PLAN-E-api-modularization.md](./PLAN-E-api-modularization.md) |
+| done | E — API modularization | [PLAN-E-api-modularization.md](./PLAN-E-api-modularization.md) |
+
+## Execution status (reality)
+
+- Recommended historical order remains: `B -> A -> (C + D) -> F`, with `E` optional/done.
+- Actual execution completed: `A -> B` (both completed, no regressions after CORS alignment).
+- Effective remaining focus: `C` (optional docs path) + `D` (done) in parallel context, `F` ongoing.
 
 ## Syncing checklists
 

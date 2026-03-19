@@ -12,9 +12,19 @@
 
 ## Tasks
 
-- Audit list/report endpoints for **pagination caps** and default page sizes.
-- POS/report UIs: add **virtualization** where lists are large (spot-check per screen).
-- Heavy exports: consider **async jobs + download link** or streaming.
+- [x] Audit list/report endpoints for **pagination caps** and default page sizes.
+  - [x] Enforce shared pagination clamp via `parsePagination` (default 20, max 100) on key list endpoints:
+    - [x] `GET /api/shopflow/sales` (limit capped)
+    - [x] `GET /api/shopflow/notifications` (limit capped)
+    - [x] `GET /api/shopflow/inventory-transfers` (limit capped)
+    - [x] `GET /api/techservices/work-orders` (limit capped)
+    - [x] `GET /api/workify/employees` (limit capped; default 10)
+    - [x] `GET /api/shopflow/reports/top-products` (limit capped; max 50)
+  - [x] Add pagination to previously unbounded endpoints:
+    - [x] `GET /api/shopflow/customers`
+    - [x] `GET /api/techservices/assets`
+- [ ] POS/report UIs: add **virtualization** where lists are large (spot-check per screen).
+- [ ] Heavy exports: implement **async jobs + download link** (preferred) or streaming.
 
 ## Definition of done
 
