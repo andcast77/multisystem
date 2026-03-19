@@ -389,16 +389,16 @@ flowchart TB
 |------|------|
 | [completed] 1 — Security & auth | [plans/[completed] PLAN-1-security-auth-hardening.md](plans/[completed]%20PLAN-1-security-auth-hardening.md) |
 | [completed] 2 — CORS & environment | [plans/[completed] PLAN-2-cors-environment.md](plans/[completed]%20PLAN-2-cors-environment.md) |
-| 3 — Unify ApiClient | [plans/PLAN-3-unify-apiclient.md](plans/PLAN-3-unify-apiclient.md) |
+| [completed] 3 — Unify ApiClient | [plans/[completed] PLAN-3-unify-apiclient.md](plans/[completed]%20PLAN-3-unify-apiclient.md) |
 | [completed] 4 — Tooling & dead code | [plans/[completed] PLAN-4-tooling-dead-code.md](plans/[completed]%20PLAN-4-tooling-dead-code.md) |
 | [completed] 5 — API modularization (optional) | [plans/[completed] PLAN-5-api-modularization.md](plans/[completed]%20PLAN-5-api-modularization.md) |
-| 6 — Performance follow-ups | [plans/PLAN-6-performance-followups.md](plans/PLAN-6-performance-followups.md) |
+| [completed] 6 — Performance follow-ups | [plans/[completed] PLAN-6-performance-followups.md](plans/[completed]%20PLAN-6-performance-followups.md) |
 
 **Suggested order (historical recommendation):** **2** → **1** → **3** + **4** in parallel → **6** ongoing → **5** when justified.
 
 **Execution status (current repo):**
 - Completed in practice: `1 -> 2` (both done).
-- Completed: `4` and `5`.
+- Completed: `4`, `5`, and `6`.
 - Effective remaining focus: `3 + 4` parallel track context (with `4` already closed), then `6` ongoing.
 - `3` optional documentation follow-through (`api-sdk`/OpenAPI path note) is now documented in the plan; remaining work is wrapper consistency cleanup when prioritized.
 
@@ -512,9 +512,7 @@ When new files or folders are provided:
 
 ### Plan alignment (1-6)
 
-- **[completed] 1/2/4/5:** completed and validated as materially beneficial.
-- **3:** functionally improved; remaining work is wrapper/doc consistency and optional SDK/documentation follow-through.
-- **6:** remains active; prioritize backend heavy-path profiling + frontend large-list rendering strategy.
+- **[completed] 1/2/3/4/5/6:** completed and validated as materially beneficial.
 
 ---
 
