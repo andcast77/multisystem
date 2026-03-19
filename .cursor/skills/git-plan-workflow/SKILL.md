@@ -11,18 +11,19 @@ description: >-
 Applies a strict workflow for plan-based work in this repository.
 
 ## When to Use
-
 - User starts a new plan and needs a branch.
+- User runs/builds a plan and needs a branch.
 - User says the plan is finished.
 - User asks for `git commit` and `git push`.
 - User asks to merge into `Test`, `master`, or another target branch.
 
 ## Core Rules
 
-- Always ask for explicit confirmation before running any git command with side effects.
-- Create the plan branch at plan execution start.
+- Always ask for explicit confirmation before running `git commit`, `git push`, or `merge`.
+  - Plan branch creation/switching (fetch/checkout/branch create) is treated as required infrastructure for every plan build/run, so it proceeds automatically.
+- Create the plan branch at plan execution start (including when running a plan build/run).
 - Create plan branches from `Test`.
-- Use branch naming format: `plan/<plan-slug>`.
+- Use branch naming format: `plan/<plan-slug>-run-<YYYYMMDD-HHmmss>`.
 - At plan completion, ask confirmation before running commit/push.
 - At plan completion, rename the repository plan document under `docs/plans/` to include `[completed]` prefix.
 - Run merge only when the user explicitly requests it.
@@ -33,22 +34,31 @@ Applies a strict workflow for plan-based work in this repository.
 
 ### 1) Start Plan Branch
 
-When a plan moves from planning to execution, run this step first.
+When a plan moves from planning to execution, including when running a plan build/run, run this step first.
 
 1. Extract the plan name from user message or plan title.
+   - Prefer the plan filename when available.
+   - Handle both:
+     - `*.plan.md` (use basename without `.plan.md`)
+     - `docs/plans/PLAN-*.md` (use basename without `.md`, stripping optional leading `[completed] `)
 2. Normalize to slug:
    - lowercase
    - spaces/underscores to `-`
    - remove unsupported characters
    - collapse repeated `-`
-3. Ask explicit confirmation before creating/updating branch context.
+3. Create a unique plan branch name for this specific build/run:
+   - Base: `plan/<slug>`
+   - Recommended suffix: `-run-<YYYYMMDD-HHmmss>` (derived from local time)
+   - Final example: `plan/<slug>-run-20260319-142530`
 4. Create branch from `Test`:
    - `git fetch --all --prune`
    - `git checkout Test`
    - `git pull origin Test`
-   - `git checkout -b plan/<slug>`
+   - `git checkout -b <branchName>`
 
-If the branch already exists, ask whether to reuse it or create a new slug.
+5. Never reuse an existing base `plan/<slug>` branch for builds:
+   - Always generate a new suffix for each build/run.
+   - If the generated branch name already exists (rare collision), regenerate using a new timestamp suffix.
 
 ### 2) Close Plan (Commit + Push with Confirmation)
 
@@ -72,7 +82,7 @@ Never auto-commit/auto-push without user confirmation.
 
 When user explicitly says merge (examples: "merge a Test", "merge a master"):
 
-1. Confirm source branch (current `plan/<slug>` unless user says another).
+1. Confirm source branch (current plan branch created for this run, e.g. `plan/<slug>-run-...`, unless user says another).
 2. Confirm destination branch requested by user (`Test`, `master`, or custom).
 3. Ask explicit confirmation before executing the merge command.
 4. Validate clean state and sync:

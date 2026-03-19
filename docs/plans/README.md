@@ -10,6 +10,12 @@ Working copies of engineering implementation plans. Source context: [ENGINEERING
 | 3 (parallel) | [completed] 4 — Tooling & dead code | [\[completed\] PLAN-4-tooling-dead-code.md](./[completed]%20PLAN-4-tooling-dead-code.md) |
 | ongoing | 6 — Performance | [PLAN-6-performance-followups.md](./PLAN-6-performance-followups.md) |
 | done | [completed] 5 — API modularization | [\[completed\] PLAN-5-api-modularization.md](./[completed]%20PLAN-5-api-modularization.md) |
+| ongoing | 7 — Re-audit Task 1: Users Authorization | [PLAN-7-reaudit-task-1-users-authorization.md](./PLAN-7-reaudit-task-1-users-authorization.md) |
+| ongoing | 8 — Re-audit Task 2: Shopflow Tenant Isolation | [PLAN-8-reaudit-task-2-shopflow-tenant-isolation.md](./PLAN-8-reaudit-task-2-shopflow-tenant-isolation.md) |
+| ongoing | 9 — Re-audit Task 3: Repository Layer Adoption | [PLAN-9-reaudit-task-3-repository-layer-adoption.md](./PLAN-9-reaudit-task-3-repository-layer-adoption.md) |
+| ongoing | 10 — Re-audit Task 4: Authorization Policy Centralization | [PLAN-10-reaudit-task-4-authorization-policy-centralization.md](./PLAN-10-reaudit-task-4-authorization-policy-centralization.md) |
+| ongoing | 11 — Re-audit Task 5: Standardize Frontend API Usage | [PLAN-11-reaudit-task-5-frontend-api-usage.md](./PLAN-11-reaudit-task-5-frontend-api-usage.md) |
+| ongoing | 12 — Re-audit Task 6: Env Configuration | [PLAN-12-reaudit-task-6-env-configuration.md](./PLAN-12-reaudit-task-6-env-configuration.md) |
 
 ## Execution status (reality)
 
