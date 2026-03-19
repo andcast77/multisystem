@@ -294,9 +294,9 @@ export async function updateTicketConfig(ctx: CompanyContext, storeId: string | 
 // --- Loyalty ---
 const num = (v: unknown) => (v == null ? 0 : typeof v === 'object' && 'toNumber' in (v as object) ? (v as { toNumber: () => number }).toNumber() : Number(v))
 
-export async function getLoyaltyConfig() {
+export async function getLoyaltyConfig(ctx: CompanyContext) {
   const config = await prisma.loyaltyConfig.findFirst({
-    where: { isActive: true },
+    where: { companyId: ctx.companyId, isActive: true },
     orderBy: { createdAt: 'desc' },
   })
   if (!config) {
@@ -311,9 +311,9 @@ export async function getLoyaltyConfig() {
   }
 }
 
-export async function updateLoyaltyConfig(body: Record<string, unknown>) {
+export async function updateLoyaltyConfig(ctx: CompanyContext, body: Record<string, unknown>) {
   const current = await prisma.loyaltyConfig.findFirst({
-    where: { isActive: true },
+    where: { companyId: ctx.companyId, isActive: true },
     orderBy: { createdAt: 'desc' },
   })
   const cur = current
@@ -327,7 +327,7 @@ export async function updateLoyaltyConfig(body: Record<string, unknown>) {
     : { pointsPerDollar: 1.0, redemptionRate: 0.01, pointsExpireMonths: null as number | null, minPurchaseForPoints: 0, maxPointsPerPurchase: null as number | null }
   const newConfig = await prisma.loyaltyConfig.create({
     data: {
-      companyId: null as unknown as string,
+      companyId: ctx.companyId,
       pointsPerDollar: (body.pointsPerDollar as number) ?? cur.pointsPerDollar,
       redemptionRate: (body.redemptionRate as number) ?? cur.redemptionRate,
       pointsExpireMonths: (body.pointsExpireMonths as number) ?? cur.pointsExpireMonths,
@@ -337,7 +337,7 @@ export async function updateLoyaltyConfig(body: Record<string, unknown>) {
     },
   })
   await prisma.loyaltyConfig.updateMany({
-    where: { id: { not: newConfig.id }, isActive: true },
+    where: { companyId: ctx.companyId, id: { not: newConfig.id }, isActive: true },
     data: { isActive: false },
   })
   return {
@@ -350,8 +350,8 @@ export async function updateLoyaltyConfig(body: Record<string, unknown>) {
 }
 
 export async function getCustomerPoints(ctx: CompanyContext, customerId: string) {
-  const customer = await prisma.customer.findUnique({
-    where: { id: customerId },
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, companyId: ctx.companyId },
     select: { id: true, name: true },
   })
   if (!customer) throw new NotFoundError('Cliente no encontrado')
