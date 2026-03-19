@@ -102,8 +102,10 @@ export class ConnectivityChecker {
         }
       }
     } else {
-      // En producción, hacer ping a la API real (NEXT_PUBLIC_API_URL)
-      const apiUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined
+      // En producción, hacer ping a la API real (VITE_API_URL principal + fallback legacy)
+      const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
+      const legacyNextApiUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined
+      const apiUrl = viteApiUrl || legacyNextApiUrl
       try {
         const url = apiUrl ? `${apiUrl.replace(/\/$/, '')}/api/auth/me` : '/api/auth/me'
         const response = await fetch(url, {

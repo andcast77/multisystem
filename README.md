@@ -195,11 +195,14 @@ Asegúrate de que `packages/api/.env` tenga `CORS_ORIGIN` con esa lista (en el e
 
 - Añadir la app a la tabla de “Apps” con su puerto.
 - Incluir `http://localhost:<puerto>` en la lista de “CORS (desarrollo)” y en `CORS_ORIGIN` de `packages/api/.env`.
-- Añadir/actualizar el `env.example` de la app para su `NEXT_PUBLIC_API_URL` o `VITE_*` (según stack).
+- Añadir/actualizar el `env.example` de la app con base URL de API según stack:
+  - Vite: `VITE_API_URL`
+  - Next.js: `NEXT_PUBLIC_API_URL`
+- Verificar si el módulo requiere headers adicionales (ejemplo: `X-Store-Id` en rutas de Shopflow).
 
 Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local` de cada app si la API no está en `http://localhost:3000`.
 
-**Shopflow** (Vite): principalmente `NEXT_PUBLIC_API_URL` en `lib/api/client.ts` (fallback `http://localhost:3000`); ver [Shopflow README](./apps/shopflow/README.md).
+**Shopflow** (Vite): `VITE_API_URL` como variable principal en `lib/api/client.ts`, con fallback temporal a `NEXT_PUBLIC_API_URL` para compatibilidad; ver [Shopflow README](./apps/shopflow/README.md).
 
 **Hub** (Vite): `VITE_API_URL`; `VITE_SHOPFLOW_URL` (p. ej. `http://localhost:3002`), `VITE_WORKIFY_URL`, `VITE_TECHSERVICES_URL`.
 

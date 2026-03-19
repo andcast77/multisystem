@@ -1,6 +1,6 @@
 /**
  * Client-side backup API service.
- * All calls go to the external API (NEXT_PUBLIC_API_URL), not Next.js routes.
+ * All calls go to the external API (VITE_API_URL as primary), not Next.js routes.
  */
 import { shopflowApi } from '@/lib/api/client'
 
@@ -63,7 +63,9 @@ export async function deleteBackup(filename: string): Promise<void> {
 
 /** URL to download a backup file (external API). Requires auth via cookie or token. */
 export function getBackupDownloadUrl(filename: string): string {
-  const base = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+  const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
+  const legacyNextApiUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined
+  const base = viteApiUrl || legacyNextApiUrl || ''
   if (!base) return ''
   return `${base.replace(/\/$/, '')}/api/shopflow/backup/download/${encodeURIComponent(filename)}`
 }

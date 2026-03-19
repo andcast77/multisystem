@@ -232,7 +232,7 @@ Active (env contract drift still present)
 
 ## Re-audit evidence (2026-03-19)
 * `packages/api/src/plugins/core/env.plugin.ts` validates `CORS_ORIGIN` (singular).
-* `apps/hub/env.example` defines `CORS_ORIGINS` (plural) and sets `NEXT_PUBLIC_API_URL` to `http://api:3001`, which must match the actual API origin/port in each environment.
+* `apps/hub/.env.example` now uses normalized keys (`CORS_ORIGIN` where documented at API layer and Vite-oriented `VITE_*` for frontend routing/API base URL).
 
 ---
 ## Full System Re-Audit Findings (2026-03-19)
@@ -338,7 +338,7 @@ Evidence:
 3. Environment variable naming contract drift increases misconfiguration risk.
 Evidence:
 * `packages/api/src/plugins/core/env.plugin.ts`: validates `CORS_ORIGIN`.
-* `apps/hub/env.example`: defines `CORS_ORIGINS` (plural) and sets `NEXT_PUBLIC_API_URL` to a host that must match runtime API origin/port.
+* `apps/hub/.env.example`: contract normalized for Vite usage.
 
 ## Update Technical Debt
 
@@ -358,7 +358,7 @@ Evidence: `apps/shopflow/src/lib/services/printing.ts`, `apps/shopflow/src/lib/u
 * Observability baseline is insufficient for production triage (no request correlation injection, no metrics/tracing hooks; `/health` is liveness-only).
 Evidence: `packages/api/src/common/errors/error-handler.ts`, `packages/api/src/server.ts`, and `packages/api/src/controllers/health.controller.ts`.
 * Env contract drift (variable naming and base URL responsibilities) can cause “works in dev, breaks in staging”.
-Evidence: `packages/api/src/plugins/core/env.plugin.ts` and `apps/hub/env.example`.
+Evidence: `packages/api/src/plugins/core/env.plugin.ts` and `apps/hub/.env.example`.
 
 ## Update Scores (0–10)
 

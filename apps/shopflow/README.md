@@ -34,8 +34,8 @@ Crear **`apps/shopflow/.env`** (ver `.env.example`).
 
 | Variable | Uso |
 |----------|-----|
-| **`NEXT_PUBLIC_API_URL`** | Base URL de la API en **`src/lib/api/client.ts`** (y varios servicios). En Vite, si no se inyecta, el código cae en **`http://localhost:3000`**. Para builds que no expongan `NEXT_PUBLIC_*`, valorar `envPrefix` en Vite o alinear con `VITE_*`. |
-| **`VITE_API_URL`** | Usado en **`src/lib/api-client.ts`** (auth auxiliar). |
+| **`VITE_API_URL`** | Base URL principal de la API en **`src/lib/api/client.ts`** y **`src/lib/api-client.ts`**. Fallback por defecto: **`http://localhost:3000`**. |
+| **`NEXT_PUBLIC_API_URL`** | Fallback temporal de compatibilidad (legacy). No usar como variable principal en nuevos entornos Vite. |
 | **`NEXT_PUBLIC_VAPID_PUBLIC_KEY`** | Opcional — notificaciones push Web Push. |
 
 Proxy de desarrollo en `vite.config`: peticiones a **`/api`** se reenvían al host de la API (revisar que coincida con cómo los servicios construyen la URL; el cliente principal suele ir directo a `API_URL`).
