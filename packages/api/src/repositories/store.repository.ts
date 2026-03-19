@@ -73,4 +73,107 @@ export class StoreRepository extends TenantScopedRepository {
     await this.db.store.delete({ where: { id } })
     return true
   }
+
+  async findLatestConfig() {
+    return this.db.storeConfig.findFirst({
+      where: { ...this.tenantWhere },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  async createConfig(input: {
+    name: string
+    currency: 'USD'
+    taxRate: number
+    lowStockAlert: number
+    invoicePrefix: string
+    invoiceNumber: number
+    allowSalesWithoutStock: boolean
+    address?: string | null
+    phone?: string | null
+    email?: string | null
+    taxId?: string | null
+  }) {
+    return this.db.storeConfig.create({
+      data: {
+        companyId: this.tenantId,
+        name: input.name,
+        currency: input.currency,
+        taxRate: input.taxRate,
+        lowStockAlert: input.lowStockAlert,
+        invoicePrefix: input.invoicePrefix,
+        invoiceNumber: input.invoiceNumber,
+        allowSalesWithoutStock: input.allowSalesWithoutStock,
+        address: input.address ?? null,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        taxId: input.taxId ?? null,
+      },
+    })
+  }
+
+  async updateConfigById(id: string, data: Record<string, unknown>) {
+    return this.db.storeConfig.update({
+      where: { id },
+      // Prisma accepts partial update input and keeps this tenant-scoped by fetched id.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: data as any,
+    })
+  }
+
+  async incrementInvoiceNumberAndGet(configId: string) {
+    const [result] = await this.db.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>`
+      UPDATE store_configs
+      SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW()
+      WHERE id = ${configId}
+      RETURNING "invoicePrefix", "invoiceNumber"
+    `
+    return result
+  }
+
+  async findLatestTicketConfig(storeId?: string) {
+    return this.db.ticketConfig.findFirst({
+      where: { ...this.tenantWhere, storeId: storeId ?? null },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  async createTicketConfig(input: {
+    storeId: string | null
+    ticketType: 'TICKET'
+    thermalWidth: number
+    fontSize: number
+    copies: number
+    autoPrint: boolean
+    header?: string | null
+    description?: string | null
+    logoUrl?: string | null
+    footer?: string | null
+    defaultPrinterName?: string | null
+  }) {
+    return this.db.ticketConfig.create({
+      data: {
+        companyId: this.tenantId,
+        storeId: input.storeId,
+        ticketType: input.ticketType,
+        thermalWidth: input.thermalWidth,
+        fontSize: input.fontSize,
+        copies: input.copies,
+        autoPrint: input.autoPrint,
+        header: input.header ?? null,
+        description: input.description ?? null,
+        logoUrl: input.logoUrl ?? null,
+        footer: input.footer ?? null,
+        defaultPrinterName: input.defaultPrinterName ?? null,
+      },
+    })
+  }
+
+  async updateTicketConfigById(id: string, data: Record<string, unknown>) {
+    return this.db.ticketConfig.update({
+      where: { id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: data as any,
+    })
+  }
 }
