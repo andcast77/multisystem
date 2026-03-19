@@ -10,12 +10,18 @@
 
 ## Tasks
 
-- [ ] Inventory Prisma usage in high-risk services and identify the exact query paths to migrate.
+- [] Inventory Prisma usage in high-risk services and identify the exact query paths to migrate.
   - Evidence: `packages/api/src/services/users.service.ts`, `packages/api/src/services/shopflow.service.ts`
-- [ ] Add/extend repository functions for those query paths.
+- [] Add/extend repository functions for those query paths.
   - Evidence: `packages/api/src/repositories/*`
-- [ ] Refactor services to call repository methods instead of direct `prisma.*` for those paths.
-- [ ] Add tests that validate tenant scoping and authorization invariants through repository methods.
+- [] Refactor services to call repository methods instead of direct `prisma.*` for those paths.
+- [] Add tests that validate tenant scoping and authorization invariants through repository methods.
+
+## Scope for this phase (minimal high-risk)
+
+- [] `users.service.ts`: migrate authorization-sensitive persistence paths behind repositories.
+- [] `shopflow.service.ts`: migrate loyalty and user-preference access-check paths behind repositories.
+- [] Deferred follow-up: migrate remaining direct `prisma.*` usage in non-targeted shopflow flows (store config, ticket config, inventory transfers, push subscriptions, and other persistence paths).
 
 ## Definition of done
 

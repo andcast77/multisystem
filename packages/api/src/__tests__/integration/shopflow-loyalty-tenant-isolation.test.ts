@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@multisystem/database'
 import { Buffer } from 'node:buffer'
+import { randomUUID } from 'node:crypto'
 
 import './setup'
 
@@ -41,6 +42,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
   let acmeOwnerToken: string
   let betaOwnerToken: string
+  let betaOwnerUserId: string
 
   let acmeOriginalPointsPerDollar: number
   let betaOriginalPointsPerDollar: number
@@ -60,6 +62,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     const acmeOwnerUser = await prisma.user.findUnique({ where: { email: 'gerente@acme.com' } })
     const betaOwnerUser = await prisma.user.findUnique({ where: { email: 'gerente@betacorp.com' } })
     if (!acmeOwnerUser || !betaOwnerUser) throw new Error('Missing seeded shopflow users')
+    betaOwnerUserId = betaOwnerUser.id
 
     acmeOwnerToken = generateToken({
       id: acmeOwnerUser.id,
@@ -144,6 +147,33 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     expect(res.statusCode).toBe(404)
     expect(json.message).toBe('Cliente no encontrado')
+  })
+
+  it('Cross-tenant award points is rejected as customer not found', async () => {
+    const { res, json } = await injectJson(app, {
+      method: 'POST',
+      url: '/api/shopflow/loyalty/points/award',
+      headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
+      payload: {
+        customerId: betaCustomerId,
+        purchaseAmount: 150,
+        saleId: randomUUID(),
+      },
+    })
+
+    expect(res.statusCode).toBe(404)
+    expect(json.message).toBe('Cliente no encontrado')
+  })
+
+  it('Cross-tenant user preferences access is forbidden', async () => {
+    const { res, json } = await injectJson(app, {
+      method: 'GET',
+      url: `/api/shopflow/user-preferences/${betaOwnerUserId}`,
+      headers: { Authorization: `Bearer ${acmeOwnerToken}` },
+    })
+
+    expect(res.statusCode).toBe(403)
+    expect(json.message).toBe('No tienes acceso a las preferencias de este usuario')
   })
 })
 

@@ -6,6 +6,10 @@ import { CustomerRepository } from './customer.repository.js'
 import { CategoryRepository } from './category.repository.js'
 import { SupplierRepository } from './supplier.repository.js'
 import { StoreInventoryRepository } from './store-inventory.repository.js'
+import { UsersRepository } from './users.repository.js'
+import { CompanyMemberRepository } from './company-member.repository.js'
+import { SalesRepository } from './sales.repository.js'
+import { LoyaltyRepository } from './loyalty.repository.js'
 
 export { ProductRepository, type ProductRow, type ProductSearchQuery, type ProductCreateInput, type ProductUpdateInput } from './product.repository.js'
 export { StoreRepository, type StoreRow, type StoreCreateInput } from './store.repository.js'
@@ -13,6 +17,10 @@ export { CustomerRepository, type CustomerRow } from './customer.repository.js'
 export { CategoryRepository, type CategoryRow } from './category.repository.js'
 export { SupplierRepository, type SupplierRow } from './supplier.repository.js'
 export { StoreInventoryRepository, type StoreInventoryRow } from './store-inventory.repository.js'
+export { UsersRepository, USER_SELECT, type UserRow } from './users.repository.js'
+export { CompanyMemberRepository } from './company-member.repository.js'
+export { SalesRepository } from './sales.repository.js'
+export { LoyaltyRepository } from './loyalty.repository.js'
 
 export type Repositories = {
   products: ProductRepository
@@ -21,6 +29,10 @@ export type Repositories = {
   categories: CategoryRepository
   suppliers: SupplierRepository
   inventory: StoreInventoryRepository
+  users: UsersRepository
+  companyMembers: CompanyMemberRepository
+  sales: SalesRepository
+  loyalty: LoyaltyRepository
 }
 
 /**
@@ -37,5 +49,9 @@ export function createRepositories(tenantId: string, db?: PrismaClient): Reposit
     categories: new CategoryRepository(client, tenantId),
     suppliers: new SupplierRepository(client, tenantId),
     inventory: new StoreInventoryRepository(client, tenantId),
+    users: new UsersRepository(client, tenantId),
+    companyMembers: new CompanyMemberRepository(client, tenantId),
+    sales: new SalesRepository(client, tenantId),
+    loyalty: new LoyaltyRepository(client, tenantId),
   }
 }

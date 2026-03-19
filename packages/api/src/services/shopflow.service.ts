@@ -4,13 +4,13 @@ import { canManageMembers } from '../core/permissions.js'
 import * as productsService from './products.service.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
 import { parsePagination } from '../common/database/index.js'
+import { createRepositories } from '../repositories/index.js'
 
 async function canAccessUserPreferences(callerId: string, callerIsSuperuser: boolean, companyId: string, callerMembershipRole: string | null, targetUserId: string): Promise<boolean> {
   if (callerId === targetUserId) return true
   if (callerIsSuperuser) return true
   if (!canManageMembers({ membershipRole: callerMembershipRole ?? undefined, isSuperuser: callerIsSuperuser })) return false
-  const member = await prisma.companyMember.findFirst({ where: { companyId, userId: targetUserId } })
-  return member != null
+  return createRepositories(companyId).companyMembers.existsUserMembership(targetUserId)
 }
 
 export async function listProducts(ctx: CompanyContext, query: Record<string, string | undefined>) {
@@ -295,10 +295,7 @@ export async function updateTicketConfig(ctx: CompanyContext, storeId: string | 
 const num = (v: unknown) => (v == null ? 0 : typeof v === 'object' && 'toNumber' in (v as object) ? (v as { toNumber: () => number }).toNumber() : Number(v))
 
 export async function getLoyaltyConfig(ctx: CompanyContext) {
-  const config = await prisma.loyaltyConfig.findFirst({
-    where: { companyId: ctx.companyId, isActive: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const config = await createRepositories(ctx.companyId).loyalty.findActiveConfig()
   if (!config) {
     return { pointsPerDollar: 1.0, redemptionRate: 0.01, pointsExpireMonths: undefined as number | undefined, minPurchaseForPoints: 0, maxPointsPerPurchase: undefined as number | undefined }
   }
@@ -312,10 +309,8 @@ export async function getLoyaltyConfig(ctx: CompanyContext) {
 }
 
 export async function updateLoyaltyConfig(ctx: CompanyContext, body: Record<string, unknown>) {
-  const current = await prisma.loyaltyConfig.findFirst({
-    where: { companyId: ctx.companyId, isActive: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const current = await repos.loyalty.findActiveConfig()
   const cur = current
     ? {
         pointsPerDollar: Number(current.pointsPerDollar),
@@ -325,21 +320,14 @@ export async function updateLoyaltyConfig(ctx: CompanyContext, body: Record<stri
         maxPointsPerPurchase: current.maxPointsPerPurchase,
       }
     : { pointsPerDollar: 1.0, redemptionRate: 0.01, pointsExpireMonths: null as number | null, minPurchaseForPoints: 0, maxPointsPerPurchase: null as number | null }
-  const newConfig = await prisma.loyaltyConfig.create({
-    data: {
-      companyId: ctx.companyId,
-      pointsPerDollar: (body.pointsPerDollar as number) ?? cur.pointsPerDollar,
-      redemptionRate: (body.redemptionRate as number) ?? cur.redemptionRate,
-      pointsExpireMonths: (body.pointsExpireMonths as number) ?? cur.pointsExpireMonths,
-      minPurchaseForPoints: (body.minPurchaseForPoints as number) ?? cur.minPurchaseForPoints,
-      maxPointsPerPurchase: (body.maxPointsPerPurchase as number) ?? cur.maxPointsPerPurchase,
-      isActive: true,
-    },
+  const newConfig = await repos.loyalty.createConfig({
+    pointsPerDollar: (body.pointsPerDollar as number) ?? cur.pointsPerDollar,
+    redemptionRate: (body.redemptionRate as number) ?? cur.redemptionRate,
+    pointsExpireMonths: (body.pointsExpireMonths as number) ?? cur.pointsExpireMonths,
+    minPurchaseForPoints: (body.minPurchaseForPoints as number) ?? cur.minPurchaseForPoints,
+    maxPointsPerPurchase: (body.maxPointsPerPurchase as number) ?? cur.maxPointsPerPurchase,
   })
-  await prisma.loyaltyConfig.updateMany({
-    where: { companyId: ctx.companyId, id: { not: newConfig.id }, isActive: true },
-    data: { isActive: false },
-  })
+  await repos.loyalty.deactivateOtherActiveConfigs(newConfig.id)
   return {
     pointsPerDollar: num(newConfig.pointsPerDollar),
     redemptionRate: num(newConfig.redemptionRate),
@@ -350,16 +338,11 @@ export async function updateLoyaltyConfig(ctx: CompanyContext, body: Record<stri
 }
 
 export async function getCustomerPoints(ctx: CompanyContext, customerId: string) {
-  const customer = await prisma.customer.findFirst({
-    where: { id: customerId, companyId: ctx.companyId },
-    select: { id: true, name: true },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const customer = await repos.customers.findById(customerId)
   if (!customer) throw new NotFoundError('Cliente no encontrado')
 
-  const transactions = await prisma.loyaltyPoint.findMany({
-    where: { companyId: ctx.companyId, customerId },
-    orderBy: { createdAt: 'desc' },
-  })
+  const transactions = await repos.loyalty.findTransactionsByCustomerId(customerId)
   const now = new Date()
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
   let totalPoints = 0
@@ -379,10 +362,11 @@ export async function getCustomerPoints(ctx: CompanyContext, customerId: string)
 }
 
 export async function awardLoyaltyPoints(ctx: CompanyContext, body: { customerId: string; purchaseAmount: number; saleId: string }) {
-  const config = await prisma.loyaltyConfig.findFirst({
-    where: { companyId: ctx.companyId, isActive: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const repos = createRepositories(ctx.companyId)
+  const customer = await repos.customers.findById(body.customerId)
+  if (!customer) throw new NotFoundError('Cliente no encontrado')
+
+  const config = await repos.loyalty.findActiveConfig()
   if (!config) return { pointsAwarded: 0 }
   const minPurchase = num(config.minPurchaseForPoints) || 0
   if (body.purchaseAmount < minPurchase) return { pointsAwarded: 0 }
@@ -397,16 +381,12 @@ export async function awardLoyaltyPoints(ctx: CompanyContext, body: { customerId
     expiresAt = new Date()
     expiresAt.setMonth(expiresAt.getMonth() + num(config.pointsExpireMonths))
   }
-  const transaction = await prisma.loyaltyPoint.create({
-    data: {
-      companyId: ctx.companyId,
-      customerId: body.customerId,
-      type: 'EARNED',
-      points: pointsToAward,
-      description: `Points earned from purchase #${body.saleId}`,
-      saleId: body.saleId,
-      expiresAt,
-    },
+  const transaction = await repos.loyalty.createEarnedPoints({
+    customerId: body.customerId,
+    points: pointsToAward,
+    description: `Points earned from purchase #${body.saleId}`,
+    saleId: body.saleId,
+    expiresAt,
   })
   return { pointsAwarded: Number(transaction.points) }
 }
