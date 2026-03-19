@@ -24,7 +24,7 @@ Applies a strict workflow for plan-based work in this repository.
 - Create plan branches from `Test`.
 - Use branch naming format: `plan/<plan-slug>`.
 - At plan completion, ask confirmation before running commit/push.
-- At plan completion, rename the plan file to include `[completed]` prefix.
+- At plan completion, rename the repository plan document under `docs/plans/` to include `[completed]` prefix.
 - Run merge only when the user explicitly requests it.
 - Do not run destructive git operations.
 - Do not modify git configuration.
@@ -55,6 +55,7 @@ If the branch already exists, ask whether to reuse it or create a new slug.
 When user indicates completion (examples: "finish", "finished", "completed"), follow:
 
 1. Ensure the plan document filename is prefixed with `[completed]` (for example: `[completed] PLAN-3-unify-apiclient.md`).
+   - This rename is applied to the repository plan markdown under `docs/plans/` (not the local Cursor plan file under `.cursor/plans/`).
 2. Review changes:
    - `git status`
    - `git diff` (and staged diff if needed)
