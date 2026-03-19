@@ -25,6 +25,7 @@ import { tenantPlugin } from './plugins/tenant/tenant.plugin.js'
 import { shopflowPlugin } from './plugins/shopflow/shopflow.plugin.js'
 import { workifyPlugin } from './plugins/workify/workify.plugin.js'
 import { techservicesPlugin } from './plugins/techservices/techservices.plugin.js'
+import { getConfig, type AppConfig } from './core/config.js'
 
 const __dirname = __dirnameApi
 const fastify = Fastify({ logger: true })
@@ -36,7 +37,9 @@ async function start() {
     await fastify.register(envPlugin, { entryDir: __dirname })
 
     // Obtener configuración validada (disponible después de registrar @fastify/env)
-    const config = getValidatedConfig(fastify)
+    // Under Vitest we may import/boot the app without an active Fastify "ready" cycle.
+    // Fall back to the process.env-backed config helper so integration tests can boot.
+    const config = (getValidatedConfig(fastify) as AppConfig | undefined) ?? getConfig()
 
     const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
     const deployed =
