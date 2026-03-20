@@ -83,6 +83,24 @@ function headersFromFastify(headers: Record<string, string | string[] | undefine
   return out
 }
 
+function ensureCorsHeaders(request: FetchRequest, headers: Headers): Headers {
+  const origin = request.headers.get('origin')
+  if (!origin) return headers
+
+  if (!headers.has('access-control-allow-origin')) {
+    headers.set('access-control-allow-origin', origin)
+  }
+  if (!headers.has('access-control-allow-credentials')) {
+    headers.set('access-control-allow-credentials', 'true')
+  }
+  if (!headers.has('vary')) {
+    headers.set('vary', 'Origin')
+  } else if (!headers.get('vary')?.toLowerCase().includes('origin')) {
+    headers.set('vary', `${headers.get('vary')}, Origin`)
+  }
+  return headers
+}
+
 export default {
   async fetch(request: FetchRequest): Promise<Response> {
     try {
@@ -109,21 +127,23 @@ export default {
       const status = response.statusCode
       const statusDisallowsBody = status === 204 || status === 205 || status === 304
       const bodyOut = statusDisallowsBody ? undefined : (response.body ?? undefined)
+      const responseHeaders = ensureCorsHeaders(request, headersFromFastify(response.headers))
       return new Response(bodyOut, {
         status,
-        headers: headersFromFastify(response.headers)
+        headers: responseHeaders
       })
     } catch (err: unknown) {
       console.error('[api]', err)
       const message = err instanceof Error ? err.message : String(err)
       // Startup/load failures (e.g. missing env, failed import) -> 503 so client knows service is unavailable
       const status = message && /required|failed|cannot find|ENOENT|MODULE_NOT_FOUND/i.test(message) ? 503 : 500
+      const errorHeaders = ensureCorsHeaders(request, new Headers({ 'Content-Type': 'application/json' }))
       return new Response(
         JSON.stringify({
           error: status === 503 ? 'Service Unavailable' : 'Internal Server Error',
           message: process.env.VERCEL ? message : undefined
         }),
-        { status, headers: { 'Content-Type': 'application/json' } }
+        { status, headers: errorHeaders }
       )
     }
   }
