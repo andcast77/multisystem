@@ -5,9 +5,11 @@ import { PrismaNeon } from '@prisma/adapter-neon'
 import { neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import bcrypt from 'bcryptjs'
+import { resolveDbUrls } from '../scripts/db-target-env'
 
-// Choose adapter based on DB URL. Local Postgres should use PrismaPg.
-const connectionString = process.env.DATABASE_URL!
+// Resolve URL from DB_TARGET so commands never cross local/prod boundaries.
+const { databaseUrl: connectionString } = resolveDbUrls()
+process.env.DATABASE_URL = connectionString
 const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
 
 const adapter = isLocal ? new PrismaPg({ connectionString }) : new PrismaNeon({ connectionString })
