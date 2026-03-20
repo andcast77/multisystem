@@ -1,34 +1,12 @@
-import { Link, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Hero } from "@/components/Hero";
 import { ModuleCard } from "@/components/ModuleCard";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
 import { ShoppingCart, Users, Wrench, Settings } from "lucide-react";
-import { hasApiSession } from "@/lib/auth";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export function LandingPage() {
-  const [session, setSession] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    hasApiSession(API_URL).then(setSession);
-  }, []);
-
-  if (session === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 text-sm">
-        Cargando…
-      </div>
-    );
-  }
-
-  if (session) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
     <>
       <div className="min-h-screen flex flex-col">
