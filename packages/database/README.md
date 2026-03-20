@@ -55,34 +55,59 @@ const users = await prisma.user.findMany()
 |--------|-------------|
 | `pnpm build` | `prisma generate` → copia a `generated/` → `tsc` → ajuste extensiones ESM |
 | `pnpm generate` | Solo Prisma Client |
-| `pnpm migrate:dev` | Crear/aplicar migraciones en desarrollo |
-| `pnpm migrate:deploy` | Aplicar migraciones pendientes (CI/prod) |
-| `pnpm migrate:deploy:dev` / `migrate:deploy:prod` | `migrate deploy` con `MIGRATE_TARGET` para elegir URL vía `prisma.config.ts` |
-| `pnpm db:push` | Empuja schema sin migración (solo dev) |
-| `pnpm db:seed` | Seed (`tsx prisma/seed.ts`) |
-| `pnpm studio` | Prisma Studio |
+| `pnpm migrate` / `pnpm migrate:deploy` | Migra en **producción (Neon)** |
+| `pnpm migrate:dev` / `pnpm migrate:deploy:dev` | Migra en **local (Docker)** |
+| `pnpm db:push` / `pnpm db:push:dev` | `db push` en prod o local según sufijo |
+| `pnpm db:seed` / `pnpm db:seed:dev` | Seed en prod o local según sufijo |
+| `pnpm db:reset` / `pnpm db:reset:dev` | Reset destructivo en prod o local según sufijo |
+| `pnpm db:erase` / `pnpm db:erase:dev` | Alias de reset destructivo por entorno |
+| `pnpm studio` / `pnpm studio:dev` | Prisma Studio en prod o local según sufijo |
 
 ## Variables de entorno
 
-Colocar `.env` en **`packages/database/`** (migraciones/seed/studio) y/o la misma **`DATABASE_URL`** en **`packages/api/.env`** para la API.
+Colocar `.env` en **`packages/database/`** (migraciones/seed/studio).
 
-**PostgreSQL local (Docker):** suele bastar:
+Contrato de entorno:
+- Comando estándar (sin `:dev`) => **producción (Neon)**
+- Comando `:dev` => **local Docker**
 
-```bash
-DATABASE_URL=postgresql://multisystem:multisystem@localhost:5432/multisystem
-```
-
-**Neon (recomendado en cloud):**
+Variables requeridas:
 
 ```bash
-# Pooled — runtime API y cliente Prisma en serverless
+# Local (Docker) - usado por comandos :dev
+DATABASE_URL_DEV=postgresql://multisystem:multisystem@localhost:5432/multisystem
+
+# Producción (Neon) - usado por comandos estándar
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require
-
-# Directa — migraciones, Studio (host sin -pooler)
-DIRECT_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
 ```
 
-- **`prisma.config.ts`** usa `DATABASE_URL`, `DIRECT_URL` y opcionalmente **`DATABASE_URL_ENV`**, **`MIGRATE_TARGET=production`** (prioriza `DIRECT_URL` para migrar contra prod) y **`SHADOW_DATABASE_URL`** (diff/migrate; en local puede derivarse a `…/multisystem_shadow`).
+Opcionales:
+- `SHADOW_DATABASE_URL_DEV`
+- `SHADOW_DATABASE_URL`
+- `DB_TARGET` (`prod` por defecto; usar `dev` para forzar target local en scripts compatibles)
+- `NODE_ENV` (solo afecta nivel de logs del Prisma client)
+
+La API puede seguir usando su `DATABASE_URL` propia para runtime; este paquete define su propio ruteo por comandos.
+
+### Mapeo Vercel Postgres -> variables del proyecto
+
+Cuando Vercel/Neon provea variables `POSTGRES_*`, mapearlas a las variables usadas en este repo:
+
+```bash
+# Runtime (pooled)
+DATABASE_URL=$POSTGRES_URL
+# Alternativa válida de Vercel para Prisma runtime
+# DATABASE_URL=$POSTGRES_PRISMA_URL
+```
+
+Si existen `POSTGRES_URL` y `POSTGRES_PRISMA_URL`, priorizar uno de forma consistente por entorno (recomendado: `POSTGRES_URL`) y evitar mezclar ambos en el mismo servicio.
+
+## Seguridad de credenciales
+
+Si una credencial de producción fue compartida por chat, ticket, commit o captura, considerarla comprometida:
+- Rotar inmediatamente contraseña/connection string en Neon.
+- Actualizar secretos en Vercel (y cualquier otro proveedor) con los nuevos valores.
+- Invalidar y eliminar valores antiguos en variables de entorno y documentación temporal.
 
 `pnpm generate` no necesita BD. Migrate/seed/studio sí. [Neon Console](https://console.neon.tech) → Connect para ambas URLs.
 
@@ -130,11 +155,15 @@ El seed incluye:
 ## Migraciones
 
 ```bash
+# Local Docker (desarrollo)
 pnpm --filter @multisystem/database migrate:dev -- --name nombre_migracion
+
+# Producción Neon (despliegue)
+pnpm --filter @multisystem/database migrate
+
+# Regenerar cliente
 pnpm --filter @multisystem/database generate
 ```
-
-En despliegue: `pnpm --filter @multisystem/database migrate:deploy`.
 
 ## Referencias
 

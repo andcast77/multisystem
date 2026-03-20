@@ -134,6 +134,17 @@ JWT_EXPIRES_IN=7d
 # Opcional: caché (Upstash Redis), p. ej. módulos por empresa. Sin Redis, no hay caché (siempre BD).
 # UPSTASH_REDIS_REST_URL=
 # UPSTASH_REDIS_REST_TOKEN=
+
+# Opcional: feature flags
+# ENABLE_API_DOCS=false
+# AUTH_SESSION_INSECURE=0
+
+# Variables de plataforma/test (normalmente las define el entorno)
+# VERCEL=1
+# VITEST=true
+
+# Legacy opcional (no usado por runtime actual)
+# DATABASE_API_URL=
 ```
 
 ### Variables para Render
@@ -180,11 +191,11 @@ pnpm test:coverage
 1. **Root Directory**: deja **Root Directory** = `packages/api` en el proyecto de Vercel.
 2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run build:api`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
 3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
-4. Variables de entorno en Vercel: `DATABASE_URL`, `JWT_SECRET` (producción) y opcionalmente `CORS_ORIGIN`.
+4. Variables de entorno en Vercel: `DATABASE_URL` (pooled runtime), `JWT_SECRET` (producción), `CORS_ORIGIN` y opcionalmente `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
 
 ### Render.com
 
-Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace (p. ej. `pnpm install` y build del paquete API). **Health check:** `GET /health`. Variables: `DATABASE_URL`, `JWT_SECRET`, etc. (ver `.env.render.example`).
+Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace (p. ej. `pnpm install` y build del paquete API). **Health check:** `GET /health`. Variables mínimas: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV` y `CORS_ORIGIN` (ver `.env.render.example`).
 
 ## 📝 Notas
 

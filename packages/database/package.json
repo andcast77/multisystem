@@ -22,16 +22,24 @@
   "scripts": {
     "build": "prisma generate && node scripts/copy-generated-for-tsc.mjs && tsc -p tsconfig.build.json && node scripts/fix-esm-extensions.mjs",
     "generate": "prisma generate",
-    "migrate:dev": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "migrate:deploy:dev": "cross-env MIGRATE_TARGET=development prisma migrate deploy",
-    "migrate:deploy:prod": "cross-env MIGRATE_TARGET=production prisma migrate deploy",
-    "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "studio": "prisma studio"
+    "migrate": "cross-env DB_TARGET=prod prisma migrate deploy",
+    "migrate:dev": "cross-env DB_TARGET=dev prisma migrate dev",
+    "migrate:deploy": "cross-env DB_TARGET=prod prisma migrate deploy",
+    "migrate:deploy:dev": "cross-env DB_TARGET=dev prisma migrate deploy",
+    "migrate:deploy:prod": "pnpm migrate:deploy",
+    "db:push": "cross-env DB_TARGET=prod prisma db push",
+    "db:push:dev": "cross-env DB_TARGET=dev prisma db push",
+    "db:seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts",
+    "db:seed:dev": "cross-env DB_TARGET=dev tsx prisma/seed.ts",
+    "db:reset": "cross-env DB_TARGET=prod prisma migrate reset --force",
+    "db:reset:dev": "cross-env DB_TARGET=dev prisma migrate reset --force",
+    "db:erase": "pnpm db:reset",
+    "db:erase:dev": "pnpm db:reset:dev",
+    "studio": "cross-env DB_TARGET=prod prisma studio",
+    "studio:dev": "cross-env DB_TARGET=dev prisma studio"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.3.0",
@@ -46,11 +54,11 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^25.2.3",
     "@types/nodemailer": "^7.0.11",
     "@types/ws": "^8.18.1",
+    "cross-env": "^7.0.3",
     "prisma": "^7.3.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
