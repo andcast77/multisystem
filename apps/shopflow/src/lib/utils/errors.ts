@@ -9,29 +9,38 @@ export class ApiError extends Error {
   }
 }
 
-export function handleError(error: unknown): Response {
+interface ErrorEnvelope {
+  success: false
+  message: string
+  code?: string
+  details?: unknown
+}
+
+export function toErrorResponse(error: unknown): { status: number; body: ErrorEnvelope } {
   if (error instanceof ApiError) {
-    return Response.json(
-      {
-        error: error.message,
+    return {
+      status: error.statusCode,
+      body: {
+        success: false,
+        message: error.message,
         code: error.code,
       },
-      { status: error.statusCode }
-    )
+    }
   }
 
   // Log unexpected errors in development
-  if (process.env.NODE_ENV === 'development') {
+  if ((import.meta as any).env?.DEV === true) {
     console.error('Unexpected error:', error)
   }
 
-  return Response.json(
-    {
-      error: 'Internal server error',
+  return {
+    status: 500,
+    body: {
+      success: false,
+      message: 'Internal server error',
       code: 'INTERNAL_ERROR',
     },
-    { status: 500 }
-  )
+  }
 }
 
 // Common error codes

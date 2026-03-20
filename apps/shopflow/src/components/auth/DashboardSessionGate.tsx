@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { authApi } from '@/lib/api/client'
 
 /**
  * Ensures user has API session before showing dashboard. httpOnly cookie is not visible to middleware.
  */
 export function DashboardSessionGate({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -19,13 +19,13 @@ export function DashboardSessionGate({ children }: { children: React.ReactNode }
         await authApi.get('/me')
         if (!cancelled) setReady(true)
       } catch {
-        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(pathname || '/dashboard')}`)
+        if (!cancelled) navigate(`/login?next=${encodeURIComponent(location.pathname || '/dashboard')}`, { replace: true })
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [router, pathname])
+  }, [navigate, location.pathname])
 
   if (!ready) {
     return (

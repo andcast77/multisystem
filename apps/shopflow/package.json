@@ -14,10 +14,10 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@multisystem/contracts": "workspace:*",
     "@multisystem/shared": "workspace:*",
     "@multisystem/ui": "workspace:*",
-    "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.90.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -25,7 +25,6 @@
     "exceljs": "^4.4.0",
     "jspdf": "^4.1.0",
     "lucide-react": "^0.564.0",
-    "next-intl": "^4.8.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.71.1",
@@ -37,15 +36,17 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.39.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/parser": "^8.57.1",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.24",
     "eslint": "^9.0.0",
-    "eslint-config-next": "16.1.6",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.6",

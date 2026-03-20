@@ -1,11 +1,11 @@
 import { ApiClient as SharedApiClient } from '@multisystem/shared'
+import type { MeResponse } from '@multisystem/contracts'
 
 // API Client for ShopFlow Frontend
 // Points to unified API with module prefixes (all requests go to external API, not Next.js routes)
 
 const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
-const legacyNextApiUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined
-export const API_URL = viteApiUrl || legacyNextApiUrl || 'http://localhost:3000'
+export const API_URL = viteApiUrl || 'http://localhost:3000'
 
 /** Current store ID for X-Store-Id header (set by StoreContext). */
 declare global {
@@ -60,7 +60,9 @@ export const authApi = {
   get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/api/auth${endpoint}`, options),
   post: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.post<T>(`/api/auth${endpoint}`, data, options),
   put: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.put<T>(`/api/auth${endpoint}`, data, options),
-  delete: <T>(endpoint: string, options?: RequestInit) => apiClient.delete<T>(`/api/auth${endpoint}`, options),
+  delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    apiClient.delete<T>(`/api/auth${endpoint}`, data, options),
+  me: () => apiClient.get<MeResponse>('/api/auth/me'),
 }
 
 // Company members API (usuarios de la empresa - misma lista en Workify y Shopflow)
@@ -82,16 +84,22 @@ export const companiesApi = {
 }
 
 // Generic API response types
-export interface ApiResponse<T> {
-  data: T
-  message?: string
-  success: boolean
-}
-
-/** Result type for endpoints that return { success, data? } or { success: false, error } */
 export type ApiResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string; data?: T }
+  | {
+      success: true
+      data: T
+      message?: string
+      code?: string
+      details?: unknown
+    }
+  | {
+      success: false
+      error?: string
+      message?: string
+      code?: string
+      details?: unknown
+      data?: T
+    }
 
 export interface PaginatedResponse<T> {
   data: T[]

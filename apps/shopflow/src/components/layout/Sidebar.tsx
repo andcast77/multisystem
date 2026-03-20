@@ -24,7 +24,7 @@ import {
   BarChart,
   Tags,
 } from 'lucide-react'
-import { Sidebar as SidebarComponent, type NavGroup, type SidebarUser } from '@multisystem/ui'
+import { Sidebar as SidebarComponent } from '@multisystem/ui'
 import {
   Select,
   SelectContent,
@@ -34,7 +34,9 @@ import {
 } from '@multisystem/ui'
 
 // Navigation groups - Only add routes that actually exist!
-const navGroups: NavGroup[] = [
+type SidebarProps = React.ComponentProps<typeof SidebarComponent>
+
+const navGroups: SidebarProps['navGroups'] = [
   {
     title: 'Principal',
     items: [
@@ -160,7 +162,7 @@ export function Sidebar() {
     return useModuleAccess(module as Module)
   }
 
-  const sidebarUser: SidebarUser | undefined = user
+  const sidebarUser: SidebarProps['user'] = user
     ? {
         name: user.name,
         email: user.email,
