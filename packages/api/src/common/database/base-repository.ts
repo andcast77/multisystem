@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@multisystem/database'
+import type { TransactionClient } from './unit-of-work.js'
 import { parsePagination, paginatedResult, type PaginationParams, type PaginatedResult } from './pagination.js'
 
 /**
@@ -8,7 +9,7 @@ import { parsePagination, paginatedResult, type PaginationParams, type Paginated
  */
 export abstract class TenantScopedRepository {
   constructor(
-    protected readonly db: PrismaClient,
+    protected readonly db: PrismaClient | TransactionClient,
     protected readonly tenantId: string,
   ) {}
 
