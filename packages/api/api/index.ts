@@ -88,9 +88,8 @@ export default {
     try {
       const app = await getApp()
       const url = new URL(request.url)
-      // Rewrite sends to /api/:path so pathname is /api/health or /api/api/docs; strip /api prefix for Fastify
-      const pathname = url.pathname.replace(/^\/api/, '') || '/'
-      const path = pathname + url.search
+      // Keep pathname as-is. Fastify routes are defined with `/api/...` prefixes.
+      const path = (url.pathname || '/') + url.search
       const headers: Record<string, string> = {}
       const reqHeaders = request.headers as unknown as { entries(): IterableIterator<[string, string]> }
       for (const [key, value] of reqHeaders.entries()) {
