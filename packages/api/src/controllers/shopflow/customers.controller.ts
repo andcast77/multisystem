@@ -5,7 +5,20 @@ import { ok } from '../../common/api-response.js'
 import * as shopflowService from '../../services/shopflow.service.js'
 import { getCtx, handle, pre } from './_shared.js'
 
-async function listCustomers(request: FastifyRequest<{ Querystring: { search?: string; email?: string; phone?: string } }>, reply: FastifyReply) {
+async function listCustomers(
+  request: FastifyRequest<{
+    Querystring: {
+      search?: string
+      email?: string
+      phone?: string
+      page?: string
+      limit?: string
+      sortBy?: string
+      sortOrder?: string
+    }
+  }>,
+  reply: FastifyReply
+) {
   const ctx = getCtx(request, true)
   const data = await shopflowService.listCustomers(ctx, request.query)
   return ok(data)

@@ -3,6 +3,7 @@ import type { CompanyContext } from '../core/auth-context.js'
 import { getCompanyModules } from '../core/modules.js'
 import * as workOrdersService from './work-orders.service.js'
 import * as techservicesHelper from '../helpers/techservices.helper.js'
+import { parsePagination } from '../common/database/index.js'
 import type {
   WorkOrderListQuery,
   WorkOrderCreateBody,
@@ -72,6 +73,7 @@ export async function updateWorkOrder(ctx: CompanyContext, id: string, body: Wor
 // ----- Assets -----
 
 export async function listAssets(ctx: CompanyContext, query: AssetListQuery) {
+  const { page, limit, skip } = parsePagination(query)
   const where: Prisma.TechnicalAssetWhereInput = { companyId: ctx.companyId }
   if (query.active === 'true') where.isActive = true
   else if (query.active === 'false') where.isActive = false
@@ -87,11 +89,19 @@ export async function listAssets(ctx: CompanyContext, query: AssetListQuery) {
       { model: { contains: term, mode: 'insensitive' } },
     ]
   }
-  const rows = await prisma.technicalAsset.findMany({
-    where,
-    orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
-  })
-  return rows.map((r) => techservicesHelper.toAssetResponse(r as techservicesHelper.AssetEntity))
+  const [total, rows] = await Promise.all([
+    prisma.technicalAsset.count({ where }),
+    prisma.technicalAsset.findMany({
+      where,
+      orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+      skip,
+      take: limit,
+    }),
+  ])
+  return {
+    items: rows.map((r) => techservicesHelper.toAssetResponse(r as techservicesHelper.AssetEntity)),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
 }
 
 export async function getAssetById(ctx: CompanyContext, id: string) {
@@ -137,11 +147,15 @@ export async function updateAsset(ctx: CompanyContext, id: string, body: AssetUp
 
   if (Object.keys(data).length === 0) return getAssetById(ctx, id)
 
-  const row = await prisma.technicalAsset.update({
-    where: { id },
+  const updated = await prisma.technicalAsset.updateMany({
+    where: { id, companyId: ctx.companyId },
     data,
   })
-  return techservicesHelper.toAssetResponse(row as techservicesHelper.AssetEntity)
+  if (updated.count === 0) return null
+  const row = await prisma.technicalAsset.findFirst({
+    where: { id, companyId: ctx.companyId },
+  })
+  return row ? techservicesHelper.toAssetResponse(row as techservicesHelper.AssetEntity) : null
 }
 
 export async function deleteAsset(ctx: CompanyContext, id: string) {
@@ -202,7 +216,11 @@ export async function updatePart(ctx: CompanyContext, partId: string, body: Part
   if (body.notes !== undefined) data.notes = body.notes
   if (Object.keys(data).length === 0) return { updated: true }
 
-  await prisma.workOrderPart.update({ where: { id: partId }, data })
+  const updated = await prisma.workOrderPart.updateMany({
+    where: { id: partId, workOrder: { companyId: ctx.companyId } },
+    data,
+  })
+  if (updated.count === 0) return null
   return { updated: true }
 }
 
@@ -211,8 +229,10 @@ export async function deletePart(ctx: CompanyContext, partId: string) {
     where: { id: partId, workOrder: { companyId: ctx.companyId } },
   })
   if (!existing) return false
-  await prisma.workOrderPart.delete({ where: { id: partId } })
-  return true
+  const deleted = await prisma.workOrderPart.deleteMany({
+    where: { id: partId, workOrder: { companyId: ctx.companyId } },
+  })
+  return deleted.count > 0
 }
 
 // ----- Visits -----
@@ -291,7 +311,11 @@ export async function updateVisit(ctx: CompanyContext, visitId: string, body: Vi
   if (body.notes !== undefined) data.notes = body.notes
   if (Object.keys(data).length === 0) return { updated: true }
 
-  await prisma.serviceVisit.update({ where: { id: visitId }, data })
+  const updated = await prisma.serviceVisit.updateMany({
+    where: { id: visitId, workOrder: { companyId: ctx.companyId } },
+    data,
+  })
+  if (updated.count === 0) return null
   return { updated: true }
 }
 
@@ -300,8 +324,10 @@ export async function deleteVisit(ctx: CompanyContext, visitId: string) {
     where: { id: visitId, workOrder: { companyId: ctx.companyId } },
   })
   if (!existing) return false
-  await prisma.serviceVisit.delete({ where: { id: visitId } })
-  return true
+  const deleted = await prisma.serviceVisit.deleteMany({
+    where: { id: visitId, workOrder: { companyId: ctx.companyId } },
+  })
+  return deleted.count > 0
 }
 
 // ----- Me -----

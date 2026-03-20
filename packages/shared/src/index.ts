@@ -1,4 +1,9 @@
-export { getTokenFromCookie, setTokenCookie, clearTokenCookie } from './auth.js'
+export {
+  getTokenFromCookie,
+  setTokenCookie,
+  clearTokenCookie,
+  hasApiSession,
+} from './auth.js'
 export {
   ApiClient,
   ApiError,

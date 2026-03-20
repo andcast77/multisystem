@@ -70,6 +70,7 @@ async function fetchInventoryStats(storeId?: string | null): Promise<{
   lowStockProducts: number
   outOfStockProducts: number
   totalValue: number
+  totalStockUnits: number
   totalRetailValue: number
   products: Array<{
     id: string

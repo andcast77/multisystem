@@ -9,11 +9,17 @@
     "build": "turbo run build",
     "build:hub": "turbo run build --filter=@multisystem/ui --filter=@multisystem/hub",
     "build:api": "turbo run build --filter=@multisystem/api",
+    "knip:hub": "pnpm -C apps/hub exec knip --config knip.jsonc --production --include files",
+    "knip:shopflow": "pnpm -C apps/shopflow exec knip --config knip.jsonc --production --include files",
+    "knip:techservices": "pnpm -C apps/techservices exec knip --config knip.jsonc --production --include files",
+    "knip:workify": "pnpm -C apps/workify exec knip --config knip.jsonc --production --include files",
+    "knip:all": "pnpm run knip:hub && pnpm run knip:shopflow && pnpm run knip:techservices && pnpm run knip:workify",
     "vercel:build": "pnpm install && pnpm exec turbo run build --filter=@multisystem/database && node -e \"const fs=require('fs'); const p='packages/database/dist/generated/prisma/client.js'; if (!fs.existsSync(p)) { console.error('Build verification failed: missing '+p); process.exit(1); }\" && pnpm exec turbo run build --filter=@multisystem/api && mkdir -p packages/api/node_modules/@multisystem && rm -rf packages/api/node_modules/@multisystem/database && cp -r packages/database packages/api/node_modules/@multisystem/database && rm -rf packages/api/node_modules/@multisystem/database/node_modules",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue"
   },
   "devDependencies": {
+    "knip": "^5.88.0",
     "turbo": "^2.8.12",
     "typescript": "^5.9.3"
   }

@@ -1,19 +1,19 @@
 /**
- * Shared cookie-based auth utilities for all frontend apps.
- * Eliminates the duplicated auth.ts across hub, shopflow, workify, techservices.
+ * Auth session lives in httpOnly `ms_session` on the API host (see docs/ADR-auth-token-storage.md).
+ * Use `credentials: 'include'` on API fetches. These helpers only clear legacy JS-readable cookies.
  */
 
-const TOKEN_COOKIE = 'token'
-const MAX_AGE_DAYS = 7
+const LEGACY_TOKEN_COOKIE = 'token'
 
 function isSecureContext(): boolean {
   if (typeof window === 'undefined') return false
   return window.location.protocol === 'https:'
 }
 
+/** @deprecated Session is API httpOnly cookie; do not read JWT from document.cookie. */
 export function getTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null
-  const match = document.cookie.match(new RegExp(`${TOKEN_COOKIE}=([^;]+)`))
+  const match = document.cookie.match(new RegExp(`${LEGACY_TOKEN_COOKIE}=([^;]+)`))
   if (!match) return null
   try {
     return decodeURIComponent(match[1].trim())
@@ -22,15 +22,25 @@ export function getTokenFromCookie(): string | null {
   }
 }
 
-export function setTokenCookie(token: string, maxAgeDays = MAX_AGE_DAYS): void {
-  if (typeof document === 'undefined') return
-  const maxAge = 60 * 60 * 24 * maxAgeDays
-  const secure = isSecureContext() ? '; Secure' : ''
-  document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Strict${secure}`
-}
+/** @deprecated No-op; API sets httpOnly session on login. */
+export function setTokenCookie(_token: string, _maxAgeDays?: number): void {}
 
+/** Clears legacy readable cookie on the app origin after logout / migration. */
 export function clearTokenCookie(): void {
   if (typeof document === 'undefined') return
   const secure = isSecureContext() ? '; Secure' : ''
-  document.cookie = `${TOKEN_COOKIE}=; path=/; max-age=0; SameSite=Strict${secure}`
+  document.cookie = `${LEGACY_TOKEN_COOKIE}=; path=/; max-age=0; SameSite=Strict${secure}`
+}
+
+/** Whether the browser likely has an API session (httpOnly cookie is not readable). */
+export async function hasApiSession(apiBaseUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/api/auth/me`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+    return res.ok
+  } catch {
+    return false
+  }
 }

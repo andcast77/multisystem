@@ -6,7 +6,16 @@ import * as shopflowService from '../../services/shopflow.service.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function listSuppliers(
-  request: FastifyRequest<{ Querystring: { search?: string; active?: string } }>,
+  request: FastifyRequest<{
+    Querystring: {
+      search?: string
+      active?: string
+      page?: string
+      limit?: string
+      sortBy?: string
+      sortOrder?: string
+    }
+  }>,
   reply: FastifyReply
 ) {
   const ctx = getCtx(request, true)

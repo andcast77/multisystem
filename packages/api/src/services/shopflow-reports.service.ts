@@ -1,29 +1,13 @@
 import { Prisma, prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
-import { ForbiddenError, NotFoundError } from '../common/errors/app-error.js'
-
-const STORE_REQUIRED_MSG = 'Envía el parámetro storeId (query) o el header X-Store-Id con el id del local de venta para ver reportes (usuario no administrador)'
+import { NotFoundError } from '../common/errors/app-error.js'
+import { resolveEffectiveStoreIdForScopedUser } from '../policies/shopflow-authorization.policy.js'
 
 export async function resolveEffectiveStoreIdForReport(
   ctx: ShopflowContext,
   queryStoreId?: string
 ): Promise<string | undefined> {
-  const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN' || ctx.isSuperuser
-  if (isStoreAdmin) return queryStoreId ?? undefined
-  const fromCtx = ctx.storeId ?? queryStoreId
-  if (fromCtx) return fromCtx
-
-  const store = await prisma.store.findFirst({
-    where: {
-      companyId: ctx.companyId,
-      active: true,
-      userStores: { some: { userId: ctx.userId } },
-    },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-  })
-  if (!store) throw new ForbiddenError(STORE_REQUIRED_MSG)
-  return store.id
+  return resolveEffectiveStoreIdForScopedUser(ctx, queryStoreId)
 }
 
 function buildDateFilter(startDate?: string, endDate?: string): Prisma.SaleWhereInput['createdAt'] {
@@ -102,7 +86,8 @@ export async function getTopProducts(
   query: { storeId?: string; limit?: string; startDate?: string; endDate?: string; categoryId?: string },
 ) {
   const effectiveStoreId = await resolveEffectiveStoreIdForReport(ctx, query.storeId)
-  const limit = parseInt(query.limit || '10')
+  const requestedLimit = parseInt(query.limit || '10', 10)
+  const limit = Math.min(50, Math.max(1, isNaN(requestedLimit) ? 10 : requestedLimit))
 
   const whereSale: Prisma.SaleWhereInput = { companyId: ctx.companyId, status: 'COMPLETED' }
   if (effectiveStoreId !== undefined) whereSale.storeId = effectiveStoreId
@@ -186,14 +171,26 @@ export async function getInventory(
         LIMIT 10
       `
     ),
-    prisma.$queryRaw<[{ total: bigint; lowStock: bigint; outOfStock: bigint; totalValue: number; totalRetailValue: number }]>(
+    prisma.$queryRaw<
+      [
+        {
+          total: bigint
+          lowStock: bigint
+          outOfStock: bigint
+          totalValue: number
+          totalRetailValue: number
+          totalStockUnits: bigint
+        },
+      ]
+    >(
       Prisma.sql`
         SELECT
           COUNT(DISTINCT p.id)::bigint as total,
           COUNT(DISTINCT CASE WHEN COALESCE(agg.qty, 0) <= COALESCE(agg.min_s, 0) THEN p.id END)::bigint as "lowStock",
           COUNT(DISTINCT CASE WHEN COALESCE(agg.qty, 0) = 0 THEN p.id END)::bigint as "outOfStock",
           COALESCE(SUM(COALESCE(agg.qty, 0) * COALESCE(p.cost, 0))::float8, 0) as "totalValue",
-          COALESCE(SUM(COALESCE(agg.qty, 0) * p.price)::float8, 0) as "totalRetailValue"
+          COALESCE(SUM(COALESCE(agg.qty, 0) * p.price)::float8, 0) as "totalRetailValue",
+          COALESCE(SUM(COALESCE(agg.qty, 0))::int, 0) as "totalStockUnits"
         FROM products p
         LEFT JOIN (
           SELECT "productId", SUM(quantity)::int as qty, MIN("minStock")::int as min_s
@@ -214,6 +211,7 @@ export async function getInventory(
     outOfStockProducts: Number(stats?.outOfStock ?? 0),
     totalValue: stats?.totalValue ?? 0,
     totalRetailValue: stats?.totalRetailValue ?? 0,
+    totalStockUnits: Number(stats?.totalStockUnits ?? 0),
     products: productsRaw.map((p) => ({
       id: p.id,
       name: p.name,

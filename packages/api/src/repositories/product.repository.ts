@@ -12,15 +12,31 @@ export type ProductRow = {
   cost: number | null
   categoryId: string | null
   supplierId: string | null
+  unitId: string | null
+  unit?: {
+    id: string
+    key: string
+    name: string
+    symbol: string | null
+  } | null
   active: boolean
   imageUrl: string | null
   createdAt: Date
   updatedAt: Date
 }
 
+export type UnitRow = {
+  id: string
+  key: string
+  name: string
+  symbol: string | null
+  isActive: boolean
+}
+
 export type ProductSearchQuery = {
   search?: string
   categoryId?: string
+  unitId?: string
   active?: string
   minPrice?: string
   maxPrice?: string
@@ -40,6 +56,7 @@ export type ProductCreateInput = {
   cost?: number | null
   categoryId?: string | null
   supplierId?: string | null
+  unitId?: string | null
   active?: boolean
   imageUrl?: string | null
 }
@@ -53,14 +70,32 @@ function mapRow(p: any): ProductRow {
     companyId: p.companyId,
     price: toNumber(p.price),
     cost: toNumberOrNull(p.cost),
+    unitId: p.unitId ?? null,
+    unit: p.unit ? { id: p.unit.id, key: p.unit.key, name: p.unit.name, symbol: p.unit.symbol ?? null } : null,
   }
 }
 
 export class ProductRepository extends TenantScopedRepository {
+  async listActiveUnits(): Promise<UnitRow[]> {
+    return this.db.unit.findMany({
+      where: { isActive: true },
+      orderBy: [{ name: 'asc' }],
+      select: { id: true, key: true, name: true, symbol: true, isActive: true },
+    })
+  }
+
+  private async ensureValidUnit(unitId: string): Promise<void> {
+    const unit = await this.db.unit.findFirst({
+      where: { id: unitId, isActive: true },
+      select: { id: true },
+    })
+    if (!unit) throw new Error('INVALID_UNIT')
+  }
 
   async findById(id: string): Promise<ProductRow | null> {
     const p = await this.db.product.findFirst({
       where: { ...this.tenantWhere, id },
+      include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
     })
     return p ? mapRow(p) : null
   }
@@ -68,6 +103,7 @@ export class ProductRepository extends TenantScopedRepository {
   async findBySku(sku: string): Promise<ProductRow | null> {
     const p = await this.db.product.findFirst({
       where: { ...this.activeTenantWhere, sku },
+      include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
     })
     return p ? mapRow(p) : null
   }
@@ -75,6 +111,7 @@ export class ProductRepository extends TenantScopedRepository {
   async findByBarcode(barcode: string): Promise<ProductRow | null> {
     const p = await this.db.product.findFirst({
       where: { ...this.activeTenantWhere, barcode },
+      include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
     })
     return p ? mapRow(p) : null
   }
@@ -99,6 +136,7 @@ export class ProductRepository extends TenantScopedRepository {
         orderBy: { [orderByCol]: sortOrder },
         skip,
         take: limit,
+        include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
       }),
     ])
     return this.paginatedResult(products.map(mapRow), total, page, limit)
@@ -109,7 +147,7 @@ export class ProductRepository extends TenantScopedRepository {
       const rows = await this.db.$queryRaw<(ProductRow & { totalStock: number })[]>(
         Prisma.sql`
           SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
-            p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+            p.price::float8, p.cost::float8, p."categoryId", p."supplierId", p."unitId",
             p.active, p."imageUrl", p."createdAt", p."updatedAt",
             COALESCE(SUM(si.quantity), 0)::int as "totalStock"
           FROM products p
@@ -124,7 +162,7 @@ export class ProductRepository extends TenantScopedRepository {
     const rows = await this.db.$queryRaw<(ProductRow & { totalStock: number })[]>(
       Prisma.sql`
         SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
-          p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+          p.price::float8, p.cost::float8, p."categoryId", p."supplierId", p."unitId",
           p.active, p."imageUrl", p."createdAt", p."updatedAt",
           COALESCE(SUM(si.quantity), 0)::int as "totalStock"
         FROM products p
@@ -138,6 +176,7 @@ export class ProductRepository extends TenantScopedRepository {
   }
 
   async create(input: ProductCreateInput): Promise<ProductRow> {
+    if (input.unitId) await this.ensureValidUnit(input.unitId)
     const p = await this.db.product.create({
       data: {
         companyId: this.tenantId,
@@ -149,9 +188,11 @@ export class ProductRepository extends TenantScopedRepository {
         cost: input.cost ?? null,
         categoryId: input.categoryId ?? null,
         supplierId: input.supplierId ?? null,
+        unitId: input.unitId ?? null,
         active: input.active ?? true,
         imageUrl: input.imageUrl ?? null,
       },
+      include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
     })
     return mapRow(p)
   }
@@ -176,13 +217,25 @@ export class ProductRepository extends TenantScopedRepository {
     if (input.supplierId !== undefined) {
       data.supplier = input.supplierId ? { connect: { id: input.supplierId } } : { disconnect: true }
     }
+    if (input.unitId !== undefined) {
+      if (input.unitId) await this.ensureValidUnit(input.unitId)
+      data.unit = input.unitId ? { connect: { id: input.unitId } } : { disconnect: true }
+    }
     if (input.active !== undefined) data.active = input.active
     if (input.imageUrl !== undefined) data.imageUrl = input.imageUrl
 
     if (Object.keys(data).length === 0) return this.findById(id)
 
-    const p = await this.db.product.update({ where: { id }, data })
-    return mapRow(p)
+    const updated = await this.db.product.updateMany({
+      where: { ...this.tenantWhere, id },
+      data,
+    })
+    if (updated.count === 0) return null
+    const p = await this.db.product.findFirst({
+      where: { ...this.tenantWhere, id },
+      include: { unit: { select: { id: true, key: true, name: true, symbol: true } } },
+    })
+    return p ? mapRow(p) : null
   }
 
   async delete(id: string): Promise<boolean> {
@@ -191,8 +244,8 @@ export class ProductRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.product.delete({ where: { id } })
-    return true
+    const deleted = await this.db.product.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
   }
 
   private buildWhere(query: ProductSearchQuery): Prisma.ProductWhereInput {
@@ -206,6 +259,7 @@ export class ProductRepository extends TenantScopedRepository {
       ]
     }
     if (query.categoryId) where.categoryId = query.categoryId
+    if (query.unitId) where.unitId = query.unitId
     if (query.active === 'true') where.active = true
     else if (query.active === 'false') where.active = false
     const minP = query.minPrice ? parseFloat(query.minPrice) : NaN
@@ -247,7 +301,7 @@ export class ProductRepository extends TenantScopedRepository {
       this.db.$queryRaw<ProductRow[]>(
         Prisma.sql`
           SELECT p.id, p."companyId", p.name, p.description, p.sku, p.barcode,
-            p.price::float8, p.cost::float8, p."categoryId", p."supplierId",
+            p.price::float8, p.cost::float8, p."categoryId", p."supplierId", p."unitId",
             p.active, p."imageUrl", p."createdAt", p."updatedAt"
           ${baseQuery}
           ORDER BY ${Prisma.raw(`p."${safeCol}"`)} ${Prisma.raw(direction)}

@@ -1,5 +1,7 @@
 # Plan: Split del schema Prisma por dominio (multi-file)
 
+**Estado:** plan documentado; el schema productivo sigue siendo el archivo único `schema.prisma` hasta ejecutar estos pasos.
+
 El schema actual está en un único archivo `schema.prisma`. Prisma 7 soporta múltiples archivos cuando se indica un directorio en la configuración.
 
 ## Pasos para aplicar el split

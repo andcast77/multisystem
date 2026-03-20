@@ -380,6 +380,21 @@ model Module {
   @@map("modules")
 }
 
+/// Catálogo global de unidades de medida para productos (compartido entre empresas).
+model Unit {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  symbol    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+
+  @@map("units")
+}
+
 /// Relación empresa ↔ módulo: define qué módulos tiene contratados/habilitados una empresa.
 model CompanyModule {
   id        String   @id @default(uuid())
@@ -921,6 +936,7 @@ model Product {
   cost        Decimal? @db.Decimal(10, 2)
   categoryId  String?
   supplierId  String?
+  unitId      String?
   active      Boolean  @default(true)
   imageUrl    String?
   createdAt   DateTime @default(now())
@@ -930,14 +946,17 @@ model Product {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   category         Category?           @relation(fields: [categoryId], references: [id])
   supplier         Supplier?           @relation(fields: [supplierId], references: [id])
+  unit             Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
   saleItems        SaleItem[]
   inventoryTransfers InventoryTransfer[]
   storeInventory   StoreInventory[]
 
   @@unique([companyId, sku])
+  @@unique([id, companyId])
   @@index([companyId])
   @@index([companyId, barcode])
   @@index([categoryId])
+  @@index([unitId])
   @@map("products")
 }
 
@@ -998,6 +1017,7 @@ model Customer {
   loyaltyPoints   LoyaltyPoint[]
 
   @@index([companyId])
+  @@unique([id, companyId])
   @@map("customers")
 }
 
@@ -1020,13 +1040,14 @@ model Sale {
 
   // Relaciones
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customer      Customer?    @relation(fields: [customerId], references: [id])
+  store        Store        @relation(fields: [storeId, companyId], references: [id, companyId], onDelete: Cascade)
+  customer      Customer?    @relation(fields: [customerId, companyId], references: [id, companyId])
   user          User         @relation(fields: [userId], references: [id])
   items         SaleItem[]
   loyaltyPoints LoyaltyPoint[]
 
   @@unique([companyId, invoiceNumber])
+  @@unique([id, companyId])
   @@index([companyId, createdAt(sort: Desc)])
   @@index([companyId, storeId, createdAt(sort: Desc)])
   @@index([customerId])
@@ -1089,8 +1110,11 @@ model Store {
   sales     Sale[]
   userStores UserStore[]
   inventory  StoreInventory[]
+  inventoryTransfersFrom InventoryTransfer[] @relation("InventoryTransferFrom")
+  inventoryTransfersTo   InventoryTransfer[] @relation("InventoryTransferTo")
 
   @@index([companyId])
+  @@unique([id, companyId])
   @@map("stores")
 }
 
@@ -1182,9 +1206,17 @@ model InventoryTransfer {
 
   // Relaciones
   company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  product     Product       @relation(fields: [productId], references: [id])
+  fromStore   Store         @relation("InventoryTransferFrom", fields: [fromStoreId, companyId], references: [id, companyId], onDelete: Restrict)
+  toStore     Store         @relation("InventoryTransferTo", fields: [toStoreId, companyId], references: [id, companyId], onDelete: Restrict)
+  product     Product       @relation(fields: [productId, companyId], references: [id, companyId])
   createdBy   User          @relation(fields: [createdById], references: [id])
 
+  @@index([companyId])
+  @@index([companyId, fromStoreId])
+  @@index([companyId, toStoreId])
+  @@index([companyId, productId])
+  @@index([companyId, status])
+  @@index([companyId, createdAt(sort: Desc)])
   @@map("inventory_transfers")
 }
 
@@ -1217,8 +1249,8 @@ model LoyaltyPoint {
 
   // Relaciones
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer    Customer         @relation(fields: [customerId], references: [id])
-  sale        Sale?            @relation(fields: [saleId], references: [id])
+  customer    Customer         @relation(fields: [customerId, companyId], references: [id, companyId])
+  sale        Sale?            @relation(fields: [saleId, companyId], references: [id, companyId])
 
   @@index([companyId, customerId])
   @@map("loyalty_points")
@@ -1278,8 +1310,8 @@ model ActionHistory {
   createdAt   DateTime   @default(now())
 
   // Relaciones
-  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([companyId, createdAt(sort: Desc)])
   @@map("action_history")

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
-import { setTokenCookie } from "@/lib/auth";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 import {
   Button,
@@ -64,12 +63,11 @@ export default function RegisterPage() {
         companyName: data.companyName,
       });
 
-      if (!res.success || !res.data?.token) {
+      if (!res.success || !res.data) {
         console.error("Registration failed:", res.error);
         return;
       }
 
-      setTokenCookie(res.data.token);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Registration error:", err);

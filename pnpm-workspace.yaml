@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+onlyBuiltDependencies:
+  - "@parcel/watcher"
+  - "@prisma/engines"
+  - "@swc/core"
+  - core-js
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver

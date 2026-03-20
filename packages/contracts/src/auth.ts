@@ -1,5 +1,6 @@
 import type { CompanyRow, CompanyModules } from './company.js'
 
+/** Session is httpOnly cookie on API host; no token in JSON. */
 export type LoginResponse = {
   user: {
     id: string
@@ -8,7 +9,6 @@ export type LoginResponse = {
     role: string
     isSuperuser: boolean
   }
-  token: string
   companyId?: string
   company?: CompanyRow
   companies?: CompanyRow[]
@@ -22,7 +22,6 @@ export type RegisterResponse = {
     role: string
     companyId?: string
   }
-  token: string
   company?: {
     id: string
     name: string

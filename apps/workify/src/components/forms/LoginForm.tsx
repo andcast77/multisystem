@@ -91,7 +91,7 @@ export default function LoginForm() {
       try {
         const res = await authApi.post<{
           success?: boolean;
-          data?: { user: unknown; token?: string; companyId?: string; company?: unknown; companies?: CompanyOption[] };
+          data?: { user: unknown; companyId?: string; company?: unknown; companies?: CompanyOption[] };
           error?: string;
         }>('/login', {
           email: email.toLowerCase().trim(),
@@ -99,14 +99,16 @@ export default function LoginForm() {
           csrfToken,
         });
 
-        const data = res && typeof res === 'object' && 'data' in res ? (res as { data?: { user: unknown; token?: string; companyId?: string; companies?: CompanyOption[] } }).data : res as { user?: unknown; token?: string; companyId?: string; companies?: CompanyOption[] };
+        const data =
+          res && typeof res === 'object' && 'data' in res
+            ? (res as { data?: { user: unknown; companyId?: string; companies?: CompanyOption[] } }).data
+            : undefined;
         const err = (res as { error?: string })?.error;
         if (err) {
           setError(err);
           return;
         }
 
-        const token = data?.token ?? (res as { token?: string }).token;
         const companyId = data?.companyId ?? (res as { companyId?: string }).companyId;
         const companiesList = data?.companies ?? (res as { companies?: CompanyOption[] }).companies;
 
@@ -114,22 +116,12 @@ export default function LoginForm() {
           setError('Respuesta del servidor inválida');
           return;
         }
-        if (!token) {
-          setError('No se recibió token');
-          return;
-        }
 
         if (companiesList && companiesList.length > 1 && !companyId) {
-          if (typeof document !== 'undefined' && token) {
-            document.cookie = `token=${encodeURIComponent(token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
-          }
           setCompanies(companiesList);
           return;
         }
 
-        if (typeof document !== 'undefined' && token) {
-          document.cookie = `token=${encodeURIComponent(token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
-        }
         window.location.href = '/dashboard';
       } catch (err) {
         console.error('Error de login:', err);
@@ -142,14 +134,10 @@ export default function LoginForm() {
     setError('');
     startTransition(async () => {
       try {
-        const res = await authApi.post<{ success?: boolean; data?: { token?: string }; error?: string }>(
-          '/context',
-          { companyId }
-        );
-        const data = res && typeof res === 'object' && 'data' in res ? (res as { data?: { token?: string } }).data : res as { token?: string };
-        const newToken = data?.token ?? (res as { token?: string }).token;
-        if (newToken && typeof document !== 'undefined') {
-          document.cookie = `token=${encodeURIComponent(newToken)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+        const res = await authApi.post<{ success?: boolean; error?: string }>('/context', { companyId });
+        if (res && typeof res === 'object' && !(res as { success?: boolean }).success && (res as { error?: string }).error) {
+          setError((res as { error?: string }).error!);
+          return;
         }
         window.location.href = '/dashboard';
       } catch (err) {

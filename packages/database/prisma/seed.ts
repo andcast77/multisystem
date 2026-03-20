@@ -1,21 +1,23 @@
 import 'dotenv/config'
 import { PrismaClient } from '../dist/generated/prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import bcrypt from 'bcryptjs'
 
-// Configurar Neon para usar WebSocket en Node.js
-neonConfig.webSocketConstructor = ws
-
-// Crear cliente Prisma con adaptador Neon para seeds
+// Choose adapter based on DB URL. Local Postgres should use PrismaPg.
 const connectionString = process.env.DATABASE_URL!
-const adapter = new PrismaNeon({ connectionString })
+const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
 
-const prisma = new PrismaClient({
-  adapter,
-  log: ['error', 'warn'],
-})
+const adapter = isLocal ? new PrismaPg({ connectionString }) : new PrismaNeon({ connectionString })
+
+// For Neon we require websocket support in Node.js.
+if (!isLocal) {
+  neonConfig.webSocketConstructor = ws
+}
+
+const prisma = new PrismaClient({ adapter, log: ['error', 'warn'] })
 
 /** Ejecuta deleteMany e ignora si la tabla no existe (P2021). */
 async function safeDeleteMany(
@@ -48,6 +50,7 @@ async function main() {
   await clear('sale', () => prisma.sale.deleteMany())
   await clear('inventoryTransfer', () => prisma.inventoryTransfer.deleteMany())
   await clear('product', () => prisma.product.deleteMany())
+  await clear('unit', () => prisma.unit.deleteMany())
   await clear('category', () => prisma.category.deleteMany())
   await clear('supplier', () => prisma.supplier.deleteMany())
   await clear('customer', () => prisma.customer.deleteMany())
@@ -117,6 +120,19 @@ async function main() {
       name: 'Tech Services',
       description: 'Módulo de servicios técnicos',
     },
+  })
+
+  // 1.1 Unidades globales para productos (catálogo compartido)
+  await prisma.unit.createMany({
+    data: [
+      { key: 'UNIT', name: 'Unit', symbol: 'u', isActive: true },
+      { key: 'LITER', name: 'Liter', symbol: 'L', isActive: true },
+      { key: 'KILOGRAM', name: 'Kilogram', symbol: 'kg', isActive: true },
+      { key: 'METER', name: 'Meter', symbol: 'm', isActive: true },
+      { key: 'GRAM', name: 'Gram', symbol: 'g', isActive: true },
+      { key: 'MILLILITER', name: 'Milliliter', symbol: 'ml', isActive: true },
+      { key: 'CENTIMETER', name: 'Centimeter', symbol: 'cm', isActive: true },
+    ],
   })
 
   // 2. Permisos base (hub + módulos)
@@ -779,13 +795,21 @@ async function main() {
       barcode: '1234567890123',
       price: 1299.99,
       cost: 900.00,
-      stock: 8,
-      minStock: 5,
-      maxStock: 50,
       categoryId: electronicsCategory.id,
       supplierId: supplier1.id,
-      storeId: storeAcme1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme1.id, productId: product1.id } },
+    update: { quantity: 8, minStock: 5, maxStock: 50 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme1.id,
+      productId: product1.id,
+      quantity: 8,
+      minStock: 5,
+      maxStock: 50,
     },
   })
 
@@ -798,13 +822,21 @@ async function main() {
       barcode: '9876543210987',
       price: 19.99,
       cost: 10.00,
-      stock: 45,
-      minStock: 20,
-      maxStock: 200,
       categoryId: clothingCategory.id,
       supplierId: supplier2.id,
-      storeId: storeAcme1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme1.id, productId: product2.id } },
+    update: { quantity: 45, minStock: 20, maxStock: 200 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme1.id,
+      productId: product2.id,
+      quantity: 45,
+      minStock: 20,
+      maxStock: 200,
     },
   })
 
@@ -817,13 +849,21 @@ async function main() {
       barcode: '1111222233334',
       price: 199.99,
       cost: 120.00,
-      stock: 15,
-      minStock: 5,
-      maxStock: 40,
       categoryId: electronicsCategory.id,
       supplierId: supplier1.id,
-      storeId: storeAcme2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme2.id, productId: product3.id } },
+    update: { quantity: 15, minStock: 5, maxStock: 40 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme2.id,
+      productId: product3.id,
+      quantity: 15,
+      minStock: 5,
+      maxStock: 40,
     },
   })
 
@@ -836,13 +876,21 @@ async function main() {
       barcode: '2222333344445',
       price: 4.99,
       cost: 2.00,
-      stock: 120,
-      minStock: 30,
-      maxStock: 300,
       categoryId: officeCategory.id,
       supplierId: supplier3.id,
-      storeId: storeAcme1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme1.id, productId: product4.id } },
+    update: { quantity: 120, minStock: 30, maxStock: 300 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme1.id,
+      productId: product4.id,
+      quantity: 120,
+      minStock: 30,
+      maxStock: 300,
     },
   })
 
@@ -855,13 +903,21 @@ async function main() {
       barcode: '3333444455556',
       price: 89.99,
       cost: 55.00,
-      stock: 20,
-      minStock: 5,
-      maxStock: 80,
       categoryId: electronicsCategory.id,
       supplierId: supplier1.id,
-      storeId: storeAcme2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme2.id, productId: product5.id } },
+    update: { quantity: 20, minStock: 5, maxStock: 80 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme2.id,
+      productId: product5.id,
+      quantity: 20,
+      minStock: 5,
+      maxStock: 80,
     },
   })
 
@@ -874,13 +930,21 @@ async function main() {
       barcode: '4444555566667',
       price: 149.99,
       cost: 90.00,
-      stock: 12,
-      minStock: 4,
-      maxStock: 40,
       categoryId: officeCategory.id,
       supplierId: supplier3.id,
-      storeId: storeAcme2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeAcme2.id, productId: product6.id } },
+    update: { quantity: 12, minStock: 4, maxStock: 40 },
+    create: {
+      companyId: company.id,
+      storeId: storeAcme2.id,
+      productId: product6.id,
+      quantity: 12,
+      minStock: 4,
+      maxStock: 40,
     },
   })
 
@@ -1583,13 +1647,21 @@ async function main() {
       barcode: '5000111222333',
       price: 49.99,
       cost: 25.00,
-      stock: 28,
-      minStock: 10,
-      maxStock: 100,
       categoryId: homeCategory.id,
       supplierId: supplier1Beta.id,
-      storeId: storeBeta1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta1.id, productId: product1Beta.id } },
+    update: { quantity: 28, minStock: 10, maxStock: 100 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta1.id,
+      productId: product1Beta.id,
+      quantity: 28,
+      minStock: 10,
+      maxStock: 100,
     },
   })
 
@@ -1602,13 +1674,21 @@ async function main() {
       barcode: '5000444555666',
       price: 29.99,
       cost: 15.00,
-      stock: 38,
-      minStock: 15,
-      maxStock: 150,
       categoryId: sportsCategory.id,
       supplierId: supplier2Beta.id,
-      storeId: storeBeta1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta1.id, productId: product2Beta.id } },
+    update: { quantity: 38, minStock: 15, maxStock: 150 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta1.id,
+      productId: product2Beta.id,
+      quantity: 38,
+      minStock: 15,
+      maxStock: 150,
     },
   })
 
@@ -1621,13 +1701,21 @@ async function main() {
       barcode: '5000777888999',
       price: 89.99,
       cost: 45.00,
-      stock: 12,
-      minStock: 5,
-      maxStock: 30,
       categoryId: gardenCategory.id,
       supplierId: supplier3Beta.id,
-      storeId: storeBeta2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta2.id, productId: product3Beta.id } },
+    update: { quantity: 12, minStock: 5, maxStock: 30 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta2.id,
+      productId: product3Beta.id,
+      quantity: 12,
+      minStock: 5,
+      maxStock: 30,
     },
   })
 
@@ -1640,13 +1728,21 @@ async function main() {
       barcode: '5000999000111',
       price: 79.99,
       cost: 40.00,
-      stock: 18,
-      minStock: 5,
-      maxStock: 50,
       categoryId: sportsCategory.id,
       supplierId: supplier2Beta.id,
-      storeId: storeBeta2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta2.id, productId: product4Beta.id } },
+    update: { quantity: 18, minStock: 5, maxStock: 50 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta2.id,
+      productId: product4Beta.id,
+      quantity: 18,
+      minStock: 5,
+      maxStock: 50,
     },
   })
 
@@ -1659,13 +1755,21 @@ async function main() {
       barcode: '5000123434567',
       price: 59.99,
       cost: 30.00,
-      stock: 22,
-      minStock: 8,
-      maxStock: 90,
       categoryId: homeCategory.id,
       supplierId: supplier1Beta.id,
-      storeId: storeBeta2.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta2.id, productId: product5Beta.id } },
+    update: { quantity: 22, minStock: 8, maxStock: 90 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta2.id,
+      productId: product5Beta.id,
+      quantity: 22,
+      minStock: 8,
+      maxStock: 90,
     },
   })
 
@@ -1678,13 +1782,21 @@ async function main() {
       barcode: '5000765432109',
       price: 12.99,
       cost: 5.00,
-      stock: 60,
-      minStock: 20,
-      maxStock: 200,
       categoryId: sportsCategory.id,
       supplierId: supplier2Beta.id,
-      storeId: storeBeta1.id,
       active: true,
+    },
+  })
+  await prisma.storeInventory.upsert({
+    where: { storeId_productId: { storeId: storeBeta1.id, productId: product6Beta.id } },
+    update: { quantity: 60, minStock: 20, maxStock: 200 },
+    create: {
+      companyId: company2.id,
+      storeId: storeBeta1.id,
+      productId: product6Beta.id,
+      quantity: 60,
+      minStock: 20,
+      maxStock: 200,
     },
   })
 

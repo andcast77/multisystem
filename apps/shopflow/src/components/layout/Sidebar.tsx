@@ -70,11 +70,6 @@ const navGroups: NavGroup[] = [
 ]
 
 const COMPANY_SELECT_PLACEHOLDER = '__none__'
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 días
-
-function setTokenCookie(token: string) {
-  document.cookie = `token=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
-}
 
 /** Query keys that depend on company; invalidate on company change (not currentUser). */
 const COMPANY_DATA_QUERY_KEYS = [
@@ -111,12 +106,11 @@ export function Sidebar() {
     authApi
       .post<{
         success?: boolean
-        data?: { token: string; companyId?: string; company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean } }
+        data?: { companyId?: string; company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean } }
         error?: string
       }>('/context', { companyId: firstId })
       .then((res) => {
-        if (res && typeof res === 'object' && 'data' in res && res.success && res.data?.token) {
-          setTokenCookie(res.data.token)
+        if (res && typeof res === 'object' && res.success && res.data) {
           const newCompanyId = res.data.companyId ?? firstId
           const newCompany = res.data.company
           queryClient.setQueryData(['currentUser'], (prev: unknown) => {
@@ -139,11 +133,10 @@ export function Sidebar() {
     try {
       const res = await authApi.post<{
         success?: boolean
-        data?: { token: string; companyId?: string; company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean } }
+        data?: { companyId?: string; company?: { id: string; name: string; workifyEnabled: boolean; shopflowEnabled: boolean } }
         error?: string
       }>('/context', { companyId })
-      if (res && typeof res === 'object' && 'data' in res && res.success && res.data?.token) {
-        setTokenCookie(res.data.token)
+      if (res && typeof res === 'object' && res.success && res.data) {
         const newCompanyId = res.data.companyId ?? companyId
         const newCompany = res.data.company
         queryClient.setQueryData(['currentUser'], (prev: unknown) => {

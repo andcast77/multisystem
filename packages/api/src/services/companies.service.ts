@@ -2,8 +2,8 @@ import { prisma } from '../db/index.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { TokenPayload } from '../core/auth.js'
 import type { UpdateCompanyBody } from '../dto/companies.dto.js'
-import { canAccessCompany, isOwner, canManageCompany } from '../core/permissions.js'
 import { ForbiddenError, NotFoundError } from '../common/errors/app-error.js'
+import { assertCanManageCompany, assertCompanyAccess, assertOwner } from '../policies/company-authorization.policy.js'
 
 export async function getById(companyId: string) {
   const company = await prisma.company.findUnique({
@@ -30,18 +30,11 @@ export async function getStats(companyId: string) {
 }
 
 export async function update(companyId: string, caller: TokenPayload, body: UpdateCompanyBody) {
-  if (!canAccessCompany(caller, companyId)) {
-    throw new ForbiddenError('No tienes acceso a esta empresa')
+  assertCompanyAccess(caller, companyId)
+  if (body.workifyEnabled !== undefined || body.shopflowEnabled !== undefined || body.technicalServicesEnabled !== undefined) {
+    assertOwner(caller, 'Solo el propietario puede activar/desactivar módulos')
   }
-  if (
-    (body.workifyEnabled !== undefined || body.shopflowEnabled !== undefined || body.technicalServicesEnabled !== undefined) &&
-    !isOwner(caller)
-  ) {
-    throw new ForbiddenError('Solo el propietario puede activar/desactivar módulos')
-  }
-  if (!canManageCompany(caller)) {
-    throw new ForbiddenError('No tienes permisos para editar esta empresa')
-  }
+  assertCanManageCompany(caller)
 
   const companyUpdate: Record<string, unknown> = {}
   if (body.name !== undefined) companyUpdate.name = body.name
@@ -83,12 +76,8 @@ export async function update(companyId: string, caller: TokenPayload, body: Upda
 }
 
 export async function remove(companyId: string, caller: TokenPayload): Promise<void> {
-  if (!canAccessCompany(caller, companyId)) {
-    throw new ForbiddenError('No tienes acceso a esta empresa')
-  }
-  if (!isOwner(caller)) {
-    throw new ForbiddenError('Solo el propietario puede eliminar la empresa')
-  }
+  assertCompanyAccess(caller, companyId)
+  assertOwner(caller, 'Solo el propietario puede eliminar la empresa')
   const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } })
   if (!company) throw new NotFoundError('Empresa no encontrada')
   await prisma.company.delete({ where: { id: companyId } })

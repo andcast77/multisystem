@@ -1,0 +1,28 @@
+-- PLAN-13 Task: Backward-safe staged migration strategy template.
+--
+-- Goal:
+-- Avoid destructive DELETE-before-constraint patterns on production data.
+--
+-- Recommended phases:
+-- 1) Backfill phase (idempotent): set missing tenant keys via deterministic joins.
+-- 2) Guard phase: add CHECK/FK constraints as NOT VALID to enforce new writes.
+-- 3) Validation phase: run data audits; clean exceptions explicitly.
+-- 4) Finalization phase: VALIDATE constraints, then set NOT NULL.
+--
+-- Example sequence:
+--
+-- ALTER TABLE target_table
+--   ADD CONSTRAINT target_table_company_fk
+--   FOREIGN KEY ("companyId") REFERENCES "companies"("id")
+--   NOT VALID;
+--
+-- -- Enforced for new writes from this point.
+-- -- Fix historical rows in controlled batches.
+--
+-- ALTER TABLE target_table VALIDATE CONSTRAINT target_table_company_fk;
+--
+-- ALTER TABLE target_table ALTER COLUMN "companyId" SET NOT NULL;
+--
+-- Notes:
+-- - Never run unconditional DELETEs for tenant backfills in production.
+-- - Prefer exception tables or explicit remediation scripts for orphaned rows.

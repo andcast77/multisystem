@@ -2,7 +2,6 @@
  * API client for Hub - auth endpoints and authenticated requests.
  */
 
-import { getTokenFromCookie } from "./auth";
 import type { Company, CompanyStats, CompanyMember, UpdateCompanyInput } from "@/types/company";
 import type {
   LoginResponse,
@@ -13,9 +12,11 @@ import type {
   CompanyRow,
 } from "@multisystem/contracts";
 
+import { ApiClient } from "@multisystem/shared";
+
 export type { LoginResponse, MeResponse, ContextResponse, CompaniesResponse, RegisterResponse, CompanyRow };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:3000";
 
 export type CompanyUpdateResult = {
   id: string;
@@ -26,36 +27,11 @@ export type CompanyUpdateResult = {
   updatedAt: string;
 };
 
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_URL}${endpoint}`;
-  const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
-
-  const token = getTokenFromCookie();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const res = await fetch(url, { headers, credentials: "include", ...options });
-  const data = await res.json();
-
-  if (!res.ok) {
-    const msg = data?.error || data?.message || `API Error: ${res.status}`;
-    throw new Error(msg);
-  }
-
-  return data as T;
-}
+const client = new ApiClient(API_URL);
 
 export const authApi = {
   login: (email: string, password: string, companyId?: string) =>
-    request<LoginResponse>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password, companyId }),
-    }),
+    client.post<LoginResponse>("/api/auth/login", { email, password, companyId }),
 
   register: (data: {
     email: string;
@@ -67,86 +43,52 @@ export const authApi = {
     shopflowEnabled?: boolean;
     technicalServicesEnabled?: boolean;
   }) =>
-    request<RegisterResponse>("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    client.post<RegisterResponse>("/api/auth/register", data),
 
-  me: () => request<MeResponse>("/api/auth/me"),
+  me: () => client.get<MeResponse>("/api/auth/me"),
 
   context: (companyId: string) =>
-    request<ContextResponse>("/api/auth/context", {
-      method: "POST",
-      body: JSON.stringify({ companyId }),
-    }),
+    client.post<ContextResponse>("/api/auth/context", { companyId }),
 
-  companies: () => request<CompaniesResponse>("/api/auth/companies"),
+  companies: () => client.get<CompaniesResponse>("/api/auth/companies"),
+
+  logout: () =>
+    client.post<{ success: boolean }>("/api/auth/logout", undefined),
 
   // Email verification endpoints
   verifyEmail: (token: string) =>
-    request<{ success: boolean; message?: string; error?: string; token?: string; user?: { id: string; email: string; role: string; firstName?: string; lastName?: string } }>(
-      `/api/auth/verify-email?token=${token}`
-    ),
+    client.get<{
+      success: boolean;
+      message?: string;
+      error?: string;
+      token?: string;
+      user?: { id: string; email: string; role: string; firstName?: string; lastName?: string };
+    }>(`/api/auth/verify-email?token=${token}`),
 
   resendVerification: (email: string) =>
-    request<{ success: boolean; message?: string; error?: string }>(
-      "/api/auth/resend-verification",
-      {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      }
-    ),
+    client.post<{ success: boolean; message?: string; error?: string }>("/api/auth/resend-verification", { email }),
 
   // Password reset endpoints
   forgotPassword: (email: string) =>
-    request<{ success: boolean; message?: string; error?: string }>(
-      "/api/auth/forgot-password",
-      {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      }
-    ),
+    client.post<{ success: boolean; message?: string; error?: string }>("/api/auth/forgot-password", { email }),
 
   resetPassword: (token: string, newPassword: string) =>
-    request<{ success: boolean; message?: string; error?: string }>(
-      "/api/auth/reset-password",
-      {
-        method: "POST",
-        body: JSON.stringify({ token, newPassword }),
-      }
-    ),
+    client.post<{ success: boolean; message?: string; error?: string }>("/api/auth/reset-password", { token, newPassword }),
 };
 
 export const companyApi = {
   getCompany: (id: string) =>
-    request<{ success: boolean; data: Company; error?: string }>(
-      `/api/companies/${id}`
-    ),
+    client.get<{ success: boolean; data: Company; error?: string }>(`/api/companies/${id}`),
 
   getCompanyStats: (id: string) =>
-    request<{ success: boolean; data: CompanyStats; error?: string }>(
-      `/api/companies/${id}/stats`
-    ),
+    client.get<{ success: boolean; data: CompanyStats; error?: string }>(`/api/companies/${id}/stats`),
 
   updateCompany: (id: string, data: UpdateCompanyInput) =>
-    request<{ success: boolean; data: CompanyUpdateResult; message?: string; error?: string }>(
-      `/api/companies/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }
-    ),
+    client.put<{ success: boolean; data: CompanyUpdateResult; message?: string; error?: string }>(`/api/companies/${id}`, data),
 
   deleteCompany: (id: string) =>
-    request<{ success: boolean; message?: string; error?: string }>(
-      `/api/companies/${id}`,
-      {
-        method: "DELETE",
-      }
-    ),
+    client.delete<{ success: boolean; message?: string; error?: string }>(`/api/companies/${id}`),
 
   getCompanyMembers: (id: string) =>
-    request<{ success: boolean; data: CompanyMember[]; error?: string }>(
-      `/api/companies/${id}/members`
-    ),
+    client.get<{ success: boolean; data: CompanyMember[]; error?: string }>(`/api/companies/${id}/members`),
 };

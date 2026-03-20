@@ -35,7 +35,7 @@ export class StoreInventoryRepository extends TenantScopedRepository {
 
   async upsert(storeId: string, productId: string, data: { quantity?: number; minStock?: number; maxStock?: number | null }): Promise<StoreInventoryRow> {
     const existing = await this.db.storeInventory.findFirst({
-      where: { storeId, productId },
+      where: { ...this.tenantWhere, storeId, productId },
     })
 
     if (existing) {
@@ -66,6 +66,26 @@ export class StoreInventoryRepository extends TenantScopedRepository {
     return this.db.storeInventory.update({
       where: { id: existing.id },
       data: { quantity: { increment: delta } },
+    }) as Promise<StoreInventoryRow>
+  }
+
+  async decrementById(id: string, quantity: number): Promise<StoreInventoryRow> {
+    return this.db.storeInventory.update({
+      where: { id },
+      data: { quantity: { decrement: quantity } },
+    }) as Promise<StoreInventoryRow>
+  }
+
+  async incrementOrCreate(storeId: string, productId: string, quantity: number): Promise<StoreInventoryRow> {
+    return this.db.storeInventory.upsert({
+      where: { storeId_productId: { storeId, productId } },
+      create: {
+        companyId: this.tenantId,
+        storeId,
+        productId,
+        quantity,
+      },
+      update: { quantity: { increment: quantity } },
     }) as Promise<StoreInventoryRow>
   }
 }

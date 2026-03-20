@@ -1,12 +1,18 @@
 import type { CompanyContext } from '../core/auth-context.js'
 import { createRepositories } from '../repositories/index.js'
-import type { ProductRow, ProductSearchQuery, ProductCreateInput, ProductUpdateInput } from '../repositories/product.repository.js'
+import { BadRequestError, NotFoundError } from '../common/errors/app-error.js'
+import type { ProductRow, UnitRow, ProductSearchQuery, ProductCreateInput, ProductUpdateInput } from '../repositories/product.repository.js'
 
 function repos(ctx: CompanyContext) {
   return createRepositories(ctx.companyId)
 }
 
 export type { ProductRow }
+export type { UnitRow }
+
+export async function listProductUnits(ctx: CompanyContext): Promise<UnitRow[]> {
+  return repos(ctx).products.listActiveUnits()
+}
 
 export async function getProductBySku(ctx: CompanyContext, sku: string): Promise<ProductRow | null> {
   return repos(ctx).products.findBySku(sku)
@@ -32,7 +38,14 @@ export async function listProducts(ctx: CompanyContext, query: ProductSearchQuer
 }
 
 export async function createProduct(ctx: CompanyContext, body: ProductCreateInput): Promise<ProductRow> {
-  return repos(ctx).products.create(body)
+  try {
+    return await repos(ctx).products.create(body)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_UNIT') {
+      throw new BadRequestError('Unidad de medida invalida o inactiva')
+    }
+    throw error
+  }
 }
 
 export async function getLowStock(ctx: CompanyContext, minStockThreshold?: number): Promise<ProductRow[]> {
@@ -40,9 +53,17 @@ export async function getLowStock(ctx: CompanyContext, minStockThreshold?: numbe
 }
 
 export async function updateProduct(ctx: CompanyContext, id: string, body: ProductUpdateInput): Promise<ProductRow | null> {
-  return repos(ctx).products.update(id, body)
+  try {
+    return await repos(ctx).products.update(id, body)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_UNIT') {
+      throw new BadRequestError('Unidad de medida invalida o inactiva')
+    }
+    throw error
+  }
 }
 
-export async function deleteProduct(ctx: CompanyContext, id: string): Promise<boolean> {
-  return repos(ctx).products.delete(id)
+export async function deleteProduct(ctx: CompanyContext, id: string): Promise<void> {
+  const deleted = await repos(ctx).products.delete(id)
+  if (!deleted) throw new NotFoundError('Producto no encontrado')
 }

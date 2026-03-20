@@ -1,9 +1,6 @@
 /**
- * Shared API client for all frontend apps.
- * Eliminates the duplicated ApiClient across shopflow, workify, techservices.
+ * Shared API client — sends httpOnly session cookie via credentials (API must set CORS origin).
  */
-import { getTokenFromCookie } from './auth.js'
-
 export class ApiClient {
   constructor(private baseURL: string) {}
 
@@ -12,11 +9,6 @@ export class ApiClient {
 
     const headers = new Headers(options.headers)
     headers.set('Content-Type', 'application/json')
-
-    const token = getTokenFromCookie()
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
 
     const response = await fetch(url, {
       headers,
@@ -78,9 +70,9 @@ export class ApiError extends Error {
   }
 }
 
-export function getAuthHeaders(): HeadersInit {
-  const token = getTokenFromCookie()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+/** Use credentials: 'include' for API calls; optional Bearer for server-side scripts. */
+export function getAuthHeaders(bearerToken?: string | null): HeadersInit {
+  return bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}
 }
 
 /**

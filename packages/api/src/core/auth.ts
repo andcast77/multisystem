@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { getConfig } from './config.js'
+import { AUTH_SESSION_COOKIE } from './session-cookie.js'
 
 export type TokenPayload = {
   id: string
@@ -55,6 +56,28 @@ function getBearerToken(request: FastifyRequest): string | null {
   return authHeader.substring(7)
 }
 
+function getSessionTokenFromCookie(request: FastifyRequest): string | null {
+  const raw = request.headers.cookie
+  if (!raw) return null
+  const prefix = `${AUTH_SESSION_COOKIE}=`
+  for (const part of raw.split(';')) {
+    const p = part.trim()
+    if (p.startsWith(prefix)) {
+      try {
+        return decodeURIComponent(p.slice(prefix.length))
+      } catch {
+        return p.slice(prefix.length)
+      }
+    }
+  }
+  return null
+}
+
+/** Bearer (API clients/tests) or httpOnly session cookie (browsers). */
+export function getAuthToken(request: FastifyRequest): string | null {
+  return getBearerToken(request) ?? getSessionTokenFromCookie(request)
+}
+
 declare module 'fastify' {
   interface FastifyRequest {
     user?: TokenPayload
@@ -69,7 +92,7 @@ export async function requireAuth(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  const token = getBearerToken(request)
+  const token = getAuthToken(request)
   if (!token) {
     reply.code(401).send({ success: false, error: UNAUTHORIZED_MSG })
     throw new Error('Unauthorized')

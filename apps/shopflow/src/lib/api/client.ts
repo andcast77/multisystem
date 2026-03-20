@@ -1,19 +1,11 @@
+import { ApiClient as SharedApiClient } from '@multisystem/shared'
+
 // API Client for ShopFlow Frontend
 // Points to unified API with module prefixes (all requests go to external API, not Next.js routes)
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-
-/** Read token from cookie (client-only). Cookie name must match login page. */
-function getTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/token=([^;]+)/)
-  if (!match) return null
-  try {
-    return decodeURIComponent(match[1].trim())
-  } catch {
-    return null
-  }
-}
+const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
+const legacyNextApiUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : undefined
+export const API_URL = viteApiUrl || legacyNextApiUrl || 'http://localhost:3000'
 
 /** Current store ID for X-Store-Id header (set by StoreContext). */
 declare global {
@@ -27,93 +19,33 @@ function getStoreIdHeader(): string | null {
   return id && typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
-class ApiClient {
-  private baseURL: string
+function withStoreIdHeader(options?: RequestInit): RequestInit {
+  const storeId = getStoreIdHeader()
+  if (!storeId) return options ?? {}
 
-  constructor(baseURL: string) {
-    this.baseURL = baseURL
-  }
+  const headers = new Headers(options?.headers)
+  if (!headers.has('X-Store-Id')) headers.set('X-Store-Id', storeId)
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`
-
-    const headers = new Headers(options.headers)
-    headers.set('Content-Type', 'application/json')
-
-    const token = getTokenFromCookie()
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
-    const storeId = getStoreIdHeader()
-    if (storeId && !headers.has('X-Store-Id')) {
-      headers.set('X-Store-Id', storeId)
-    }
-
-    const response = await fetch(url, {
-      headers,
-      credentials: 'include',
-      ...options,
-    })
-
-    if (!response.ok) {
-      // Try to get error message from response body
-      let errorMessage = `API Error: ${response.status} ${response.statusText}`
-      try {
-        const errorData = await response.json()
-        if (errorData.error) {
-          errorMessage = errorData.error
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        }
-      } catch {
-        // Response body is not JSON, use default error message
-      }
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
-  }
-
-  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET', ...options })
-  }
-
-  async post<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    })
-  }
-
-  async put<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    })
-  }
-
-  async delete<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'DELETE',
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    })
-  }
+  return { ...(options ?? {}), headers }
 }
+
+const sharedClient = new SharedApiClient(API_URL)
 
 /** Auth headers for fetch to external API (e.g. FormData uploads). */
 export function getAuthHeaders(): HeadersInit {
-  const token = getTokenFromCookie()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return {}
 }
 
 // Unified API Client
-export const apiClient = new ApiClient(API_URL)
+export const apiClient = {
+  get: <T>(endpoint: string, options?: RequestInit) => sharedClient.get<T>(endpoint, withStoreIdHeader(options)),
+  post: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    sharedClient.post<T>(endpoint, data, withStoreIdHeader(options)),
+  put: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    sharedClient.put<T>(endpoint, data, withStoreIdHeader(options)),
+  delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    sharedClient.delete<T>(endpoint, data, withStoreIdHeader(options)),
+}
 
 // ShopFlow API Client (uses /api/shopflow prefix)
 export const shopflowApi = {

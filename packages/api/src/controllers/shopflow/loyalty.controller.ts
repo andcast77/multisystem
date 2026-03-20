@@ -6,13 +6,15 @@ import * as shopflowService from '../../services/shopflow.service.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function getLoyaltyConfig(request: FastifyRequest, reply: FastifyReply) {
-  const config = await shopflowService.getLoyaltyConfig()
+  const ctx = getCtx(request, false)
+  const config = await shopflowService.getLoyaltyConfig(ctx)
   return ok(config)
 }
 
 async function updateLoyaltyConfig(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(updateLoyaltyConfigSchema, request.body)
-  const config = await shopflowService.updateLoyaltyConfig(body)
+  const ctx = getCtx(request, false)
+  const config = await shopflowService.updateLoyaltyConfig(ctx, body)
   return ok(config)
 }
 

@@ -42,7 +42,14 @@ export class SupplierRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return null
-    return this.db.supplier.update({ where: { id }, data: input }) as Promise<SupplierRow>
+    const updated = await this.db.supplier.updateMany({
+      where: { ...this.tenantWhere, id },
+      data: input,
+    })
+    if (updated.count === 0) return null
+    return this.db.supplier.findFirst({
+      where: { ...this.tenantWhere, id },
+    }) as Promise<SupplierRow | null>
   }
 
   async delete(id: string): Promise<boolean> {
@@ -51,7 +58,7 @@ export class SupplierRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.supplier.delete({ where: { id } })
-    return true
+    const deleted = await this.db.supplier.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
   }
 }

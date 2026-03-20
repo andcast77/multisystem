@@ -61,7 +61,12 @@ export class StoreRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return null
-    return this.db.store.update({ where: { id }, data: input }) as Promise<StoreRow>
+    const updated = await this.db.store.updateMany({
+      where: { ...this.tenantWhere, id },
+      data: input,
+    })
+    if (updated.count === 0) return null
+    return this.db.store.findFirst({ where: { ...this.tenantWhere, id } }) as Promise<StoreRow | null>
   }
 
   async delete(id: string): Promise<boolean> {
@@ -70,7 +75,117 @@ export class StoreRepository extends TenantScopedRepository {
       select: { id: true },
     })
     if (!existing) return false
-    await this.db.store.delete({ where: { id } })
-    return true
+    const deleted = await this.db.store.deleteMany({ where: { ...this.tenantWhere, id } })
+    return deleted.count > 0
+  }
+
+  async findLatestConfig() {
+    return this.db.storeConfig.findFirst({
+      where: { ...this.tenantWhere },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  async createConfig(input: {
+    name: string
+    currency: 'USD'
+    taxRate: number
+    lowStockAlert: number
+    invoicePrefix: string
+    invoiceNumber: number
+    allowSalesWithoutStock: boolean
+    address?: string | null
+    phone?: string | null
+    email?: string | null
+    taxId?: string | null
+  }) {
+    return this.db.storeConfig.create({
+      data: {
+        companyId: this.tenantId,
+        name: input.name,
+        currency: input.currency,
+        taxRate: input.taxRate,
+        lowStockAlert: input.lowStockAlert,
+        invoicePrefix: input.invoicePrefix,
+        invoiceNumber: input.invoiceNumber,
+        allowSalesWithoutStock: input.allowSalesWithoutStock,
+        address: input.address ?? null,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        taxId: input.taxId ?? null,
+      },
+    })
+  }
+
+  async updateConfigById(id: string, data: Record<string, unknown>) {
+    const updated = await this.db.storeConfig.updateMany({
+      where: { ...this.tenantWhere, id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: data as any,
+    })
+    if (updated.count === 0) return null
+    return this.db.storeConfig.findFirst({
+      where: { ...this.tenantWhere, id },
+    })
+  }
+
+  async incrementInvoiceNumberAndGet(configId: string) {
+    const [result] = await this.db.$queryRaw<[{ invoicePrefix: string; invoiceNumber: number }]>`
+      UPDATE store_configs
+      SET "invoiceNumber" = "invoiceNumber" + 1, "updatedAt" = NOW()
+      WHERE id = ${configId} AND "companyId" = ${this.tenantId}
+      RETURNING "invoicePrefix", "invoiceNumber"
+    `
+    return result
+  }
+
+  async findLatestTicketConfig(storeId?: string) {
+    return this.db.ticketConfig.findFirst({
+      where: { ...this.tenantWhere, storeId: storeId ?? null },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  async createTicketConfig(input: {
+    storeId: string | null
+    ticketType: 'TICKET'
+    thermalWidth: number
+    fontSize: number
+    copies: number
+    autoPrint: boolean
+    header?: string | null
+    description?: string | null
+    logoUrl?: string | null
+    footer?: string | null
+    defaultPrinterName?: string | null
+  }) {
+    return this.db.ticketConfig.create({
+      data: {
+        companyId: this.tenantId,
+        storeId: input.storeId,
+        ticketType: input.ticketType,
+        thermalWidth: input.thermalWidth,
+        fontSize: input.fontSize,
+        copies: input.copies,
+        autoPrint: input.autoPrint,
+        header: input.header ?? null,
+        description: input.description ?? null,
+        logoUrl: input.logoUrl ?? null,
+        footer: input.footer ?? null,
+        defaultPrinterName: input.defaultPrinterName ?? null,
+      },
+    })
+  }
+
+  async updateTicketConfigById(id: string, data: Record<string, unknown>) {
+    const updated = await this.db.ticketConfig.updateMany({
+      where: { ...this.tenantWhere, id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: data as any,
+    })
+    if (updated.count === 0) return null
+    return this.db.ticketConfig.findFirst({
+      where: { ...this.tenantWhere, id },
+    })
   }
 }

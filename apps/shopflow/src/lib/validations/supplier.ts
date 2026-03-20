@@ -27,6 +27,10 @@ export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>
 export const supplierQuerySchema = z.object({
   search: z.string().optional(),
   active: z.boolean().optional(),
+  page: z.number().int().positive().optional(),
+  limit: z.number().int().positive().max(100).optional(),
+  sortBy: z.enum(['name', 'contact', 'location', 'active']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
 })
 
 export type SupplierQueryInput = z.infer<typeof supplierQuerySchema>

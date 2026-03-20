@@ -92,12 +92,12 @@ export async function updateWorkOrder(
 // ----- Assets -----
 
 export async function listAssets(
-  request: FastifyRequest<{ Querystring: { search?: string; active?: string } }>,
+  request: FastifyRequest<{ Querystring: { search?: string; active?: string; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) {
   try {
     const ctx = contextFromRequest(request)
-    const q = request.query as { search?: string; active?: 'true' | 'false' }
+    const q = request.query as { search?: string; active?: 'true' | 'false'; page?: string; limit?: string }
     const data = await techservicesService.listAssets(ctx, q)
     return { success: true, data }
   } catch (error) {

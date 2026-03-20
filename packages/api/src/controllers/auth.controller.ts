@@ -12,20 +12,26 @@ import {
   validateSessionQuerySchema,
   listSessionsQuerySchema,
 } from '../dto/auth.dto.js'
-import { ForbiddenError } from '../common/errors/app-error.js'
 import { ok } from '../common/api-response.js'
 import * as authService from '../services/auth.service.js'
+import { attachAuthSessionCookie, clearAuthSessionCookie } from '../core/session-cookie.js'
+import { getConfig } from '../core/config.js'
+import { assertSelfOrSuperuser } from '../policies/company-authorization.policy.js'
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(loginBodySchema, request.body)
   const result = await authService.login(body)
-  return ok(result)
+  const { token, ...data } = result
+  attachAuthSessionCookie(reply, token, getConfig())
+  return ok(data)
 }
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(registerBodySchema, request.body)
   const result = await authService.register(body)
-  return ok(result)
+  const { token, ...data } = result
+  attachAuthSessionCookie(reply, token, getConfig())
+  return ok(data)
 }
 
 export async function me(request: FastifyRequest, reply: FastifyReply) {
@@ -34,6 +40,7 @@ export async function me(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function logout(_request: FastifyRequest, reply: FastifyReply) {
+  clearAuthSessionCookie(reply, getConfig())
   return { success: true }
 }
 
@@ -53,15 +60,15 @@ export async function setContext(request: FastifyRequest, reply: FastifyReply) {
   const { companyId } = validateBody(setContextSchema, request.body)
   const decoded = request.user!
   const result = await authService.setContext(decoded, companyId)
-  return ok(result)
+  const { token, ...data } = result
+  attachAuthSessionCookie(reply, token, getConfig())
+  return ok(data)
 }
 
 export async function createSession(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(createSessionSchema, request.body)
   const decoded = request.user!
-  if (decoded.id !== body.userId && !decoded.isSuperuser) {
-    throw new ForbiddenError('Solo puedes crear sesión para tu propio usuario')
-  }
+  assertSelfOrSuperuser(decoded.id, body.userId, decoded.isSuperuser, 'Solo puedes crear sesión para tu propio usuario')
   await authService.createSession(body)
   return { success: true }
 }
@@ -75,9 +82,7 @@ export async function validateSession(request: FastifyRequest, reply: FastifyRep
 export async function listSessions(request: FastifyRequest, reply: FastifyReply) {
   const { userId } = validateQuery(listSessionsQuerySchema, request.query)
   const decoded = request.user!
-  if (decoded.id !== userId && !decoded.isSuperuser) {
-    throw new ForbiddenError('Solo puedes listar tus propias sesiones')
-  }
+  assertSelfOrSuperuser(decoded.id, userId, decoded.isSuperuser, 'Solo puedes listar tus propias sesiones')
   const rows = await authService.listSessions(userId)
   return ok(rows)
 }
@@ -112,15 +117,19 @@ export async function updateConcurrentSessions(
   return { success: true }
 }
 
-const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }
-
-export async function registerRoutes(fastify: FastifyInstance) {
+/** Login, register, verify — own rate-limit bucket (see server.ts). */
+export async function registerPublicAuthRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: { email: string; password: string; companyId?: string } }>(
-    '/api/auth/login', authRateLimit, (request, reply) => login(request, reply))
-  fastify.post('/api/auth/logout', (request, reply) => logout(request, reply))
-  fastify.post('/api/auth/register', authRateLimit, (request, reply) => register(request, reply))
-  fastify.get('/api/auth/me', { preHandler: [requireAuth] }, (request, reply) => me(request, reply))
+    '/api/auth/login',
+    (request, reply) => login(request, reply)
+  )
+  fastify.post('/api/auth/register', (request, reply) => register(request, reply))
   fastify.post<{ Body: { token: string } }>('/api/auth/verify', (request, reply) => verify(request, reply))
+}
+
+export async function registerProtectedAuthRoutes(fastify: FastifyInstance) {
+  fastify.post('/api/auth/logout', (request, reply) => logout(request, reply))
+  fastify.get('/api/auth/me', { preHandler: [requireAuth] }, (request, reply) => me(request, reply))
   fastify.get('/api/auth/companies', { preHandler: [requireAuth] }, (request, reply) => listCompanies(request, reply))
   fastify.post<{ Body: { companyId: string } }>('/api/auth/context', { preHandler: [requireAuth] }, (request, reply) => setContext(request, reply))
   fastify.post<{
@@ -138,4 +147,9 @@ export async function registerRoutes(fastify: FastifyInstance) {
     '/api/auth/sessions/cleanup-expired', { preHandler: [requireAuth] }, (request, reply) => cleanupExpiredSessions(request, reply))
   fastify.put<{ Params: { userId: string }; Body: { allowConcurrentSessions?: boolean } }>(
     '/api/auth/users/:userId/concurrent-sessions', { preHandler: [requireAuth] }, (request, reply) => updateConcurrentSessions(request, reply))
+}
+
+export async function registerRoutes(fastify: FastifyInstance) {
+  await registerPublicAuthRoutes(fastify)
+  await registerProtectedAuthRoutes(fastify)
 }

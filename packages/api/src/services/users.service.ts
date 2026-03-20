@@ -1,61 +1,66 @@
 import bcrypt from 'bcryptjs'
-import { prisma } from '../db/index.js'
 import type { CreateUserBody, UpdateUserBody } from '../dto/users.dto.js'
 import type { TokenPayload } from '../core/auth.js'
 import { ForbiddenError, NotFoundError, BadRequestError } from '../common/errors/app-error.js'
+import { createRepositories } from '../repositories/index.js'
+import { assertCanManageMembers, assertCompanyAccess } from '../policies/company-authorization.policy.js'
+import { assertUserInCompany } from '../policies/shopflow-authorization.policy.js'
 
-const USER_SELECT = {
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  role: true,
-  isActive: true,
-  createdAt: true,
-  updatedAt: true,
-} as const
-
-export async function listUsers(caller: TokenPayload) {
-  if (caller.role !== 'ADMIN' && caller.role !== 'SUPERADMIN') {
-    throw new ForbiddenError('Solo administradores pueden listar usuarios')
+function getCallerCompanyId(caller: TokenPayload): string {
+  if (!caller.companyId) {
+    throw new ForbiddenError('No tienes acceso a ninguna empresa')
   }
-  return prisma.user.findMany({
-    where: { isActive: true },
-    select: USER_SELECT,
-    orderBy: { createdAt: 'desc' },
-  })
+  return caller.companyId
 }
 
-export async function getById(id: string) {
-  const user = await prisma.user.findUnique({ where: { id }, select: USER_SELECT })
+export async function listUsers(caller: TokenPayload) {
+  assertCanManageMembers(caller, 'Solo owners o admins pueden listar usuarios')
+  const companyId = getCallerCompanyId(caller)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+
+  return createRepositories(companyId).users.listActiveByCompany()
+}
+
+export async function getById(id: string, caller: TokenPayload) {
+  const companyId = getCallerCompanyId(caller)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
+
+  const user = await createRepositories(companyId).users.findById(id)
   if (!user) throw new NotFoundError('Usuario no encontrado')
   return user
 }
 
-export async function create(body: CreateUserBody) {
-  const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })
+export async function create(body: CreateUserBody, caller: TokenPayload) {
+  const companyId = getCallerCompanyId(caller)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+
+  const repos = createRepositories(companyId)
+  const existing = await repos.users.findByEmail(body.email)
   if (existing) throw new BadRequestError('Ya existe un usuario con este email')
 
   const hashedPassword = await bcrypt.hash(body.password, 10)
-  return prisma.user.create({
-    data: {
-      email: body.email,
-      password: hashedPassword,
-      firstName: body.firstName ?? '',
-      lastName: body.lastName ?? '',
-      role: (body.role as 'USER' | 'ADMIN' | 'SUPERADMIN') ?? 'USER',
-      isActive: body.isActive ?? true,
-    },
-    select: USER_SELECT,
+  return repos.users.createWithCompanyMembership({
+    email: body.email,
+    password: hashedPassword,
+    firstName: body.firstName ?? '',
+    lastName: body.lastName ?? '',
+    role: (body.role as 'USER' | 'ADMIN' | 'SUPERADMIN') ?? 'USER',
+    isActive: body.isActive ?? true,
   })
 }
 
-export async function update(id: string, body: UpdateUserBody) {
-  const existing = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true } })
+export async function update(id: string, body: UpdateUserBody, caller: TokenPayload) {
+  const companyId = getCallerCompanyId(caller)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
+
+  const repos = createRepositories(companyId)
+  const existing = await repos.users.findIdentityById(id)
   if (!existing) throw new NotFoundError('Usuario no encontrado')
 
   if (body.email && body.email !== existing.email) {
-    const emailCheck = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })
+    const emailCheck = await repos.users.findByEmail(body.email)
     if (emailCheck) throw new BadRequestError('Ya existe un usuario con este email')
   }
 
@@ -71,17 +76,22 @@ export async function update(id: string, body: UpdateUserBody) {
     throw new BadRequestError('No hay campos para actualizar')
   }
 
-  return prisma.user.update({ where: { id }, data: updateData, select: USER_SELECT })
+  return repos.users.updateById(id, updateData)
 }
 
-export async function remove(id: string): Promise<void> {
-  const existing = await prisma.user.findUnique({ where: { id }, select: { id: true } })
+export async function remove(id: string, caller: TokenPayload): Promise<void> {
+  const companyId = getCallerCompanyId(caller)
+  assertCompanyAccess(caller, companyId, 'No tienes permiso para gestionar usuarios de otra empresa')
+  await assertUserInCompany(companyId, id, 'No tienes permiso para gestionar usuarios de otra empresa')
+
+  const repos = createRepositories(companyId)
+  const existing = await repos.users.findById(id)
   if (!existing) throw new NotFoundError('Usuario no encontrado')
 
-  const salesCount = await prisma.sale.count({ where: { userId: id } })
+  const salesCount = await repos.sales.countByUserId(id)
   if (salesCount > 0) {
     throw new BadRequestError('No se puede eliminar un usuario que tiene ventas. Desactive el usuario en su lugar.')
   }
 
-  await prisma.user.delete({ where: { id } })
+  await repos.users.deleteById(id)
 }

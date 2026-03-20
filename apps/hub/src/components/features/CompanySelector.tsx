@@ -10,7 +10,6 @@ import {
 } from "@multisystem/ui";
 import { useCompanies } from "@/hooks/useCompanies";
 import { authApi } from "@/lib/api-client";
-import { setTokenCookie } from "@/lib/auth";
 import { Building2 } from "lucide-react";
 
 type CompanySelectorProps = {
@@ -35,7 +34,6 @@ export function CompanySelector({ currentCompanyId, isSuperuser }: CompanySelect
     try {
       const response = await authApi.context(companyId);
       if (response.success && response.data) {
-        setTokenCookie(response.data.token);
         // Invalidate all queries to refetch with new company context
         await queryClient.invalidateQueries();
       }

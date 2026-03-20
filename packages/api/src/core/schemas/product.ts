@@ -12,6 +12,7 @@ export const productCreateBodySchema = z.object({
   maxStock: z.number().nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
   supplierId: z.string().uuid().nullable().optional(),
+  unitId: z.string().uuid().nullable().optional(),
   storeId: z.string().uuid().nullable().optional(),
   active: z.boolean().optional(),
   imageUrl: z.string().nullable().optional(),

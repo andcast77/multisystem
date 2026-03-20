@@ -1,5 +1,6 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
+import { parsePagination } from '../common/database/index.js'
 
 type EmployeeRow = {
   id: string
@@ -27,9 +28,7 @@ export async function listEmployees(
   page: number
   limit: number
 }> {
-  const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1)
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? '10', 10) || 10))
-  const skip = (page - 1) * limit
+  const { page, limit, skip } = parsePagination(query, { defaultLimit: 10 })
 
   const where: Prisma.EmployeeWhereInput = {
     companyId: ctx.companyId,

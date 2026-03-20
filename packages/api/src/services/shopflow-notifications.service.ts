@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
+import { parsePagination } from '../common/database/index.js'
 
 export type CreateNotificationBody = {
   userId: string
@@ -46,9 +47,7 @@ export type ListNotificationsQuery = {
 }
 
 export async function listNotifications(ctx: CompanyContext, query: ListNotificationsQuery) {
-  const pageNum = parseInt(query.page ?? '1')
-  const limitNum = parseInt(query.limit ?? '20')
-  const skip = (pageNum - 1) * limitNum
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
 
   const where: Prisma.NotificationWhereInput = {
     companyId: ctx.companyId,
@@ -87,10 +86,11 @@ export async function markNotificationAsRead(ctx: CompanyContext, id: string, bo
   if (!existing) throw new NotFoundError('Notificación no encontrada')
   if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
 
-  await prisma.notification.update({
-    where: { id },
+  const result = await prisma.notification.updateMany({
+    where: { id, companyId: ctx.companyId, userId },
     data: { status: 'READ', readAt: new Date() },
   })
+  if (result.count === 0) throw new NotFoundError('Notificación no encontrada')
 }
 
 export async function markNotificationAsUnread(ctx: CompanyContext, id: string, body: { userId: string }) {
@@ -104,10 +104,11 @@ export async function markNotificationAsUnread(ctx: CompanyContext, id: string, 
   if (!existing) throw new NotFoundError('Notificación no encontrada')
   if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
 
-  await prisma.notification.update({
-    where: { id },
+  const result = await prisma.notification.updateMany({
+    where: { id, companyId: ctx.companyId, userId },
     data: { status: 'UNREAD', readAt: null },
   })
+  if (result.count === 0) throw new NotFoundError('Notificación no encontrada')
 }
 
 export async function markAllNotificationsRead(ctx: CompanyContext, body: { userId: string }) {
@@ -115,7 +116,7 @@ export async function markAllNotificationsRead(ctx: CompanyContext, body: { user
   if (!userId) throw new BadRequestError('userId es requerido')
 
   const result = await prisma.notification.updateMany({
-    where: { userId, status: 'UNREAD' },
+    where: { userId, companyId: ctx.companyId, status: 'UNREAD' },
     data: { status: 'READ', readAt: new Date() },
   })
   return { count: result.count }
@@ -132,7 +133,8 @@ export async function deleteNotification(ctx: CompanyContext, id: string, body: 
   if (!existing) throw new NotFoundError('Notificación no encontrada')
   if (existing.userId !== userId) throw new ForbiddenError('Acceso denegado')
 
-  await prisma.notification.delete({ where: { id } })
+  const result = await prisma.notification.deleteMany({ where: { id, companyId: ctx.companyId, userId } })
+  if (result.count === 0) throw new NotFoundError('Notificación no encontrada')
 }
 
 export async function getUnreadCount(ctx: CompanyContext, query: { userId?: string }) {
@@ -142,6 +144,7 @@ export async function getUnreadCount(ctx: CompanyContext, query: { userId?: stri
   const count = await prisma.notification.count({
     where: {
       userId,
+      companyId: ctx.companyId,
       status: 'UNREAD',
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },

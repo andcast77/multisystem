@@ -1,7 +1,13 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { ShopflowContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/index.js'
-import { toNumber } from '../common/database/index.js'
+import { parsePagination, toNumber } from '../common/database/index.js'
+import {
+  assertStoreBelongsToCompany,
+  assertStoreMatchForScopedUser,
+  hasFullStoreAccess,
+  resolveEffectiveStoreIdForScopedUser,
+} from '../policies/shopflow-authorization.policy.js'
 
 const num = toNumber
 
@@ -67,19 +73,9 @@ export async function listSales(
   ctx: ShopflowContext,
   query: ListSalesQuery,
 ) {
-  const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  const effectiveStoreId = isStoreAdmin
-    ? query.storeId ?? undefined
-    : (query.storeId || ctx.storeId) ?? null
-  if (!isStoreAdmin && !effectiveStoreId) {
-    throw new ForbiddenError(
-      'Envía el parámetro storeId (query) o el header X-Store-Id con el id del local de venta para listar ventas (usuario no administrador)',
-    )
-  }
+  const effectiveStoreId = await resolveEffectiveStoreIdForScopedUser(ctx, query.storeId)
 
-  const pageNum = parseInt(query.page ?? '1')
-  const limitNum = parseInt(query.limit ?? '20')
-  const skip = (pageNum - 1) * limitNum
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(query)
 
   const where: Prisma.SaleWhereInput = { companyId: ctx.companyId }
   if (effectiveStoreId) where.storeId = effectiveStoreId
@@ -164,8 +160,7 @@ export async function getSaleById(
   if (!sale) {
     throw new NotFoundError('Venta no encontrada')
   }
-  const isStoreAdminId = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
-  if (!isStoreAdminId && ctx.storeId != null && sale.storeId !== ctx.storeId) {
+  if (!hasFullStoreAccess(ctx) && ctx.storeId != null && sale.storeId !== ctx.storeId) {
     throw new NotFoundError('Venta no encontrada')
   }
   return {
@@ -197,21 +192,11 @@ export async function createSale(
 ) {
   const { storeId: bodyStoreId, customerId, userId, items, paymentMethod, paidAmount, discount = 0, taxRate, notes } = body
   const effectiveStoreId = bodyStoreId ?? ctx.storeId ?? null
-  const isStoreAdmin = ctx.membershipRole === 'OWNER' || ctx.membershipRole === 'ADMIN'
   if (effectiveStoreId == null) {
     throw new BadRequestError('Envía storeId en el body o el header X-Store-Id con el id del local de venta para registrar la venta')
   }
-  if (!isStoreAdmin && ctx.storeId != null && effectiveStoreId !== ctx.storeId) {
-    throw new ForbiddenError('Solo puedes registrar ventas en tu local de venta asignado')
-  }
-  {
-    const storeCheck = await prisma.store.findFirst({
-      where: { id: effectiveStoreId, companyId: ctx.companyId },
-    })
-    if (!storeCheck) {
-      throw new BadRequestError('Local de venta no encontrado o no pertenece a la empresa')
-    }
-  }
+  assertStoreMatchForScopedUser(ctx, effectiveStoreId, 'Solo puedes registrar ventas en tu local de venta asignado')
+  await assertStoreBelongsToCompany(ctx.companyId, effectiveStoreId)
 
   for (const item of items) {
     const product = await prisma.product.findFirst({
@@ -362,10 +347,11 @@ export async function cancelSale(
   if (sale.status === 'REFUNDED') throw new BadRequestError('No se puede cancelar una venta reembolsada')
 
   await prisma.$transaction(async (tx) => {
-    await tx.sale.update({
-      where: { id },
+    const updated = await tx.sale.updateMany({
+      where: { id, companyId: ctx.companyId },
       data: { status: 'CANCELLED' },
     })
+    if (updated.count === 0) throw new NotFoundError('Venta no encontrada')
     for (const item of sale.items) {
       await tx.storeInventory.upsert({
         where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },
@@ -409,10 +395,11 @@ export async function refundSale(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.sale.update({
-      where: { id },
+    const updated = await tx.sale.updateMany({
+      where: { id, companyId: ctx.companyId },
       data: { status: 'REFUNDED' },
     })
+    if (updated.count === 0) throw new NotFoundError('Venta no encontrada')
     for (const item of sale.items) {
       await tx.storeInventory.upsert({
         where: { storeId_productId: { storeId: sale.storeId, productId: item.productId } },

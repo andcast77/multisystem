@@ -24,7 +24,7 @@ export function CustomerSelector() {
     return () => clearTimeout(t)
   }, [search])
 
-  const { data: customers, isLoading } = useCustomers(
+  const { data: customersResponse, isLoading } = useCustomers(
     debouncedSearch.length >= 2 ? { search: debouncedSearch } : undefined
   )
   const { data: selectedCustomer } = useCustomer(customerId || '')
@@ -39,7 +39,12 @@ export function CustomerSelector() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const list = Array.isArray(customers) ? customers : []
+  const list = (customersResponse?.customers ?? []) as Array<{
+    id: string
+    name: string
+    email?: string | null
+    phone?: string | null
+  }>
   const showList = open && (search.length >= 2 || list.length > 0)
 
   return (
