@@ -90,7 +90,7 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn("ui-btn ui-btn--default ui-btn--default ui-alert-dialog__action", className)}
+    className={cn("ui-btn ui-btn--variant-default ui-btn--size-md ui-alert-dialog__action", className)}
     {...props}
   />
 ));
@@ -102,7 +102,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn("ui-btn ui-btn--outline ui-btn--default ui-alert-dialog__cancel", className)}
+    className={cn("ui-btn ui-btn--variant-outline ui-btn--size-md ui-alert-dialog__cancel", className)}
     {...props}
   />
 ));

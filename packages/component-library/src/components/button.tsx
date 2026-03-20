@@ -23,11 +23,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }, ref) => {
     const Comp = asChild ? Slot : "button";
     const isLoading = Boolean(loading);
+    const normalizedSize = size === "default" ? "md" : size;
 
     const buttonClasses = cn(
       "ui-btn",
-      `ui-btn--${variant}`,
-      `ui-btn--${size}`,
+      `ui-btn--variant-${variant}`,
+      `ui-btn--size-${normalizedSize}`,
       className
     );
 
