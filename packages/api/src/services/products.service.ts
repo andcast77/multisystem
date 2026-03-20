@@ -1,6 +1,6 @@
 import type { CompanyContext } from '../core/auth-context.js'
 import { createRepositories } from '../repositories/index.js'
-import { BadRequestError } from '../common/errors/app-error.js'
+import { BadRequestError, NotFoundError } from '../common/errors/app-error.js'
 import type { ProductRow, UnitRow, ProductSearchQuery, ProductCreateInput, ProductUpdateInput } from '../repositories/product.repository.js'
 
 function repos(ctx: CompanyContext) {
@@ -63,6 +63,7 @@ export async function updateProduct(ctx: CompanyContext, id: string, body: Produ
   }
 }
 
-export async function deleteProduct(ctx: CompanyContext, id: string): Promise<boolean> {
-  return repos(ctx).products.delete(id)
+export async function deleteProduct(ctx: CompanyContext, id: string): Promise<void> {
+  const deleted = await repos(ctx).products.delete(id)
+  if (!deleted) throw new NotFoundError('Producto no encontrado')
 }
