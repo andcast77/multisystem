@@ -68,7 +68,6 @@ export function TicketPrinter({
       return () => clearTimeout(timer)
     }
     return undefined
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketConfig?.autoPrint, sale.id, defaultPrinter])
 
   if (!ticketConfig) {

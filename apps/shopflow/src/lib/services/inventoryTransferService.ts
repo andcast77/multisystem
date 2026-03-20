@@ -1,6 +1,5 @@
 import { shopflowApi } from '@/lib/api/client'
 import { ApiError, ErrorCodes } from '@/lib/utils/errors'
-import { getProductById } from './productService'
 import type { TransferStatus } from '@/types'
 
 export interface CreateTransferInput {
@@ -20,16 +19,11 @@ export async function createTransfer(data: CreateTransferInput) {
     throw new ApiError(400, 'Cannot transfer to the same store', ErrorCodes.VALIDATION_ERROR)
   }
 
-  const product = await getProductById(data.productId) as { storeId?: string; stock: number }
-
-  if (product.storeId && product.storeId !== data.fromStoreId) {
-    throw new ApiError(400, 'Product does not belong to source store', ErrorCodes.VALIDATION_ERROR)
+  if (data.quantity <= 0) {
+    throw new ApiError(400, 'Quantity must be greater than zero', ErrorCodes.VALIDATION_ERROR)
   }
 
-  if (product.stock < data.quantity) {
-    throw new ApiError(400, 'Insufficient stock', ErrorCodes.VALIDATION_ERROR)
-  }
-
+  // Backend validates store ownership and available stock.
   const response = await shopflowApi.post<{ success: boolean; data: unknown; error?: string }>(
     '/inventory-transfers',
     {

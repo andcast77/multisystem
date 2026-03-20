@@ -1,10 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  // Shopflow is analyzed via its Vite entry, but contains a legacy Next-style
-  // tree we archived under `src/app-dead/**`.
   "project": [
     "src/**/*",
-    "!src/app-dead/**",
     "!src/**/__tests__/**",
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx",
