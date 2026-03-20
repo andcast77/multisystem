@@ -9,7 +9,6 @@ Módulo **POS e inventario** del ecosistema Multisystem: ventas, productos, cate
 - **Tailwind CSS 4**, **@multisystem/ui**, **@multisystem/shared**, **@multisystem/contracts**
 - **Recharts**, **ExcelJS**, **jsPDF**, **react-to-print** (tickets/recibos)
 - **Vitest** (tests en validaciones y similares)
-- **next-intl** (i18n; convive con el stack Vite)
 
 La API es **`@multisystem/api`**, rutas bajo **`/api/shopflow/*`** (cliente en `src/lib/api/client.ts` vía `shopflowApi` = prefijo `/api/shopflow`).
 
@@ -34,9 +33,8 @@ Crear **`apps/shopflow/.env`** (ver `.env.example`).
 
 | Variable | Uso |
 |----------|-----|
-| **`VITE_API_URL`** | Base URL principal de la API en **`src/lib/api/client.ts`** y **`src/lib/api-client.ts`**. Fallback por defecto: **`http://localhost:3000`**. |
-| **`NEXT_PUBLIC_API_URL`** | Fallback temporal de compatibilidad (legacy). No usar como variable principal en nuevos entornos Vite. |
-| **`NEXT_PUBLIC_VAPID_PUBLIC_KEY`** | Opcional — notificaciones push Web Push. |
+| **`VITE_API_URL`** | Base URL principal de la API en **`src/lib/api/client.ts`**. Fallback por defecto: **`http://localhost:3000`**. |
+| **`VITE_VAPID_PUBLIC_KEY`** | Opcional — notificaciones push Web Push. |
 
 Proxy de desarrollo en `vite.config`: peticiones a **`/api`** se reenvían al host de la API (revisar que coincida con cómo los servicios construyen la URL; el cliente principal suele ir directo a `API_URL`).
 
@@ -44,7 +42,6 @@ Proxy de desarrollo en `vite.config`: peticiones a **`/api`** se reenvían al ho
 
 ```
 src/
-├── app/                    # Páginas estilo App Router (rutas bajo (auth), (dashboard), …)
 ├── components/             # POS, reportes, backup, settings, …
 ├── hooks/
 ├── lib/
@@ -56,7 +53,7 @@ src/
 └── types/
 ```
 
-> **Nota:** coexisten ficheros con APIs de **Next.js** (`next/navigation`, `next/image`) bajo `app/`; el entry actual es **Vite** (`main.tsx` → `App.tsx`). Comprueba que el enrutado que uses en local coincida con el entry activo.
+> **Nota:** el frontend activo está aislado para Vite (`main.tsx` → `App.tsx`) y no depende de `next/*`.
 
 ## Enlaces
 

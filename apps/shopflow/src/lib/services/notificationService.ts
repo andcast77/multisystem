@@ -7,7 +7,6 @@ import {
   type NotificationPreference
 } from '@/types'
 import { ApiError, ErrorCodes } from '@/lib/utils/errors'
-import { sendPushNotificationToUser } from './pushNotificationService'
 
 export interface CreateNotificationInput {
   userId: string
@@ -57,7 +56,6 @@ export async function createNotification(input: CreateNotificationInput): Promis
 
 /**
  * Send notification based on user preferences
- * Also sends push notifications if enabled
  */
 export async function sendNotification(input: CreateNotificationInput): Promise<Notification | null> {
   // Check user preferences
@@ -72,23 +70,6 @@ export async function sendNotification(input: CreateNotificationInput): Promise<
 
   // Create in-app notification
   const notification = await createNotification(input)
-
-  // Send push notification if enabled (don't await to avoid blocking)
-  if (preferences.pushEnabled && checkNotificationPreference(preferences, input.type, 'push')) {
-    sendPushNotificationToUser(input.userId, {
-      title: input.title,
-      message: input.message,
-      type: input.type,
-      priority: input.priority,
-      actionUrl: input.actionUrl,
-      data: input.data,
-    }).catch((error) => {
-      // Log error but don't fail the main notification
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to send push notification:', error)
-      }
-    })
-  }
 
   return notification
 }

@@ -8,7 +8,7 @@ export function ShopflowModuleGuard({ children }: { children: React.ReactNode })
   if (isLoading || !user) return <>{children}</>
   if (user.isSuperuser) return <>{children}</>
   if (!user.companyId) return <>{children}</>
-  if (user.company?.shopflowEnabled !== false) return <>{children}</>
+  if (user.company?.modules?.shopflow !== false) return <>{children}</>
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-amber-50">

@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useUser } from '@/hooks/useUser'
 import { shopflowApi } from '@/lib/api/client'
 
-const VAPID_PUBLIC_KEY = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY : undefined
+const VAPID_PUBLIC_KEY = (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY as string | undefined
 
 /**
  * Hook to manage push notification subscriptions
@@ -16,7 +16,7 @@ export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [vapidPublicKey, setVapidPublicKey] = useState<string | null>(VAPID_PUBLIC_KEY || null)
 
-  // VAPID key from env (no API endpoint; set NEXT_PUBLIC_VAPID_PUBLIC_KEY)
+  // VAPID key from env (no API endpoint; set VITE_VAPID_PUBLIC_KEY)
   useEffect(() => {
     if (VAPID_PUBLIC_KEY) {
       setVapidPublicKey(VAPID_PUBLIC_KEY)

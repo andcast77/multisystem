@@ -28,7 +28,7 @@ export async function logUserAction(
   } catch (error) {
     // Don't fail the main operation if logging fails
     // Log error in development
-    if (process.env.NODE_ENV === 'development') {
+    if ((import.meta as any).env?.DEV === true) {
       console.error('Failed to log action:', error)
     }
   }

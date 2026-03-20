@@ -1,4 +1,4 @@
-import { handleError, ApiError, ErrorCodes } from './errors'
+import { toErrorResponse, ApiError, ErrorCodes } from './errors'
 
 export async function parseRequestBody<T>(request: Request): Promise<T> {
   try {
@@ -10,9 +10,10 @@ export async function parseRequestBody<T>(request: Request): Promise<T> {
 }
 
 export function successResponse<T>(data: T, status = 200): Response {
-  return Response.json(data, { status })
+  return Response.json({ success: true, data }, { status })
 }
 
 export function errorResponse(error: unknown): Response {
-  return handleError(error)
+  const { status, body } = toErrorResponse(error)
+  return Response.json(body, { status })
 }
