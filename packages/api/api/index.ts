@@ -33,7 +33,9 @@ interface InjectResponse {
 interface FetchRequest {
   url: string
   method: string
-  headers: Headers
+  headers: {
+    entries(): IterableIterator<[string, string]>
+  }
   text(): Promise<string>
 }
 
@@ -70,33 +72,42 @@ function getApp(): Promise<import('fastify').FastifyInstance> {
   return appPromise
 }
 
-function headersFromFastify(headers: Record<string, string | string[] | undefined>): Headers {
-  const out = new Headers()
+type HeaderMap = Record<string, string>
+
+function headersFromFastify(headers: Record<string, string | string[] | undefined>): HeaderMap {
+  const out: HeaderMap = {}
   for (const [key, value] of Object.entries(headers)) {
     if (value === undefined) continue
     if (Array.isArray(value)) {
-      value.forEach((v) => out.append(key, v))
+      out[key] = value.join(', ')
     } else {
-      out.set(key, value)
+      out[key] = value
     }
   }
   return out
 }
 
-function ensureCorsHeaders(request: FetchRequest, headers: Headers): Headers {
-  const origin = request.headers.get('origin')
+function getRequestOrigin(request: FetchRequest): string | undefined {
+  for (const [key, value] of request.headers.entries()) {
+    if (key.toLowerCase() === 'origin' && value) return value
+  }
+  return undefined
+}
+
+function ensureCorsHeaders(request: FetchRequest, headers: HeaderMap): HeaderMap {
+  const origin = getRequestOrigin(request)
   if (!origin) return headers
 
-  if (!headers.has('access-control-allow-origin')) {
-    headers.set('access-control-allow-origin', origin)
+  if (!headers['access-control-allow-origin']) {
+    headers['access-control-allow-origin'] = origin
   }
-  if (!headers.has('access-control-allow-credentials')) {
-    headers.set('access-control-allow-credentials', 'true')
+  if (!headers['access-control-allow-credentials']) {
+    headers['access-control-allow-credentials'] = 'true'
   }
-  if (!headers.has('vary')) {
-    headers.set('vary', 'Origin')
-  } else if (!headers.get('vary')?.toLowerCase().includes('origin')) {
-    headers.set('vary', `${headers.get('vary')}, Origin`)
+  if (!headers.vary) {
+    headers.vary = 'Origin'
+  } else if (!headers.vary.toLowerCase().includes('origin')) {
+    headers.vary = `${headers.vary}, Origin`
   }
   return headers
 }
@@ -109,8 +120,7 @@ export default {
       // Keep pathname as-is. Fastify routes are defined with `/api/...` prefixes.
       const path = (url.pathname || '/') + url.search
       const headers: Record<string, string> = {}
-      const reqHeaders = request.headers as unknown as { entries(): IterableIterator<[string, string]> }
-      for (const [key, value] of reqHeaders.entries()) {
+      for (const [key, value] of request.headers.entries()) {
         headers[key] = value
       }
       const body = await request.text().catch(() => '')
@@ -137,7 +147,7 @@ export default {
       const message = err instanceof Error ? err.message : String(err)
       // Startup/load failures (e.g. missing env, failed import) -> 503 so client knows service is unavailable
       const status = message && /required|failed|cannot find|ENOENT|MODULE_NOT_FOUND/i.test(message) ? 503 : 500
-      const errorHeaders = ensureCorsHeaders(request, new Headers({ 'Content-Type': 'application/json' }))
+      const errorHeaders = ensureCorsHeaders(request, { 'Content-Type': 'application/json' })
       return new Response(
         JSON.stringify({
           error: status === 503 ? 'Service Unavailable' : 'Internal Server Error',
