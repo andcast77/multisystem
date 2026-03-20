@@ -33,7 +33,9 @@ interface InjectResponse {
 interface FetchRequest {
   url: string
   method: string
-  headers: Headers
+  headers: {
+    entries(): IterableIterator<[string, string]>
+  }
   text(): Promise<string>
 }
 
@@ -70,17 +72,44 @@ function getApp(): Promise<import('fastify').FastifyInstance> {
   return appPromise
 }
 
-function headersFromFastify(headers: Record<string, string | string[] | undefined>): Headers {
-  const out = new Headers()
+type HeaderMap = Record<string, string>
+
+function headersFromFastify(headers: Record<string, string | string[] | undefined>): HeaderMap {
+  const out: HeaderMap = {}
   for (const [key, value] of Object.entries(headers)) {
     if (value === undefined) continue
     if (Array.isArray(value)) {
-      value.forEach((v) => out.append(key, v))
+      out[key] = value.join(', ')
     } else {
-      out.set(key, value)
+      out[key] = value
     }
   }
   return out
+}
+
+function getRequestOrigin(request: FetchRequest): string | undefined {
+  for (const [key, value] of request.headers.entries()) {
+    if (key.toLowerCase() === 'origin' && value) return value
+  }
+  return undefined
+}
+
+function ensureCorsHeaders(request: FetchRequest, headers: HeaderMap): HeaderMap {
+  const origin = getRequestOrigin(request)
+  if (!origin) return headers
+
+  if (!headers['access-control-allow-origin']) {
+    headers['access-control-allow-origin'] = origin
+  }
+  if (!headers['access-control-allow-credentials']) {
+    headers['access-control-allow-credentials'] = 'true'
+  }
+  if (!headers.vary) {
+    headers.vary = 'Origin'
+  } else if (!headers.vary.toLowerCase().includes('origin')) {
+    headers.vary = `${headers.vary}, Origin`
+  }
+  return headers
 }
 
 export default {
@@ -88,12 +117,10 @@ export default {
     try {
       const app = await getApp()
       const url = new URL(request.url)
-      // Rewrite sends to /api/:path so pathname is /api/health or /api/api/docs; strip /api prefix for Fastify
-      const pathname = url.pathname.replace(/^\/api/, '') || '/'
-      const path = pathname + url.search
+      // Keep pathname as-is. Fastify routes are defined with `/api/...` prefixes.
+      const path = (url.pathname || '/') + url.search
       const headers: Record<string, string> = {}
-      const reqHeaders = request.headers as unknown as { entries(): IterableIterator<[string, string]> }
-      for (const [key, value] of reqHeaders.entries()) {
+      for (const [key, value] of request.headers.entries()) {
         headers[key] = value
       }
       const body = await request.text().catch(() => '')
@@ -106,22 +133,27 @@ export default {
         payload
       })) as InjectResponse
 
-      const bodyOut = response.body != null ? response.body : undefined
+      // Fetch Response forbids a body for certain status codes (e.g. 204 preflight).
+      const status = response.statusCode
+      const statusDisallowsBody = status === 204 || status === 205 || status === 304
+      const bodyOut = statusDisallowsBody ? undefined : (response.body ?? undefined)
+      const responseHeaders = ensureCorsHeaders(request, headersFromFastify(response.headers))
       return new Response(bodyOut, {
-        status: response.statusCode,
-        headers: headersFromFastify(response.headers)
+        status,
+        headers: responseHeaders
       })
     } catch (err: unknown) {
       console.error('[api]', err)
       const message = err instanceof Error ? err.message : String(err)
       // Startup/load failures (e.g. missing env, failed import) -> 503 so client knows service is unavailable
       const status = message && /required|failed|cannot find|ENOENT|MODULE_NOT_FOUND/i.test(message) ? 503 : 500
+      const errorHeaders = ensureCorsHeaders(request, { 'Content-Type': 'application/json' })
       return new Response(
         JSON.stringify({
           error: status === 503 ? 'Service Unavailable' : 'Internal Server Error',
           message: process.env.VERCEL ? message : undefined
         }),
-        { status, headers: { 'Content-Type': 'application/json' } }
+        { status, headers: errorHeaders }
       )
     }
   }
