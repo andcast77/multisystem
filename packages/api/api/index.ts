@@ -106,9 +106,12 @@ export default {
         payload
       })) as InjectResponse
 
-      const bodyOut = response.body != null ? response.body : undefined
+      // Fetch Response forbids a body for certain status codes (e.g. 204 preflight).
+      const status = response.statusCode
+      const statusDisallowsBody = status === 204 || status === 205 || status === 304
+      const bodyOut = statusDisallowsBody ? undefined : (response.body ?? undefined)
       return new Response(bodyOut, {
-        status: response.statusCode,
+        status,
         headers: headersFromFastify(response.headers)
       })
     } catch (err: unknown) {
