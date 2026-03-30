@@ -101,14 +101,14 @@ describe('Plan 10: Shopflow store authorization boundaries', () => {
   it('USER can access assigned store and is denied for unassigned store via X-Store-Id', async () => {
     const allowed = await app.inject({
       method: 'GET',
-      url: '/api/shopflow/sales',
+      url: '/v1/shopflow/sales',
       headers: { Authorization: `Bearer ${scopedUserToken}`, 'x-store-id': acmeStoreAId },
     })
     expect(allowed.statusCode).toBe(200)
 
     const denied = await app.inject({
       method: 'GET',
-      url: '/api/shopflow/sales',
+      url: '/v1/shopflow/sales',
       headers: { Authorization: `Bearer ${scopedUserToken}`, 'x-store-id': acmeStoreBId },
     })
     expect(denied.statusCode).toBe(403)
@@ -123,7 +123,7 @@ describe('Plan 10: Shopflow store authorization boundaries', () => {
 
     const allowedAfterAssignment = await app.inject({
       method: 'GET',
-      url: '/api/shopflow/sales',
+      url: '/v1/shopflow/sales',
       headers: { Authorization: `Bearer ${scopedUserToken}`, 'x-store-id': acmeStoreBId },
     })
     expect(allowedAfterAssignment.statusCode).toBe(200)
@@ -141,7 +141,7 @@ describe('Plan 10: Shopflow store authorization boundaries', () => {
 
     const allowedAsAdmin = await app.inject({
       method: 'GET',
-      url: '/api/shopflow/sales',
+      url: '/v1/shopflow/sales',
       headers: { Authorization: `Bearer ${scopedUserToken}`, 'x-store-id': acmeStoreBId },
     })
     expect(allowedAsAdmin.statusCode).toBe(200)
@@ -150,7 +150,7 @@ describe('Plan 10: Shopflow store authorization boundaries', () => {
   it('cross-company store header stays forbidden', async () => {
     const denied = await app.inject({
       method: 'GET',
-      url: '/api/shopflow/sales',
+      url: '/v1/shopflow/sales',
       headers: { Authorization: `Bearer ${scopedUserToken}`, 'x-store-id': betaStoreId },
     })
     expect(denied.statusCode).toBe(403)

@@ -9,6 +9,21 @@ export type AppConfig = {
   NODE_ENV: string
   JWT_SECRET: string
   JWT_EXPIRES_IN: string
+  TRUST_PROXY: string
+}
+
+/**
+ * Parse TRUST_PROXY for Fastify `trustProxy` (reverse proxy / Vercel).
+ * @see https://fastify.dev/docs/latest/Reference/Server/#trustproxy
+ */
+export function parseTrustProxy(raw: string | undefined): boolean | number {
+  if (raw == null || raw.trim() === '') return false
+  const v = raw.trim().toLowerCase()
+  if (v === 'true' || v === '1' || v === 'yes') return true
+  if (v === 'false' || v === '0' || v === 'no') return false
+  const n = Number.parseInt(v, 10)
+  if (!Number.isNaN(n) && n >= 1 && n <= 32) return n
+  return false
 }
 
 export function getConfig(): AppConfig {
@@ -21,5 +36,6 @@ export function getConfig(): AppConfig {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
     JWT_SECRET: process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-change-in-production'),
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
+    TRUST_PROXY: process.env.TRUST_PROXY ?? '',
   }
 }

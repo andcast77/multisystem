@@ -66,5 +66,5 @@ export function getBackupDownloadUrl(filename: string): string {
   const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
   const base = viteApiUrl || ''
   if (!base) return ''
-  return `${base.replace(/\/$/, '')}/api/shopflow/backup/download/${encodeURIComponent(filename)}`
+  return `${base.replace(/\/$/, '')}/v1/shopflow/backup/download/${encodeURIComponent(filename)}`
 }

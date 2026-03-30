@@ -63,9 +63,9 @@ export async function getUsers(query: UserQueryInput = { page: 1, limit: 20 }) {
   if (role) params.append('role', role)
   if (active !== undefined) params.append('active', active.toString())
 
-  // Note: The current /api/users endpoint doesn't support pagination/filters yet
+  // Note: The current /v1/users endpoint doesn't support pagination/filters yet
   // This is a simplified version that gets all active users
-  const response = await apiClient.get<ApiResult<any[]>>('/api/users')
+  const response = await apiClient.get<ApiResult<any[]>>('/v1/users')
 
   if (!response.success) {
     throw new ApiError(500, response.error || 'Error al obtener usuarios', ErrorCodes.INTERNAL_ERROR)
@@ -98,7 +98,7 @@ export async function getUsers(query: UserQueryInput = { page: 1, limit: 20 }) {
 }
 
 export async function getUserById(id: string) {
-  const response = await apiClient.get<{ success: boolean; data: any; error?: string }>(`/api/users/${id}`)
+  const response = await apiClient.get<{ success: boolean; data: any; error?: string }>(`/v1/users/${id}`)
 
   if (!response.success) {
     throw new ApiError(404, response.error || 'User not found', ErrorCodes.NOT_FOUND)
@@ -108,7 +108,7 @@ export async function getUserById(id: string) {
 }
 
 export async function createUser(data: CreateUserInput) {
-  const response = await apiClient.post<{ success: boolean; data: any; error?: string }>('/api/users', {
+  const response = await apiClient.post<{ success: boolean; data: any; error?: string }>('/v1/users', {
     email: data.email,
     password: data.password,
     name: data.name,
@@ -135,7 +135,7 @@ export async function updateUser(id: string, data: UpdateUserInput) {
   if (data.active !== undefined) updateData.active = data.active
 
   const response = await apiClient.put<{ success: boolean; data: any; error?: string }>(
-    `/api/users/${id}`,
+    `/v1/users/${id}`,
     updateData
   )
 
@@ -153,7 +153,7 @@ export async function updateUser(id: string, data: UpdateUserInput) {
 }
 
 export async function deleteUser(id: string) {
-  const response = await apiClient.delete<{ success: boolean; data?: any; error?: string }>(`/api/users/${id}`)
+  const response = await apiClient.delete<{ success: boolean; data?: any; error?: string }>(`/v1/users/${id}`)
 
   if (!response.success) {
     if (response.error?.includes('no encontrado')) {

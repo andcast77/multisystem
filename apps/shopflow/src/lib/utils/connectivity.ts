@@ -106,7 +106,7 @@ export class ConnectivityChecker {
       const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
       const apiUrl = viteApiUrl
       try {
-        const url = apiUrl ? `${apiUrl.replace(/\/$/, '')}/api/auth/me` : '/api/auth/me'
+        const url = apiUrl ? `${apiUrl.replace(/\/$/, '')}/v1/auth/me` : '/v1/auth/me'
         const response = await fetch(url, {
           method: 'HEAD',
           cache: 'no-cache',

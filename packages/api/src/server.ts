@@ -17,18 +17,13 @@ import { errorsPlugin } from './plugins/core/errors.plugin.js'
 import { rateLimitPlugin } from './plugins/core/rate-limit.plugin.js'
 import { schemaSanitizerPlugin } from './plugins/core/schema-sanitizer.plugin.js'
 import { swaggerPlugin } from './plugins/core/swagger.plugin.js'
-import { versioningPlugin } from './plugins/core/versioning.plugin.js'
 import { healthPlugin } from './plugins/health/health.plugin.js'
-import { authProtectedPlugin } from './plugins/auth/auth-protected.plugin.js'
-import { usersPlugin } from './plugins/users/users.plugin.js'
-import { tenantPlugin } from './plugins/tenant/tenant.plugin.js'
-import { shopflowPlugin } from './plugins/shopflow/shopflow.plugin.js'
-import { workifyPlugin } from './plugins/workify/workify.plugin.js'
-import { techservicesPlugin } from './plugins/techservices/techservices.plugin.js'
-import { getConfig, type AppConfig } from './core/config.js'
+import { registerV1 } from './controllers/v1/index.js'
+import { getConfig, parseTrustProxy, type AppConfig } from './core/config.js'
 
 const __dirname = __dirnameApi
-const fastify = Fastify({ logger: true })
+const trustProxy = parseTrustProxy(process.env.TRUST_PROXY)
+const fastify = Fastify({ logger: true, trustProxy })
 
 async function start() {
   try {
@@ -40,6 +35,10 @@ async function start() {
     // Under Vitest we may import/boot the app without an active Fastify "ready" cycle.
     // Fall back to the process.env-backed config helper so integration tests can boot.
     const config = (getValidatedConfig(fastify) as AppConfig | undefined) ?? getConfig()
+
+    if (trustProxy !== false) {
+      fastify.log.info({ trustProxy }, 'trustProxy enabled (X-Forwarded-* drive request.ip; needed behind reverse proxy / Vercel for correct rate limits)')
+    }
 
     const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
     const deployed =
@@ -68,16 +67,10 @@ async function start() {
     await fastify.register(rateLimitPlugin)
     await fastify.register(schemaSanitizerPlugin)
     await fastify.register(errorsPlugin)
-    await fastify.register(versioningPlugin)
     await fastify.register(swaggerPlugin, { nodeEnv: config.NODE_ENV })
 
     await fastify.register(healthPlugin)
-    await fastify.register(authProtectedPlugin)
-    await fastify.register(usersPlugin)
-    await fastify.register(tenantPlugin)
-    await fastify.register(shopflowPlugin)
-    await fastify.register(workifyPlugin)
-    await fastify.register(techservicesPlugin)
+    await registerV1(fastify)
 
     // On Vercel we export the app for serverless; locally we listen
     if (!process.env.VERCEL) {

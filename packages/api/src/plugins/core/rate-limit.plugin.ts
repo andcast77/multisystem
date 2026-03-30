@@ -1,16 +1,19 @@
+/**
+ * Rate limits key off `request.ip`. Enable `TRUST_PROXY` (see `.env.example`) when the API sits
+ * behind a reverse proxy or Vercel so forwarded headers resolve to the real client; otherwise every
+ * user can share one bucket (proxy IP). @see https://fastify.dev/docs/latest/Guides/Recommendations/
+ */
 import rateLimit from '@fastify/rate-limit'
 import type { FastifyPluginAsync } from 'fastify'
-import * as authController from '../../controllers/auth.controller.js'
+import * as authController from '../../controllers/v1/auth.controller.js'
 
-function normalizedApiPath(url: string): string {
-  const path = url.split('?')[0]
-  if (path.startsWith('/api/v1/')) return path.replace('/api/v1/', '/api/')
-  return path
+function pathOnly(url: string): string {
+  return url.split('?')[0]
 }
 
 function isAuthPublicPath(url: string): boolean {
-  const p = normalizedApiPath(url)
-  return p === '/api/auth/login' || p === '/api/auth/register' || p === '/api/auth/verify'
+  const p = pathOnly(url)
+  return p === '/v1/auth/login' || p === '/v1/auth/register' || p === '/v1/auth/verify'
 }
 
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {

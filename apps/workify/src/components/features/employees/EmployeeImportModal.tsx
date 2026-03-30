@@ -62,7 +62,7 @@ export default function EmployeeImportModal({ isOpen, onClose, onImportSuccess }
 
     try {
       const { API_URL } = await import('@/lib/api/client');
-      const response = await fetch(`${API_URL}/api/workify/employees/import`, {
+      const response = await fetch(`${API_URL}/v1/workify/employees/import`, {
         method: 'POST',
         credentials: 'include',
         body: formData,

@@ -14,7 +14,7 @@ export async function setupSwagger(fastify: FastifyInstance) {
   });
 
   await fastify.register(fastifySwaggerUi, {
-    routePrefix: '/api/docs',
+    routePrefix: '/v1/docs',
     uiConfig: {
       docExpansion: 'list',
       deepLinking: false,
