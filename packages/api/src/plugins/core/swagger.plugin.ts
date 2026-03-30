@@ -11,7 +11,7 @@ export const swaggerPlugin: FastifyPluginAsync<SwaggerPluginOptions> = async (fa
     await setupSwagger(fastify)
   } else {
     fastify.log.info(
-      'OpenAPI UI disabled in production. Set ENABLE_API_DOCS=true to enable /api/docs.'
+      'OpenAPI UI disabled in production. Set ENABLE_API_DOCS=true to enable /v1/docs.'
     )
   }
 }

@@ -47,27 +47,27 @@ export const apiClient = {
     sharedClient.delete<T>(endpoint, data, withStoreIdHeader(options)),
 }
 
-// ShopFlow API Client (uses /api/shopflow prefix)
+// ShopFlow API Client (uses /v1/shopflow prefix)
 export const shopflowApi = {
-  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/api/shopflow${endpoint}`, options),
-  post: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.post<T>(`/api/shopflow${endpoint}`, data, options),
-  put: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.put<T>(`/api/shopflow${endpoint}`, data, options),
-  delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.delete<T>(`/api/shopflow${endpoint}`, data, options),
+  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/v1/shopflow${endpoint}`, options),
+  post: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.post<T>(`/v1/shopflow${endpoint}`, data, options),
+  put: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.put<T>(`/v1/shopflow${endpoint}`, data, options),
+  delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.delete<T>(`/v1/shopflow${endpoint}`, data, options),
 }
 
-// Auth API Client (uses /api/auth prefix)
+// Auth API Client (uses /v1/auth prefix)
 export const authApi = {
-  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/api/auth${endpoint}`, options),
-  post: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.post<T>(`/api/auth${endpoint}`, data, options),
-  put: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.put<T>(`/api/auth${endpoint}`, data, options),
+  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/v1/auth${endpoint}`, options),
+  post: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.post<T>(`/v1/auth${endpoint}`, data, options),
+  put: <T>(endpoint: string, data?: unknown, options?: RequestInit) => apiClient.put<T>(`/v1/auth${endpoint}`, data, options),
   delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.delete<T>(`/api/auth${endpoint}`, data, options),
-  me: () => apiClient.get<MeResponse>('/api/auth/me'),
+    apiClient.delete<T>(`/v1/auth${endpoint}`, data, options),
+  me: () => apiClient.get<MeResponse>('/v1/auth/me'),
 }
 
 // Company members API (usuarios de la empresa - misma lista en Workify y Shopflow)
 export const companiesApi = {
-  getMembers: <T>(companyId: string) => apiClient.get<T>(`/api/companies/${companyId}/members`),
+  getMembers: <T>(companyId: string) => apiClient.get<T>(`/v1/companies/${companyId}/members`),
   createMember: <T>(
     companyId: string,
     data: {
@@ -78,9 +78,9 @@ export const companiesApi = {
       membershipRole: 'ADMIN' | 'USER'
       storeIds?: string[]
     }
-  ) => apiClient.post<T>(`/api/companies/${companyId}/members`, data),
+  ) => apiClient.post<T>(`/v1/companies/${companyId}/members`, data),
   updateMemberStores: <T>(companyId: string, userId: string, storeIds: string[]) =>
-    apiClient.put<T>(`/api/companies/${companyId}/members/${userId}/stores`, { storeIds }),
+    apiClient.put<T>(`/v1/companies/${companyId}/members/${userId}/stores`, { storeIds }),
 }
 
 // Generic API response types

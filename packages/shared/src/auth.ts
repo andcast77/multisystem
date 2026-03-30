@@ -35,7 +35,7 @@ export function clearTokenCookie(): void {
 /** Whether the browser likely has an API session (httpOnly cookie is not readable). */
 export async function hasApiSession(apiBaseUrl: string): Promise<boolean> {
   try {
-    const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/api/auth/me`, {
+    const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/v1/auth/me`, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     })

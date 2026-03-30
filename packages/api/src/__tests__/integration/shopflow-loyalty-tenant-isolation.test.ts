@@ -97,7 +97,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     // Capture baseline via API to validate endpoint itself.
     const { res: betaGetRes, json: betaGetJson } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/loyalty/config',
+      url: '/v1/shopflow/loyalty/config',
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(betaGetRes.statusCode).toBe(200)
@@ -105,7 +105,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: acmeStoreConfigRes, json: acmeStoreConfigJson } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/store-config',
+      url: '/v1/shopflow/store-config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}` },
     })
     expect(acmeStoreConfigRes.statusCode).toBe(200)
@@ -113,7 +113,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: betaStoreConfigRes, json: betaStoreConfigJson } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/store-config',
+      url: '/v1/shopflow/store-config',
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(betaStoreConfigRes.statusCode).toBe(200)
@@ -125,7 +125,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: acmeUpdateRes, json: acmeUpdateJson } = await injectJson(app, {
       method: 'PUT',
-      url: '/api/shopflow/loyalty/config',
+      url: '/v1/shopflow/loyalty/config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
       payload: { pointsPerDollar: updatedPointsPerDollar },
     })
@@ -134,14 +134,14 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { json: acmeGetJson } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/loyalty/config',
+      url: '/v1/shopflow/loyalty/config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}` },
     })
     expect(acmeGetJson.data.pointsPerDollar).toBe(updatedPointsPerDollar)
 
     const { json: betaGetJsonAfter } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/loyalty/config',
+      url: '/v1/shopflow/loyalty/config',
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(betaGetJsonAfter.data.pointsPerDollar).toBe(betaOriginalPointsPerDollar)
@@ -149,7 +149,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     // Cleanup: revert Acme back to original configuration.
     const { res: revertRes } = await injectJson(app, {
       method: 'PUT',
-      url: '/api/shopflow/loyalty/config',
+      url: '/v1/shopflow/loyalty/config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
       payload: { pointsPerDollar: acmeOriginalPointsPerDollar },
     })
@@ -159,7 +159,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
   it('Cross-tenant customer points lookup does not leak resource existence', async () => {
     const { res, json } = await injectJson(app, {
       method: 'GET',
-      url: `/api/shopflow/loyalty/points/${betaCustomerId}`,
+      url: `/v1/shopflow/loyalty/points/${betaCustomerId}`,
       headers: { Authorization: `Bearer ${acmeOwnerToken}` },
     })
 
@@ -170,7 +170,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
   it('Cross-tenant award points is rejected as customer not found', async () => {
     const { res, json } = await injectJson(app, {
       method: 'POST',
-      url: '/api/shopflow/loyalty/points/award',
+      url: '/v1/shopflow/loyalty/points/award',
       headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
       payload: {
         customerId: betaCustomerId,
@@ -186,7 +186,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
   it('Cross-tenant user preferences access is forbidden', async () => {
     const { res, json } = await injectJson(app, {
       method: 'GET',
-      url: `/api/shopflow/user-preferences/${betaOwnerUserId}`,
+      url: `/v1/shopflow/user-preferences/${betaOwnerUserId}`,
       headers: { Authorization: `Bearer ${acmeOwnerToken}` },
     })
 
@@ -198,7 +198,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     const updatedName = `Acme Store ${Date.now()}`
     const { res: acmeUpdateRes, json: acmeUpdateJson } = await injectJson(app, {
       method: 'PUT',
-      url: '/api/shopflow/store-config',
+      url: '/v1/shopflow/store-config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
       payload: { name: updatedName },
     })
@@ -207,7 +207,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: betaGetRes, json: betaGetJson } = await injectJson(app, {
       method: 'GET',
-      url: '/api/shopflow/store-config',
+      url: '/v1/shopflow/store-config',
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(betaGetRes.statusCode).toBe(200)
@@ -215,7 +215,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: revertRes } = await injectJson(app, {
       method: 'PUT',
-      url: '/api/shopflow/store-config',
+      url: '/v1/shopflow/store-config',
       headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
       payload: { name: acmeOriginalStoreName },
     })
@@ -226,7 +226,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
     const endpoint = `https://push.example/${randomUUID()}`
     const { res: createRes } = await injectJson(app, {
       method: 'POST',
-      url: '/api/shopflow/push-subscriptions',
+      url: '/v1/shopflow/push-subscriptions',
       headers: { Authorization: `Bearer ${betaOwnerToken}`, 'content-type': 'application/json' },
       payload: { endpoint, p256dh: 'p256dh-value', auth: 'auth-value' },
     })
@@ -234,7 +234,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: forbiddenDeleteRes, json: forbiddenDeleteJson } = await injectJson(app, {
       method: 'DELETE',
-      url: `/api/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
+      url: `/v1/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
       headers: { Authorization: `Bearer ${acmeOwnerToken}` },
     })
     expect(forbiddenDeleteRes.statusCode).toBe(403)
@@ -242,7 +242,7 @@ describe('Plan 8 / Task 2: Shopflow Tenant Isolation', () => {
 
     const { res: cleanupDeleteRes } = await injectJson(app, {
       method: 'DELETE',
-      url: `/api/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
+      url: `/v1/shopflow/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(cleanupDeleteRes.statusCode).toBe(200)

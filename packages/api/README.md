@@ -4,21 +4,21 @@ API compartida **Fastify 5** para Multisystem: JWT, multi-empresa (contexto de c
 
 ## 📄 Swagger / OpenAPI
 
-- **No producción:** **`/api/docs`**.
+- **No producción:** **`/v1/docs`**.
 - **Producción:** UI **off** salvo **`ENABLE_API_DOCS=true`** (usar solo en entornos controlados).
 
 - [Swagger UI](https://swagger.io/tools/swagger-ui/) · [OpenAPI Specification](https://swagger.io/specification/)
 
 ## 🔑 Sesión y auth
 
-- Tras **login / register / POST /api/auth/context**, la API envía cookie **`ms_session`** (**httpOnly**, **Secure**, **SameSite=None**) en el host de la API. Los frontends deben usar **`credentials: 'include'`** y tener su origen en **`CORS_ORIGIN`**.
+- Tras **login / register / POST /v1/auth/context**, la API envía cookie **`ms_session`** (**httpOnly**, **Secure**, **SameSite=None**) en el host de la API. Los frontends deben usar **`credentials: 'include'`** y tener su origen en **`CORS_ORIGIN`**.
 - **`Authorization: Bearer`** sigue soportado (tests, scripts).
 - **`JWT_SECRET`:** obligatorio en **Vercel**, **`NODE_ENV=production`**, **`staging`** y cualquier despliegue; en desarrollo local se avisa si falta. Ver [ADR-auth-token-storage.md](../../docs/ADR-auth-token-storage.md).
 
 ## ⏱ Rate limiting
 
 - **Global:** 100 req/min por IP en el resto de rutas.
-- **`POST /api/auth/login`**, **`register`**, **`verify`:** excluidas del bucket global; bucket dedicado **20 req/min** (`ms-auth-public`).
+- **`POST /v1/auth/login`**, **`register`**, **`verify`:** excluidas del bucket global; bucket dedicado **20 req/min** (`ms-auth-public`).
 
 ## 🚀 Inicio Rápido
 
@@ -67,7 +67,7 @@ packages/api/
 │   ├── server.ts             # Fastify: env, CORS, rate limit, registro de controllers
 │   ├── swagger.ts
 │   ├── db/                   # Acceso Prisma
-│   ├── controllers/          # Rutas (health, auth, users, companies, company-members, shopflow/*, workify, techservices)
+│   ├── controllers/          # health (raíz); v1/* — auth, users, companies, shopflow/*, workify, techservices
 │   ├── services/
 │   ├── repositories/
 │   ├── dto/
@@ -75,7 +75,7 @@ packages/api/
 │   ├── common/               # errores, caché (Redis opcional), helpers DB
 │   ├── helpers/
 │   ├── modules/              # (legacy) re-exports por dominio
-│   ├── plugins/              # Fastify plugins por dominio (core/auth/tenant/shopflow/workify/techservices)
+│   ├── plugins/              # Fastify: core (cors, rate-limit, swagger, …) + health
 │   └── __tests__/            # Vitest (unit + integration)
 ├── vercel.json
 ├── package.json
@@ -89,14 +89,12 @@ La API sigue siendo **un solo deployable** (`src/server.ts`), pero las rutas se 
 
 ### Orden de registro (importante)
 
-1. **Core**: `env` → `cors` → `rate-limit` (incluye scope público de auth) → `schema-sanitizer` → `errors` → `versioning` → `swagger`
-2. **Dominios**: `health` → `auth-protected` → `users` → `tenant` → `shopflow` → `workify` → `techservices`
-
-Mantener este orden ayuda a asegurar que CORS, rate limiting, manejo de errores, versionado y Swagger se apliquen de forma consistente antes de registrar las rutas de dominio.
+1. **Core**: `env` → `cors` → `rate-limit` (incluye scope público de auth) → `schema-sanitizer` → `errors` → `swagger`
+2. **Rutas**: `health` (sin versión) → `registerV1` (`controllers/v1/*`, prefijo **`/v1`**)
 
 ### Versión en URL
 
-Peticiones a **`/api/v1/...`** se reescriben a **`/api/...`** (mismos handlers). Así los clientes pueden anclar versión sin duplicar código de rutas.
+Las rutas de negocio viven bajo **`/v1/...`** (p. ej. `/v1/auth/login`, `/v1/shopflow/products`). **`/health`** y la UI de Swagger **`/v1/docs`** quedan fuera de ese prefijo de dominio donde aplica.
 
 ## 🔧 Scripts Disponibles
 
@@ -156,14 +154,14 @@ Ver **`.env.render.example`** en este paquete para un ejemplo orientado a Render
 | Prefijo / área | Contenido (resumen) |
 |----------------|---------------------|
 | `GET /health` | Health check |
-| `/api/auth/*` | Registro, login, logout, sesión, empresas del usuario |
-| `/api/users` | Usuarios (protegido) |
-| `/api/companies`, miembros | Empresas y membresías |
-| `/api/shopflow/*` | Ventas, productos, clientes, tiendas, reportes, export, notificaciones, etc. |
-| Rutas **workify** | Órdenes de trabajo (módulo habilitado por empresa) |
-| Rutas **techservices** | Servicios técnicos / mantenimiento (módulo habilitado) |
+| `/v1/auth/*` | Registro, login, logout, sesión, empresas del usuario |
+| `/v1/users` | Usuarios (protegido) |
+| `/v1/companies`, miembros | Empresas y membresías |
+| `/v1/shopflow/*` | Ventas, productos, clientes, tiendas, reportes, export, notificaciones, etc. |
+| `/v1/workify/*` | RRHH / asistencia (módulo habilitado por empresa) |
+| `/v1/techservices/*` | Servicios técnicos / mantenimiento (módulo habilitado) |
 
-Muchas rutas exigen **sesión (cookie) o Bearer JWT** y contexto de compañía. Listado y esquemas: **`/api/docs`** (si está habilitado).
+Muchas rutas exigen **sesión (cookie) o Bearer JWT** y contexto de compañía. Listado y esquemas: **`/v1/docs`** (si está habilitado).
 
 ## 🧪 Testing
 

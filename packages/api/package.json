@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:endpoints": "node scripts/test-endpoints.js"
+    "test:endpoints": "node scripts/test-endpoints.js",
+    "load:smoke": "node scripts/load-smoke.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -30,6 +31,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
     "fastify": "^5.7.4",
+    "fastify-plugin": "^5.0.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.13.0",
     "ws": "^8.19.0",
@@ -42,6 +44,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.0",
     "@types/ws": "^8.18.1",
+    "autocannon": "^8.0.0",
     "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

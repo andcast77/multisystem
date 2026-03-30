@@ -177,7 +177,7 @@ export function detectSuspiciousActivity(request: NextRequest): boolean {
                      ip === 'localhost';
   
   // Detectar rutas sensibles
-  const sensitivePaths = ['/api/auth/login', '/api/auth/register', '/api/employees/import'];
+  const sensitivePaths = ['/v1/auth/login', '/v1/auth/register', '/v1/workify/employees/import'];
   const isSensitivePath = sensitivePaths.includes(path);
   
   return hasSuspiciousUserAgent || (isPrivateIP && isSensitivePath);
