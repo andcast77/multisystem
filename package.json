@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@multisystem/api",
-    "dev:hub": "pnpm --filter @multisystem/ui build && turbo run dev --filter=@multisystem/api --filter=@multisystem/hub",
+    "dev:hub": "turbo run dev --filter=@multisystem/hub",
     "dev:shopflow": "turbo run dev --filter=@multisystem/shopflow",
     "dev:techservices": "turbo run dev --filter=@multisystem/techservices",
     "dev:workify": "turbo run dev --filter=@multisystem/workify",

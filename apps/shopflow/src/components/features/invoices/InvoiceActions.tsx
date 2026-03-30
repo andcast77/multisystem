@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@multisystem/ui'
+import { API_URL } from '@/lib/api/client'
 
 interface InvoiceActionsProps {
   saleId: string
@@ -16,7 +17,7 @@ interface InvoiceActionsProps {
 
 export function InvoiceActions({ saleId }: InvoiceActionsProps) {
   const handleDownload = (format: 'pdf' | 'xml' | 'receipt') => {
-    const url = `/api/invoices/${saleId}/${format}`
+    const url = `${API_URL.replace(/\/$/, '')}/v1/shopflow/sales/${saleId}/invoice/${format}`
     window.open(url, '_blank')
   }
 

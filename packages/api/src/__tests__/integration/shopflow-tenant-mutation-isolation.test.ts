@@ -115,7 +115,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
     // Create a PENDING transfer (seeded ones are COMPLETED; we need PENDING for complete/cancel tests)
     const { res: createTransferRes, json: createTransferJson } = await injectJson(app, {
       method: 'POST',
-      url: '/api/shopflow/inventory-transfers',
+      url: '/v1/shopflow/inventory-transfers',
       headers: {
         Authorization: `Bearer ${acmeOwnerToken}`,
         'content-type': 'application/json',
@@ -140,7 +140,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot update Acme product (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'PUT',
-      url: `/api/shopflow/products/${acmeProductId}`,
+      url: `/v1/shopflow/products/${acmeProductId}`,
       headers: {
         Authorization: `Bearer ${betaOwnerToken}`,
         'content-type': 'application/json',
@@ -153,7 +153,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot delete Acme product (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'DELETE',
-      url: `/api/shopflow/products/${acmeProductId}`,
+      url: `/v1/shopflow/products/${acmeProductId}`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(res.statusCode).toBe(404)
@@ -162,7 +162,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot update Acme customer (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'PUT',
-      url: `/api/shopflow/customers/${acmeCustomerId}`,
+      url: `/v1/shopflow/customers/${acmeCustomerId}`,
       headers: {
         Authorization: `Bearer ${betaOwnerToken}`,
         'content-type': 'application/json',
@@ -175,7 +175,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot delete Acme customer (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'DELETE',
-      url: `/api/shopflow/customers/${acmeCustomerId}`,
+      url: `/v1/shopflow/customers/${acmeCustomerId}`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(res.statusCode).toBe(404)
@@ -184,7 +184,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot update Acme supplier (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'PUT',
-      url: `/api/shopflow/suppliers/${acmeSupplierId}`,
+      url: `/v1/shopflow/suppliers/${acmeSupplierId}`,
       headers: {
         Authorization: `Bearer ${betaOwnerToken}`,
         'content-type': 'application/json',
@@ -197,7 +197,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot delete Acme supplier (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'DELETE',
-      url: `/api/shopflow/suppliers/${acmeSupplierId}`,
+      url: `/v1/shopflow/suppliers/${acmeSupplierId}`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(res.statusCode).toBe(404)
@@ -206,7 +206,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot complete Acme inventory transfer (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'POST',
-      url: `/api/shopflow/inventory-transfers/${acmeTransferId}/complete`,
+      url: `/v1/shopflow/inventory-transfers/${acmeTransferId}/complete`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(res.statusCode).toBe(404)
@@ -215,7 +215,7 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
   it('Beta user cannot cancel Acme inventory transfer (returns 404)', async () => {
     const { res } = await injectJson(app, {
       method: 'POST',
-      url: `/api/shopflow/inventory-transfers/${acmeTransferId}/cancel`,
+      url: `/v1/shopflow/inventory-transfers/${acmeTransferId}/cancel`,
       headers: { Authorization: `Bearer ${betaOwnerToken}` },
     })
     expect(res.statusCode).toBe(404)

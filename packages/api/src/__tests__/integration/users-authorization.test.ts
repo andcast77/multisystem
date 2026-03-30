@@ -183,20 +183,20 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
   })
 
   describe('Route preHandlers regression: missing / wrong context', () => {
-    it('GET /api/users without auth => 401', async () => {
-      const { res } = await injectJson(app, { method: 'GET', url: '/api/users' })
+    it('GET /v1/users without auth => 401', async () => {
+      const { res } = await injectJson(app, { method: 'GET', url: '/v1/users' })
       expect(res.statusCode).toBe(401)
     })
 
-    it('GET /api/users/:id without auth => 401', async () => {
-      const { res } = await injectJson(app, { method: 'GET', url: `/api/users/${betaUserId}` })
+    it('GET /v1/users/:id without auth => 401', async () => {
+      const { res } = await injectJson(app, { method: 'GET', url: `/v1/users/${betaUserId}` })
       expect(res.statusCode).toBe(401)
     })
 
-    it('POST /api/users without auth => 401', async () => {
+    it('POST /v1/users without auth => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'POST',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { 'content-type': 'application/json' },
         payload: {
           email: 'newuser-noauth@acme.test',
@@ -210,43 +210,43 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(res.statusCode).toBe(401)
     })
 
-    it('PUT /api/users/:id without auth => 401', async () => {
+    it('PUT /v1/users/:id without auth => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'PUT',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { 'content-type': 'application/json' },
         payload: { firstName: 'Updated', isActive: true },
       })
       expect(res.statusCode).toBe(401)
     })
 
-    it('DELETE /api/users/:id without auth => 401', async () => {
-      const { res } = await injectJson(app, { method: 'DELETE', url: `/api/users/${betaUserId}` })
+    it('DELETE /v1/users/:id without auth => 401', async () => {
+      const { res } = await injectJson(app, { method: 'DELETE', url: `/v1/users/${betaUserId}` })
       expect(res.statusCode).toBe(401)
     })
 
-    it('GET /api/users without company context => 401', async () => {
+    it('GET /v1/users without company context => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${orphanUserToken}` },
       })
       expect(res.statusCode).toBe(401)
     })
 
-    it('GET /api/users/:id without company context => 401', async () => {
+    it('GET /v1/users/:id without company context => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${orphanUserToken}` },
       })
       expect(res.statusCode).toBe(401)
     })
 
-    it('POST /api/users without company context => 401', async () => {
+    it('POST /v1/users without company context => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'POST',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${orphanUserToken}`, 'content-type': 'application/json' },
         payload: {
           email: 'newuser-orphan-context@acme.test',
@@ -260,47 +260,47 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(res.statusCode).toBe(401)
     })
 
-    it('PUT /api/users/:id without company context => 401', async () => {
+    it('PUT /v1/users/:id without company context => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'PUT',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${orphanUserToken}`, 'content-type': 'application/json' },
         payload: { firstName: 'Updated', isActive: true },
       })
       expect(res.statusCode).toBe(401)
     })
 
-    it('DELETE /api/users/:id without company context => 401', async () => {
+    it('DELETE /v1/users/:id without company context => 401', async () => {
       const { res } = await injectJson(app, {
         method: 'DELETE',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${orphanUserToken}` },
       })
       expect(res.statusCode).toBe(401)
     })
 
-    it('GET /api/users with membershipRole=USER but JWT role=ADMIN => 403', async () => {
+    it('GET /v1/users with membershipRole=USER but JWT role=ADMIN => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
       })
       expect(res.statusCode).toBe(403)
     })
 
-    it('GET /api/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
+    it('GET /v1/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
       })
       expect(res.statusCode).toBe(403)
     })
 
-    it('POST /api/users with membershipRole=USER but JWT role=ADMIN => 403', async () => {
+    it('POST /v1/users with membershipRole=USER but JWT role=ADMIN => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'POST',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}`, 'content-type': 'application/json' },
         payload: {
           email: 'newuser-forbidden-role@acme.test',
@@ -314,20 +314,20 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(res.statusCode).toBe(403)
     })
 
-    it('PUT /api/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
+    it('PUT /v1/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'PUT',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}`, 'content-type': 'application/json' },
         payload: { firstName: 'Updated', isActive: true },
       })
       expect(res.statusCode).toBe(403)
     })
 
-    it('DELETE /api/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
+    it('DELETE /v1/users/:id with membershipRole=USER but JWT role=ADMIN => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'DELETE',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
       })
       expect(res.statusCode).toBe(403)
@@ -335,16 +335,16 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
   })
 
   describe('Service-layer membership regression: cross-tenant read/write/delete', () => {
-    it('GET /api/users/:id cross-tenant existing user => 403', async () => {
+    it('GET /v1/users/:id cross-tenant existing user => 403', async () => {
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeOwnerToken}` },
       })
       expect(res.statusCode).toBe(403)
     })
 
-    it('PUT /api/users/:id cross-tenant existing user => 403 and no mutation', async () => {
+    it('PUT /v1/users/:id cross-tenant existing user => 403 and no mutation', async () => {
       const before = await prisma.user.findUnique({
         where: { id: betaUserId },
         select: { email: true, firstName: true, lastName: true, role: true, isActive: true },
@@ -353,7 +353,7 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
 
       const { res } = await injectJson(app, {
         method: 'PUT',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeOwnerToken}`, 'content-type': 'application/json' },
         payload: {
           email: 'cross-tenant-update@betacorp.test',
@@ -371,13 +371,13 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(after).toEqual(before)
     })
 
-    it('DELETE /api/users/:id cross-tenant existing user => 403 and no deletion', async () => {
+    it('DELETE /v1/users/:id cross-tenant existing user => 403 and no deletion', async () => {
       const before = await prisma.user.findUnique({ where: { id: betaUserId }, select: { id: true } })
       if (!before) throw new Error('Target beta user missing (expected seeded fixture)')
 
       const { res } = await injectJson(app, {
         method: 'DELETE',
-        url: `/api/users/${betaUserId}`,
+        url: `/v1/users/${betaUserId}`,
         headers: { Authorization: `Bearer ${acmeOwnerToken}` },
       })
       expect(res.statusCode).toBe(403)
@@ -386,11 +386,11 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
       expect(after).toEqual(before)
     })
 
-    it('GET /api/users/:id cross-tenant non-existent id => 403 (avoid existence leak)', async () => {
+    it('GET /v1/users/:id cross-tenant non-existent id => 403 (avoid existence leak)', async () => {
       const missingId = randomUUID()
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: `/api/users/${missingId}`,
+        url: `/v1/users/${missingId}`,
         headers: { Authorization: `Bearer ${acmeOwnerToken}` },
       })
       expect(res.statusCode).toBe(403)
@@ -398,7 +398,7 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
   })
 
   describe('No cross-tenant leakage on list', () => {
-    it('GET /api/users returns only users from resolved companyId', async () => {
+    it('GET /v1/users returns only users from resolved companyId', async () => {
       const expectedUserIds = await prisma.companyMember.findMany({
         where: { companyId: acmeCompanyId },
         select: { userId: true },
@@ -407,7 +407,7 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
 
       const { res, json } = await injectJson(app, {
         method: 'GET',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${acmeOwnerToken}` },
       })
       expect(res.statusCode).toBe(200)
@@ -434,7 +434,7 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
 
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
       })
       expect(res.statusCode).toBe(200)
@@ -452,7 +452,7 @@ describe('Plan 7 / Task 1: Users Authorization regression', () => {
 
       const { res } = await injectJson(app, {
         method: 'GET',
-        url: '/api/users',
+        url: '/v1/users',
         headers: { Authorization: `Bearer ${acmeMembershipUserMismatchToken}` },
       })
       expect(res.statusCode).toBe(401)

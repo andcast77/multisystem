@@ -117,7 +117,7 @@ export default {
     try {
       const app = await getApp()
       const url = new URL(request.url)
-      // Keep pathname as-is. Fastify routes are defined with `/api/...` prefixes.
+      // Keep pathname as-is. Versioned routes use `/v1/...` (see controllers/v1).
       const path = (url.pathname || '/') + url.search
       const headers: Record<string, string> = {}
       for (const [key, value] of request.headers.entries()) {

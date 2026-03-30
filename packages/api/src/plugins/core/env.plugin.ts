@@ -38,6 +38,10 @@ export const envSchema = {
     UPSTASH_REDIS_REST_TOKEN: {
       type: 'string',
       default: ''
+    },
+    TRUST_PROXY: {
+      type: 'string',
+      default: ''
     }
   }
 } as const

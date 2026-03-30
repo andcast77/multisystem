@@ -366,7 +366,7 @@ export function TicketConfigForm({
       formData.append('file', file)
 
       const { API_URL, getAuthHeaders } = await import('@/lib/api/client')
-      const url = `${API_URL.replace(/\/$/, '')}/api/shopflow/ticket-config/logo`
+      const url = `${API_URL.replace(/\/$/, '')}/v1/shopflow/ticket-config/logo`
       const response = await fetch(url, {
         method: 'POST',
         body: formData,

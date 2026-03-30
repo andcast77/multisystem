@@ -12,34 +12,34 @@ export function getAuthHeaders(): HeadersInit {
   return {}
 }
 
-// Workify API: prefix /api/workify (central API)
+// Workify API: prefix /v1/workify (central API)
 export const workifyApi = {
   get: <T>(endpoint: string, options?: RequestInit) =>
-    apiClient.get<T>(`/api/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, options),
+    apiClient.get<T>(`/v1/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, options),
   post: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.post<T>(`/api/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
+    apiClient.post<T>(`/v1/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
   put: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.put<T>(`/api/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
+    apiClient.put<T>(`/v1/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
   delete: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.delete<T>(`/api/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
+    apiClient.delete<T>(`/v1/workify${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, data, options),
 }
 
-// Auth API: prefix /api/auth
+// Auth API: prefix /v1/auth
 export const authApi = {
-  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/api/auth${endpoint}`, options),
+  get: <T>(endpoint: string, options?: RequestInit) => apiClient.get<T>(`/v1/auth${endpoint}`, options),
   post: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.post<T>(`/api/auth${endpoint}`, data, options),
+    apiClient.post<T>(`/v1/auth${endpoint}`, data, options),
   put: <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
-    apiClient.put<T>(`/api/auth${endpoint}`, data, options),
-  delete: <T>(endpoint: string, options?: RequestInit) => apiClient.delete<T>(`/api/auth${endpoint}`, undefined, options),
+    apiClient.put<T>(`/v1/auth${endpoint}`, data, options),
+  delete: <T>(endpoint: string, options?: RequestInit) => apiClient.delete<T>(`/v1/auth${endpoint}`, undefined, options),
 }
 
 // Company members API (usuarios de la empresa - misma lista en Workify y Shopflow)
 export const companiesApi = {
   getMembers: <T>(companyId: string) =>
-    apiClient.get<T>(`/api/companies/${companyId}/members`),
+    apiClient.get<T>(`/v1/companies/${companyId}/members`),
   createMember: <T>(companyId: string, data: { email: string; password: string; firstName?: string; lastName?: string; membershipRole: 'ADMIN' | 'USER' }) =>
-    apiClient.post<T>(`/api/companies/${companyId}/members`, data),
+    apiClient.post<T>(`/v1/companies/${companyId}/members`, data),
 }
 
 // Generic API response types (from shared contracts)
