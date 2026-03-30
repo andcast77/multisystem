@@ -44,7 +44,7 @@ async function downloadExcelFile(
   payload: SalesExportPayload | ReportExportPayload,
   defaultFileName: string
 ): Promise<void> {
-  const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/export/excel`, {
+  const response = await fetch(`${API_URL.replace(/\/$/, '')}/v1/shopflow/export/excel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
