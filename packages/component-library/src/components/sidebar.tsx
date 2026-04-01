@@ -63,6 +63,9 @@ export interface SidebarProps {
   
   // Optional footer content (besides user profile)
   footerContent?: React.ReactNode
+
+  // Optional href for the user profile link (defaults to '/account')
+  userProfileHref?: string
   
   // Slots for custom content
   prependContent?: React.ReactNode  // Content before nav groups
@@ -315,6 +318,7 @@ export function Sidebar({
   companySelector,
   storeSelector,
   footerContent,
+  userProfileHref = '/account',
   prependContent,
   appendContent,
   variant = 'light',
@@ -383,8 +387,8 @@ export function Sidebar({
           <div className="pt-3">
             {user && (
               <Link
-                to="/account"
-                href="/account"
+                to={userProfileHref}
+                href={userProfileHref}
                 onClick={onNavigate}
                 aria-label="Ver mi cuenta"
                 className={cn(
@@ -468,8 +472,8 @@ export function Sidebar({
             ) : user ? (
               <div className="space-y-3">
                 <Link
-                  to="/account"
-                  href="/account"
+                  to={userProfileHref}
+                  href={userProfileHref}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                     variant === 'dark'
