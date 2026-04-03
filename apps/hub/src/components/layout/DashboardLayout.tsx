@@ -12,6 +12,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { CompanySelector } from "@/components/features/CompanySelector";
 import { clearTokenCookie } from "@/lib/auth";
+import { authApi } from "@/lib/api-client";
 
 const navGroups: NavGroup[] = [
   {
@@ -42,6 +43,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }, [user, isLoading, error, navigate]);
 
   const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // proceed even if the API call fails
+    }
     clearTokenCookie();
     await queryClient.clear();
     navigate("/login", { replace: true });
@@ -93,6 +99,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           Link,
           usePathname: () => location.pathname,
         }}
+        userProfileHref="/dashboard/account"
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-y-auto">

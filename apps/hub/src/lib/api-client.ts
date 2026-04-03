@@ -53,7 +53,7 @@ export const authApi = {
   companies: () => client.get<CompaniesResponse>("/v1/auth/companies"),
 
   logout: () =>
-    client.post<{ success: boolean }>("/v1/auth/logout", undefined),
+    client.post<{ success: boolean }>("/v1/auth/logout", {}),
 
   // Email verification endpoints
   verifyEmail: (token: string) =>

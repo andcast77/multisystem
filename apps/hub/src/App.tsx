@@ -14,6 +14,7 @@ const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage").then(m 
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
 const MembersPage = lazy(() => import("@/pages/MembersPage").then(m => ({ default: m.MembersPage })));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
+const AccountPage = lazy(() => import("@/pages/AccountPage").then(m => ({ default: m.AccountPage })));
 
 // Loading component
 const PageLoader = () => (
@@ -44,6 +45,7 @@ function App() {
               <Route element={<DashboardLayout><DashboardPage /></DashboardLayout>} path="/dashboard" />
               <Route element={<DashboardLayout><MembersPage /></DashboardLayout>} path="/dashboard/members" />
               <Route element={<DashboardLayout><SettingsPage /></DashboardLayout>} path="/dashboard/settings" />
+              <Route element={<DashboardLayout><AccountPage /></DashboardLayout>} path="/dashboard/account" />
             </Route>
 
             {/* Catch all - redirect to home */}
