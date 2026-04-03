@@ -18,10 +18,35 @@ import { attachAuthSessionCookie, clearAuthSessionCookie } from '../../core/sess
 import { getConfig } from '../../core/config.js'
 import { apiOkEnvelope200 } from '../../common/fastify-response-schemas.js'
 import { assertSelfOrSuperuser } from '../../policies/company-authorization.policy.js'
+import { writeAuditLog } from '../../services/audit-log.service.js'
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(loginBodySchema, request.body)
-  const result = await authService.login(body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+
+  let result: Awaited<ReturnType<typeof authService.login>>
+  try {
+    result = await authService.login(body)
+  } catch (err) {
+    if (body.companyId) {
+      writeAuditLog({ companyId: body.companyId, action: 'LOGIN_FAILED', entityType: 'auth', ipAddress: ip, userAgent: ua })
+    }
+    throw err
+  }
+
+  if (result.companyId) {
+    writeAuditLog({
+      companyId: result.companyId,
+      userId: result.user.id,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'auth',
+      entityId: result.user.id,
+      ipAddress: ip,
+      userAgent: ua,
+    })
+  }
+
   const { token, ...data } = result
   attachAuthSessionCookie(reply, token, getConfig())
   return ok(data)
@@ -40,8 +65,20 @@ export async function me(request: FastifyRequest, reply: FastifyReply) {
   return ok(result)
 }
 
-export async function logout(_request: FastifyRequest, reply: FastifyReply) {
+export async function logout(request: FastifyRequest, reply: FastifyReply) {
   clearAuthSessionCookie(reply, getConfig())
+  const caller = request.user
+  if (caller?.companyId) {
+    writeAuditLog({
+      companyId: caller.companyId,
+      userId: caller.id,
+      action: 'LOGOUT',
+      entityType: 'auth',
+      entityId: caller.id,
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return { success: true }
 }
 

@@ -7,6 +7,7 @@ import { createUserBodySchema, updateUserBodySchema } from '../../dto/users.dto.
 import { ok } from '../../common/api-response.js'
 import * as usersService from '../../services/users.service.js'
 import * as usersHelper from '../../helpers/users.helper.js'
+import { writeAuditLog } from '../../services/audit-log.service.js'
 
 export async function list(request: FastifyRequest, reply: FastifyReply) {
   const caller = { ...request.user!, companyId: request.companyId, membershipRole: request.membershipRole ?? undefined }
@@ -24,6 +25,18 @@ export async function create(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(createUserBodySchema, request.body)
   const caller = { ...request.user!, companyId: request.companyId, membershipRole: request.membershipRole ?? undefined }
   const user = await usersService.create(body, caller)
+  if (caller.companyId) {
+    writeAuditLog({
+      companyId: caller.companyId,
+      userId: caller.id,
+      action: 'USER_CREATED',
+      entityType: 'user',
+      entityId: user.id,
+      after: { email: user.email, role: user.role },
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return ok(usersHelper.toUserResponse(user))
 }
 
@@ -31,12 +44,35 @@ export async function update(request: FastifyRequest<{ Params: { id: string }; B
   const body = validateBody(updateUserBodySchema, request.body)
   const caller = { ...request.user!, companyId: request.companyId, membershipRole: request.membershipRole ?? undefined }
   const user = await usersService.update(request.params.id, body, caller)
+  if (caller.companyId) {
+    writeAuditLog({
+      companyId: caller.companyId,
+      userId: caller.id,
+      action: 'USER_UPDATED',
+      entityType: 'user',
+      entityId: request.params.id,
+      after: { email: user.email, role: user.role },
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return ok(usersHelper.toUserResponse(user))
 }
 
 export async function remove(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const caller = { ...request.user!, companyId: request.companyId, membershipRole: request.membershipRole ?? undefined }
   await usersService.remove(request.params.id, caller)
+  if (caller.companyId) {
+    writeAuditLog({
+      companyId: caller.companyId,
+      userId: caller.id,
+      action: 'USER_DELETED',
+      entityType: 'user',
+      entityId: request.params.id,
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return { success: true }
 }
 

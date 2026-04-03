@@ -8,6 +8,7 @@ import {
   Users,
   Building2,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { CompanySelector } from "@/components/features/CompanySelector";
@@ -26,6 +27,12 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Miembros", href: "/dashboard/members", icon: Users },
       { title: "Configuración", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
+  {
+    title: "Seguridad",
+    items: [
+      { title: "Auditoría", href: "/dashboard/audit", icon: Shield },
     ],
   },
 ];
