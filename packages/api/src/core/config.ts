@@ -10,6 +10,7 @@ export type AppConfig = {
   JWT_SECRET: string
   JWT_EXPIRES_IN: string
   TRUST_PROXY: string
+  FIELD_ENCRYPTION_KEY: string
 }
 
 /**
@@ -37,5 +38,6 @@ export function getConfig(): AppConfig {
     JWT_SECRET: process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-change-in-production'),
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
     TRUST_PROXY: process.env.TRUST_PROXY ?? '',
+    FIELD_ENCRYPTION_KEY: process.env.FIELD_ENCRYPTION_KEY ?? '',
   }
 }

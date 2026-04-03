@@ -578,6 +578,7 @@ model Employee {
   positionId             String?
   userId                 String?
   idNumber               String?
+  idNumberHash           String?
   firstName              String
   lastName               String
   birthDate              DateTime?
@@ -609,6 +610,7 @@ model Employee {
   @@unique([companyId, userId])
   @@index([companyId])
   @@index([departmentId])
+  @@index([companyId, idNumberHash])
   @@map("employees")
 }
 

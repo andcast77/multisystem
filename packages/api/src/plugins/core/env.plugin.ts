@@ -54,6 +54,10 @@ export const envSchema = {
     VAPID_PRIVATE_KEY: {
       type: 'string',
       default: ''
+    },
+    FIELD_ENCRYPTION_KEY: {
+      type: 'string',
+      default: ''
     }
   }
 } as const
