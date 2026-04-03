@@ -73,9 +73,18 @@ function getSessionTokenFromCookie(request: FastifyRequest): string | null {
   return null
 }
 
-/** Bearer (API clients/tests) or httpOnly session cookie (browsers). */
+function getQueryParamToken(request: FastifyRequest): string | null {
+  const q = request.query as Record<string, string | undefined>
+  const t = q['token']
+  return typeof t === 'string' && t.length > 0 ? t : null
+}
+
+/**
+ * Bearer (API clients/tests), httpOnly session cookie (browsers), or
+ * ?token= query param (SSE/WebSocket clients that cannot set headers).
+ */
 export function getAuthToken(request: FastifyRequest): string | null {
-  return getBearerToken(request) ?? getSessionTokenFromCookie(request)
+  return getBearerToken(request) ?? getSessionTokenFromCookie(request) ?? getQueryParamToken(request)
 }
 
 declare module 'fastify' {

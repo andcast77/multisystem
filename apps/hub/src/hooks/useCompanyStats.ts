@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { companyApi } from "@/lib/api-client";
+import { useSSEMetrics } from "./useSSEMetrics";
 
 export function useCompanyStats(companyId: string | undefined) {
+  const { connected, fallbackToPolling } = useSSEMetrics(companyId);
+
   return useQuery({
     queryKey: ["companyStats", companyId],
     queryFn: async () => {
@@ -13,6 +16,9 @@ export function useCompanyStats(companyId: string | undefined) {
       return response.data;
     },
     enabled: !!companyId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    // When SSE is connected, invalidation is explicit — no polling needed.
+    // Fall back to 2-minute stale time when SSE is unavailable or after max reconnects.
+    staleTime: connected && !fallbackToPolling ? Infinity : 2 * 60 * 1000,
+    refetchInterval: fallbackToPolling ? 2 * 60 * 1000 : false,
   });
 }

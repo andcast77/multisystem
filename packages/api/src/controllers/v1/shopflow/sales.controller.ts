@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { validateBody } from '../../../core/validate.js'
 import { createSaleSchema } from '../../../dto/shopflow.dto.js'
 import * as shopflowService from '../../../services/shopflow.service.js'
+import { sseManager } from '../../../services/sse.service.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function listSales(
@@ -22,7 +23,9 @@ async function getSaleById(request: FastifyRequest<{ Params: { id: string } }>, 
 async function createSale(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(createSaleSchema, request.body)
   const ctx = getCtx(request, true)
-  return shopflowService.createSale(ctx, body)
+  const result = await shopflowService.createSale(ctx, body)
+  sseManager.emit(ctx.companyId, 'sale:created', { companyId: ctx.companyId, storeId: request.storeId ?? null })
+  return result
 }
 
 async function cancelSale(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {

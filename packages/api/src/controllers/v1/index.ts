@@ -6,6 +6,8 @@ import * as companyMembers from './company-members.controller.js'
 import * as shopflow from './shopflow/index.js'
 import * as workify from './workify.controller.js'
 import * as techservices from './techservices.controller.js'
+import * as events from './events.controller.js'
+import * as ws from './ws.controller.js'
 
 /**
  * Registers all v1 HTTP routes except public auth (login/register/verify),
@@ -19,4 +21,6 @@ export async function registerV1(fastify: FastifyInstance) {
   await shopflow.registerRoutes(fastify)
   await workify.registerRoutes(fastify)
   await techservices.registerRoutes(fastify)
+  await events.registerRoutes(fastify)
+  await ws.registerRoutes(fastify)
 }
