@@ -8,7 +8,9 @@ export class ApiClient {
     const url = `${this.baseURL}${endpoint}`
 
     const headers = new Headers(options.headers)
-    headers.set('Content-Type', 'application/json')
+    if (options.body !== undefined) {
+      headers.set('Content-Type', 'application/json')
+    }
 
     const response = await fetch(url, {
       headers,

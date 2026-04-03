@@ -25,8 +25,6 @@
     "migrate": "cross-env DB_TARGET=prod prisma migrate deploy",
     "migrate:dev": "cross-env DB_TARGET=dev prisma migrate dev",
     "migrate:deploy": "cross-env DB_TARGET=prod prisma migrate deploy",
-    "migrate:deploy:dev": "cross-env DB_TARGET=dev prisma migrate deploy",
-    "migrate:deploy:prod": "pnpm migrate:deploy",
     "db:push": "cross-env DB_TARGET=prod prisma db push",
     "db:push:dev": "cross-env DB_TARGET=dev prisma db push",
     "db:seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts",
@@ -35,8 +33,7 @@
     "db:reset:dev": "cross-env DB_TARGET=dev prisma migrate reset --force",
     "db:erase": "pnpm db:reset",
     "db:erase:dev": "pnpm db:reset:dev",
-    "studio": "cross-env DB_TARGET=prod prisma studio",
-    "studio:dev": "cross-env DB_TARGET=dev prisma studio"
+    "studio": "cross-env DB_TARGET=dev prisma studio"
   },
   "prisma": {
     "seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts"
