@@ -1,10 +1,12 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { FastifyInstance } from 'fastify'
 import { requireAuth } from '../../core/auth.js'
-import { requireWorkifyContext } from '../../core/auth-context.js'
+import { requireWorkifyContext, requireRole } from '../../core/auth-context.js'
 import { contextFromRequest } from '../../core/auth-context.js'
 import { requireModuleAccess } from '../../core/modules.js'
 import { sendNotFound, sendServerError } from '../../core/errors.js'
+import { validateBody } from '../../core/validate.js'
+import { createEmployeeBodySchema, updateEmployeeBodySchema } from '../../dto/workify.dto.js'
 import * as workifyService from '../../services/workify.service.js'
 import * as workifyHelper from '../../helpers/workify.helper.js'
 
@@ -203,6 +205,64 @@ export async function getAttendanceStats(
   }
 }
 
+export async function createEmployee(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const ctx = getCtx(request)
+    const body = validateBody(createEmployeeBodySchema, request.body)
+    const employee = await workifyService.createEmployee(ctx, {
+      companyId: ctx.companyId,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      idNumber: body.idNumber ?? null,
+      birthDate: body.birthDate ? new Date(body.birthDate) : null,
+      gender: body.gender ?? null,
+      departmentId: body.departmentId ?? null,
+      positionId: body.positionId ?? null,
+      userId: body.userId ?? null,
+      dateJoined: body.dateJoined ? new Date(body.dateJoined) : undefined,
+      status: body.status,
+      customSalaryAmount: body.customSalaryAmount ?? null,
+      customSalaryType: body.customSalaryType ?? null,
+      customOvertimeEligible: body.customOvertimeEligible,
+    })
+    reply.code(201)
+    return { success: true, employee: workifyHelper.toWorkifyEmployee(employee) }
+  } catch (error) {
+    return sendServerError(reply, error, request.log, 'Error al crear empleado')
+  }
+}
+
+export async function updateEmployee(
+  request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
+  reply: FastifyReply
+) {
+  try {
+    const ctx = getCtx(request)
+    const body = validateBody(updateEmployeeBodySchema, request.body)
+    const employee = await workifyService.updateEmployee(ctx, request.params.id, {
+      firstName: body.firstName,
+      lastName: body.lastName,
+      idNumber: body.idNumber,
+      birthDate: body.birthDate !== undefined ? (body.birthDate ? new Date(body.birthDate) : null) : undefined,
+      gender: body.gender,
+      departmentId: body.departmentId,
+      positionId: body.positionId,
+      userId: body.userId,
+      dateJoined: body.dateJoined ? new Date(body.dateJoined) : undefined,
+      status: body.status,
+      customSalaryAmount: body.customSalaryAmount,
+      customSalaryType: body.customSalaryType,
+      customOvertimeEligible: body.customOvertimeEligible,
+    })
+    if (!employee) {
+      return sendNotFound(reply, 'Empleado no encontrado')
+    }
+    return { success: true, employee: workifyHelper.toWorkifyEmployee(employee) }
+  } catch (error) {
+    return sendServerError(reply, error, request.log, 'Error al actualizar empleado')
+  }
+}
+
 export async function listSpecialAssignments(request: FastifyRequest, reply: FastifyReply) {
   try {
     const ctx = getCtx(request)
@@ -217,6 +277,7 @@ export async function listSpecialAssignments(request: FastifyRequest, reply: Fas
 }
 
 const preWorkify = [requireAuth, requireWorkifyContext, requireModuleAccess('workify')]
+const preWorkifyWrite = [...preWorkify, requireRole(['owner', 'admin'])]
 
 /** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
 function handle<T extends (req: any, rep: any) => any>(
@@ -228,7 +289,9 @@ function handle<T extends (req: any, rep: any) => any>(
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/workify/me', { preHandler: preWorkify }, handle(getMe))
   fastify.get('/v1/workify/employees', { preHandler: preWorkify }, handle(listEmployees))
+  fastify.post('/v1/workify/employees', { preHandler: preWorkifyWrite }, handle(createEmployee))
   fastify.get<{ Params: { id: string } }>('/v1/workify/employees/:id', { preHandler: preWorkify }, handle(getEmployeeById))
+  fastify.patch<{ Params: { id: string }; Body: unknown }>('/v1/workify/employees/:id', { preHandler: preWorkifyWrite }, handle(updateEmployee))
   fastify.get<{ Params: { id: string }; Querystring: { month?: string } }>('/v1/workify/employees/:id/attendance', { preHandler: preWorkify }, handle(getEmployeeAttendance))
   fastify.get('/v1/workify/positions', { preHandler: preWorkify }, handle(listPositions))
   fastify.get<{ Params: { id: string } }>('/v1/workify/positions/:id', { preHandler: preWorkify }, handle(getPositionById))

@@ -22,6 +22,21 @@ export async function getEmployeeById(ctx: CompanyContext, id: string) {
   return employeesService.getEmployeeById(ctx, id)
 }
 
+export async function createEmployee(
+  ctx: CompanyContext,
+  input: employeesService.CreateEmployeeInput
+) {
+  return employeesService.createEmployee(ctx, input)
+}
+
+export async function updateEmployee(
+  ctx: CompanyContext,
+  id: string,
+  input: employeesService.UpdateEmployeeInput
+) {
+  return employeesService.updateEmployee(ctx, id, input)
+}
+
 // --- Me ---
 
 export async function getMe(ctx: CompanyContext): Promise<{ user: WorkifyMeUser } | { error: string; code: number }> {

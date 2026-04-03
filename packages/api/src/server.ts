@@ -64,6 +64,20 @@ async function start() {
       )
     }
 
+    const fieldKey = config.FIELD_ENCRYPTION_KEY
+    if (!isTest && deployed && (!fieldKey || fieldKey.trim() === '')) {
+      fastify.log.error('FIELD_ENCRYPTION_KEY is required in deployed environments (production, staging, Vercel).')
+      if (process.env.VERCEL) {
+        throw new Error('FIELD_ENCRYPTION_KEY is required. Set it in project environment variables.')
+      }
+      process.exit(1)
+    }
+    if (!isTest && config.NODE_ENV === 'development' && (!fieldKey || fieldKey.trim() === '')) {
+      fastify.log.warn(
+        'FIELD_ENCRYPTION_KEY is unset; field-level encryption will be unavailable. Generate one with: openssl rand -base64 32'
+      )
+    }
+
     // Registrar CORS con orígenes desde .env
     await fastify.register(corsPlugin, { corsOrigin: config.CORS_ORIGIN })
     await fastify.register(rateLimitPlugin)
