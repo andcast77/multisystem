@@ -10,6 +10,7 @@ import * as techservices from './techservices.controller.js'
 import * as events from './events.controller.js'
 import * as ws from './ws.controller.js'
 import * as auditLog from './audit-log.controller.js'
+import * as jobs from './jobs.controller.js'
 
 /**
  * Registers all v1 HTTP routes except public auth (login/register/verify),
@@ -27,4 +28,5 @@ export async function registerV1(fastify: FastifyInstance) {
   await events.registerRoutes(fastify)
   await ws.registerRoutes(fastify)
   await auditLog.registerRoutes(fastify)
+  await jobs.registerRoutes(fastify)
 }

@@ -9,6 +9,7 @@ import {
   Building2,
   LogOut,
   Shield,
+  Timer,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { CompanySelector } from "@/components/features/CompanySelector";
@@ -33,6 +34,12 @@ const navGroups: NavGroup[] = [
     title: "Seguridad",
     items: [
       { title: "Auditoría", href: "/dashboard/audit", icon: Shield },
+    ],
+  },
+  {
+    title: "Automatización",
+    items: [
+      { title: "Historial de Jobs", href: "/dashboard/jobs", icon: Timer },
     ],
   },
 ];

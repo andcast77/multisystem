@@ -150,6 +150,29 @@ export const auditLogApi = {
   },
 };
 
+export type JobRunRecord = {
+  id: string;
+  companyId: string;
+  jobName: string;
+  status: "running" | "success" | "error";
+  startedAt: number;
+  finishedAt?: number;
+  error?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+export type JobHistoryResponse = {
+  items: JobRunRecord[];
+  total: number;
+};
+
+export const jobsApi = {
+  getHistory: (limit = 50) =>
+    client.get<{ success: boolean; data: JobHistoryResponse; error?: string }>(
+      `/v1/company/jobs/history?limit=${limit}`
+    ),
+};
+
 export const companyApi = {
   getCompany: (id: string) =>
     client.get<{ success: boolean; data: Company; error?: string }>(`/v1/companies/${id}`),

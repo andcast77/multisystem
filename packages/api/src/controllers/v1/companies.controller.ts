@@ -7,6 +7,7 @@ import { ok } from '../../common/api-response.js'
 import * as companiesService from '../../services/companies.service.js'
 import * as companiesHelper from '../../helpers/companies.helper.js'
 import { assertCompanyAccess } from '../../policies/company-authorization.policy.js'
+import { listJobHistory } from '../../jobs/job-history.service.js'
 
 async function requireCompanyAccessParam(
   request: FastifyRequest<{ Params: { id: string } }>,
@@ -50,6 +51,16 @@ export async function remove(request: FastifyRequest<{ Params: { id: string } }>
   return { success: true, message: 'Empresa eliminada correctamente' }
 }
 
+export async function getJobHistory(
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { limit?: string } }>,
+  _reply: FastifyReply,
+) {
+  const { id: companyId } = request.params
+  const limit = Math.min(100, Math.max(1, parseInt(request.query.limit ?? '50', 10)))
+  const result = await listJobHistory(companyId, limit)
+  return ok(result)
+}
+
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { id: string } }>(
     '/v1/companies/:id',
@@ -63,4 +74,9 @@ export async function registerRoutes(fastify: FastifyInstance) {
   )
   fastify.put<{ Params: { id: string }; Body: unknown }>('/v1/companies/:id', { preHandler: [requireAuth] }, (request, reply) => update(request, reply))
   fastify.delete<{ Params: { id: string } }>('/v1/companies/:id', { preHandler: [requireAuth] }, (request, reply) => remove(request, reply))
+  fastify.get<{ Params: { id: string }; Querystring: { limit?: string } }>(
+    '/v1/companies/:id/jobs/history',
+    { preHandler: [requireAuth, requireCompanyAccessParam] },
+    (request, reply) => getJobHistory(request, reply)
+  )
 }
