@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Button } from "@multisystem/ui";
 import { clearTokenCookie } from "@/lib/auth";
 
 type Props = {
@@ -14,21 +13,21 @@ export function AuthActions({ hasToken }: Props) {
 
   if (hasToken) {
     return (
-      <Button
+      <button
         onClick={handleLogout}
-        variant="secondary"
-        size="md"
+        className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-150 px-4 py-2 rounded-lg hover:bg-white/5"
       >
         Cerrar sesión
-      </Button>
+      </button>
     );
   }
 
   return (
-    <Link to="/login" className="inline-block">
-      <Button variant="default" size="md">
-        Iniciar sesión
-      </Button>
+    <Link
+      to="/login"
+      className="inline-flex items-center text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
+    >
+      Iniciar sesión
     </Link>
   );
 }

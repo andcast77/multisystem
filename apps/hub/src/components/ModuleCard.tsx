@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardContent } from "@multisystem/ui";
 import { ArrowRight, Lock } from "lucide-react";
 
 type ModuleCardProps = {
@@ -10,6 +9,8 @@ type ModuleCardProps = {
   features?: string[];
   href?: string;
   disabled?: boolean;
+  accentColor?: string;
+  accentBg?: string;
 };
 
 export function ModuleCard({
@@ -19,51 +20,78 @@ export function ModuleCard({
   features,
   href,
   disabled = false,
+  accentColor = "text-indigo-400",
+  accentBg = "bg-indigo-500/10",
 }: ModuleCardProps) {
   const content = (
-    <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 flex flex-col hover:shadow-xl hover:shadow-primary/10 group">
-      <CardHeader>
-        <div className="flex items-start justify-between mb-4">
-          <div className="text-5xl p-3 rounded-lg bg-secondary/60 group-hover:bg-primary/10 transition-colors">
-            {icon}
-          </div>
-          {disabled && <Lock className="w-5 h-5 text-muted-foreground" />}
-        </div>
-        <CardTitle className="text-2xl font-bold text-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow flex flex-col justify-between">
-        <div>
-          <p className="text-muted-foreground mb-4 leading-relaxed">{description}</p>
-          {features && features.length > 0 && (
-            <ul className="space-y-3 mb-6">
-              {features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {!disabled ? (
-          <div className="flex items-center gap-2 text-primary font-semibold group-hover:gap-3 transition-all">
-            Acceder <ArrowRight className="w-4 h-4" />
-          </div>
+    <div
+      className={[
+        "group relative h-full flex flex-col p-6 rounded-2xl border transition-all duration-300",
+        "bg-white/[0.03] backdrop-blur-sm border-white/[0.07]",
+        disabled
+          ? "opacity-50 cursor-not-allowed"
+          : "hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40",
+      ].join(" ")}
+    >
+      {/* Icon */}
+      <div
+        className={`inline-flex p-3 rounded-xl mb-5 w-fit ${accentBg} transition-colors group-hover:scale-110 duration-300`}
+      >
+        <span className={accentColor}>{icon}</span>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+
+      {/* Description */}
+      <p className="text-sm text-white/40 leading-relaxed mb-4">{description}</p>
+
+      {/* Features list */}
+      {features && features.length > 0 && (
+        <ul className="space-y-2 mb-6 flex-grow">
+          {features.map((feature, i) => (
+            <li key={i} className="flex items-center gap-2 text-xs text-white/30">
+              <div className={`w-1 h-1 rounded-full flex-shrink-0 ${accentColor.replace("text-", "bg-")}`} />
+              {feature}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Bottom action */}
+      <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-between">
+        {disabled ? (
+          <>
+            <span className="text-xs text-white/20 font-medium uppercase tracking-widest">
+              Próximamente
+            </span>
+            <Lock className="w-3.5 h-3.5 text-white/20" />
+          </>
         ) : (
-          <div className="text-muted-foreground font-medium text-sm opacity-60">
-            Próximamente
-          </div>
+          <>
+            <span className={`text-sm font-semibold ${accentColor}`}>
+              Acceder
+            </span>
+            <ArrowRight
+              className={`w-4 h-4 ${accentColor} transition-transform duration-200 group-hover:translate-x-1`}
+            />
+          </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
-  if (disabled) {
-    return <div className="opacity-75 cursor-not-allowed">{content}</div>;
+  if (disabled || !href) {
+    return content;
   }
 
-  if (!href) {
-    return content;
+  const isExternal = href.startsWith("http");
+  if (isExternal) {
+    return (
+      <a href={href} className="block h-full" target="_blank" rel="noopener noreferrer">
+        {content}
+      </a>
+    );
   }
 
   return (
