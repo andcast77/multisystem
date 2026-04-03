@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { useCompanyMembers } from "@/hooks/useCompanyMembers";
 import {
@@ -13,8 +14,9 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  Button,
 } from "@multisystem/ui";
-import { Mail, Calendar, AlertCircle, Users } from "lucide-react";
+import { Mail, Calendar, AlertCircle, Users, Shield } from "lucide-react";
 
 const roleColors = {
   OWNER: "bg-amber-100 text-amber-800 border-amber-300",
@@ -23,6 +25,7 @@ const roleColors = {
 };
 
 export function MembersPage() {
+  const navigate = useNavigate();
   const { data: user } = useUser();
   const { data: members, isLoading } = useCompanyMembers(user?.companyId);
 
@@ -182,8 +185,18 @@ export function MembersPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {/* Placeholder for future actions */}
-                        <div className="text-xs text-slate-500">—</div>
+                        {isAdmin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/dashboard/members/${member.id}/permissions`)
+                            }
+                          >
+                            <Shield className="h-3 w-3 mr-1" />
+                            Permisos
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

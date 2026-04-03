@@ -3,6 +3,7 @@ import { validateBody } from '../../../core/validate.js'
 import { createInventoryTransferSchema } from '../../../dto/shopflow.dto.js'
 import { ok } from '../../../common/api-response.js'
 import * as shopflowService from '../../../services/shopflow.service.js'
+import { requirePermission } from '../../../core/permissions.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function listInventoryTransfers(request: FastifyRequest<{ Querystring: { fromStoreId?: string; toStoreId?: string; productId?: string; status?: string; page?: string; limit?: string } }>, reply: FastifyReply) {
@@ -32,7 +33,7 @@ async function cancelInventoryTransfer(request: FastifyRequest<{ Params: { id: s
 
 export function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/shopflow/inventory-transfers', { preHandler: pre }, handle(listInventoryTransfers))
-  fastify.post('/v1/shopflow/inventory-transfers', { preHandler: pre }, handle(createInventoryTransfer))
-  fastify.post<{ Params: { id: string } }>('/v1/shopflow/inventory-transfers/:id/complete', { preHandler: pre }, handle(completeInventoryTransfer))
-  fastify.post<{ Params: { id: string } }>('/v1/shopflow/inventory-transfers/:id/cancel', { preHandler: pre }, handle(cancelInventoryTransfer))
+  fastify.post('/v1/shopflow/inventory-transfers', { preHandler: [...pre, requirePermission('shopflow.inventory', 'write')] }, handle(createInventoryTransfer))
+  fastify.post<{ Params: { id: string } }>('/v1/shopflow/inventory-transfers/:id/complete', { preHandler: [...pre, requirePermission('shopflow.inventory', 'write')] }, handle(completeInventoryTransfer))
+  fastify.post<{ Params: { id: string } }>('/v1/shopflow/inventory-transfers/:id/cancel', { preHandler: [...pre, requirePermission('shopflow.inventory', 'write')] }, handle(cancelInventoryTransfer))
 }

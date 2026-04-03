@@ -10,7 +10,7 @@ export type CompanyRow = {
 }
 
 type CompanyBasic = { id: string; name: string; isActive: boolean }
-type MemberWithCompany = { company: CompanyBasic; membershipRole: string | null }
+type MemberWithCompany = { id: string; company: CompanyBasic; membershipRole: string | null }
 type RoleWithCompany = { company: CompanyBasic }
 
 /**
@@ -112,6 +112,7 @@ export type MembershipRoleName = 'OWNER' | 'ADMIN' | 'USER'
 declare module 'fastify' {
   interface FastifyRequest {
     companyId?: string
+    companyMemberId?: string
     membershipRole?: string | null
     storeId?: string | null
   }
@@ -126,11 +127,17 @@ function getStoreIdFromHeader(request: FastifyRequest): string | undefined {
   return undefined
 }
 
+type ResolvedCompany = {
+  companyId: string
+  companyMemberId: string | undefined
+  membershipRole: string | null
+}
+
 async function resolveCompanyId(decoded: {
   id: string
   companyId?: string
   isSuperuser?: boolean
-}): Promise<{ companyId: string; membershipRole: string | null } | null> {
+}): Promise<ResolvedCompany | null> {
   const userId = decoded.id
 
   if (decoded.isSuperuser) {
@@ -138,13 +145,13 @@ async function resolveCompanyId(decoded: {
       const company = await prisma.company.findFirst({
         where: { id: decoded.companyId, isActive: true },
       })
-      if (company) return { companyId: decoded.companyId, membershipRole: null }
+      if (company) return { companyId: decoded.companyId, companyMemberId: undefined, membershipRole: null }
     }
     const first = await prisma.company.findFirst({
       where: { isActive: true },
       orderBy: { name: 'asc' },
     })
-    if (first) return { companyId: first.id, membershipRole: null }
+    if (first) return { companyId: first.id, companyMemberId: undefined, membershipRole: null }
     return null
   }
 
@@ -155,8 +162,8 @@ async function resolveCompanyId(decoded: {
   })
 
   const activeMembers = members.filter((m: MemberWithCompany) => m.company.isActive)
-  let companies: { id: string; membershipRole: string | null }[] = activeMembers.map(
-    (m: MemberWithCompany) => ({ id: m.company.id, membershipRole: m.membershipRole })
+  let companies: { id: string; companyMemberId: string; membershipRole: string | null }[] = activeMembers.map(
+    (m: MemberWithCompany) => ({ id: m.company.id, companyMemberId: m.id, membershipRole: m.membershipRole })
   )
 
   if (companies.length === 0) {
@@ -167,18 +174,18 @@ async function resolveCompanyId(decoded: {
     })
     companies = userRoles
       .filter((r: RoleWithCompany) => r.company.isActive)
-      .map((r: RoleWithCompany) => ({ id: r.company.id, membershipRole: null }))
+      .map((r: RoleWithCompany) => ({ id: r.company.id, companyMemberId: '', membershipRole: null }))
   }
 
   if (companies.length === 0) return null
 
   if (decoded.companyId && companies.some((c: { id: string }) => c.id === decoded.companyId)) {
-    const row = companies.find((c: { id: string; membershipRole: string | null }) => c.id === decoded.companyId)!
-    return { companyId: row.id, membershipRole: row.membershipRole }
+    const row = companies.find((c: { id: string }) => c.id === decoded.companyId)!
+    return { companyId: row.id, companyMemberId: row.companyMemberId || undefined, membershipRole: row.membershipRole }
   }
 
   const first = companies[0]
-  return { companyId: first.id, membershipRole: first.membershipRole }
+  return { companyId: first.id, companyMemberId: first.companyMemberId || undefined, membershipRole: first.membershipRole }
 }
 
 /**
@@ -199,6 +206,7 @@ export async function requireCompanyContext(
     throw new Error('No company access')
   }
   request.companyId = resolved.companyId
+  request.companyMemberId = resolved.companyMemberId
   request.membershipRole = resolved.membershipRole
 }
 

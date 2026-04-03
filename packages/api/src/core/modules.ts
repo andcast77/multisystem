@@ -129,8 +129,11 @@ export async function findModulesByKeys(
 }
 
 /**
- * Fastify preHandler factory that gates access based on company module enablement.
- * Must run AFTER requireCompanyContext (which sets request.companyId).
+ * Fastify preHandler factory that gates access based on module enablement.
+ * Must run AFTER requireCompanyContext (which sets request.companyId and request.companyMemberId).
+ *
+ * When companyMemberId is present, enforces per-member module access (Nivel 2).
+ * Falls back to company-level module check when no member context is available (e.g. superuser).
  *
  * Usage: `preHandler: [requireAuth, requireShopflowContext, requireModuleAccess('shopflow')]`
  */
@@ -140,6 +143,18 @@ export function requireModuleAccess(moduleKey: ModuleKeys) {
     if (!companyId) {
       throw new ForbiddenError('Company context is required to check module access')
     }
+
+    if ((request as any).user?.isSuperuser) return
+
+    const companyMemberId = (request as any).companyMemberId as string | undefined
+    if (companyMemberId) {
+      const allowed = await memberHasModule(companyMemberId, companyId, moduleKey)
+      if (!allowed) {
+        throw new ForbiddenError(`Module '${moduleKey}' is not enabled for this member`)
+      }
+      return
+    }
+
     const modules = await getCompanyModules(companyId)
     if (!modules[moduleKey]) {
       throw new ForbiddenError(`Module '${moduleKey}' is not enabled for this company`)

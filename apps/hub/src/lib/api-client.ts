@@ -3,6 +3,20 @@
  */
 
 import type { Company, CompanyStats, CompanyMember, UpdateCompanyInput } from "@/types/company";
+
+export type MemberModuleItem = {
+  moduleId: string;
+  key: string;
+  name: string;
+  enabled: boolean;
+};
+
+export type MemberRoleItem = {
+  roleId: string;
+  name: string;
+  description: string | null;
+  assigned: boolean;
+};
 import type {
   LoginResponse,
   MeResponse,
@@ -91,4 +105,26 @@ export const companyApi = {
 
   getCompanyMembers: (id: string) =>
     client.get<{ success: boolean; data: CompanyMember[]; error?: string }>(`/v1/companies/${id}/members`),
+
+  getMemberModules: (companyId: string, memberId: string) =>
+    client.get<{ success: boolean; data: MemberModuleItem[]; error?: string }>(
+      `/v1/companies/${companyId}/members/${memberId}/modules`
+    ),
+
+  updateMemberModules: (companyId: string, memberId: string, modules: { moduleId: string; enabled: boolean }[]) =>
+    client.put<{ success: boolean; data: MemberModuleItem[]; error?: string }>(
+      `/v1/companies/${companyId}/members/${memberId}/modules`,
+      { modules }
+    ),
+
+  getMemberRoles: (companyId: string, memberId: string) =>
+    client.get<{ success: boolean; data: MemberRoleItem[]; error?: string }>(
+      `/v1/companies/${companyId}/members/${memberId}/roles`
+    ),
+
+  updateMemberRoles: (companyId: string, memberId: string, roleIds: string[]) =>
+    client.put<{ success: boolean; data: MemberRoleItem[]; error?: string }>(
+      `/v1/companies/${companyId}/members/${memberId}/roles`,
+      { roleIds }
+    ),
 };
