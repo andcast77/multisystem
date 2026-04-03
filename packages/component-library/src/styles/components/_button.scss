@@ -8,6 +8,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   gap: $spacing-2;
   white-space: nowrap;
   border-radius: $radius-xl;
@@ -24,6 +25,7 @@
   // Disabled state
   &:disabled {
     @include ui-disabled;
+    cursor: not-allowed;
   }
 
   // SVG icon sizing
@@ -35,33 +37,32 @@
   }
 
   // Size variants
-  &--sm {
+  &--size-sm {
     height: 2.25rem; // 36px (h-9)
     border-radius: $radius-lg;
     padding: 0 $spacing-3;
   }
 
-  &--md,
-  &--default {
+  &--size-md {
     height: 2.75rem; // 44px (h-11)
     padding: $spacing-2 $spacing-4;
   }
 
-  &--lg {
+  &--size-lg {
     height: 3rem; // 48px (h-12)
     border-radius: $radius-xl;
     padding: 0 $spacing-8;
   }
 
-  &--icon {
+  &--size-icon {
     height: 2.75rem; // 44px (h-11)
     width: 2.75rem;
     padding: 0;
   }
 
   // Variant styles
-  &--default,
-  &--primary {
+  &--variant-default,
+  &--variant-primary {
     @include ui-gradient(hsl(238 83.5% 66.7%), hsl(221.2 83.2% 53.3%));
     color: white;
     @include ui-elevation(1);
@@ -71,8 +72,8 @@
     }
   }
 
-  &--destructive,
-  &--danger {
+  &--variant-destructive,
+  &--variant-danger {
     background-color: hsl(var(--destructive));
     color: hsl(var(--destructive-foreground));
 
@@ -81,27 +82,29 @@
     }
   }
 
-  &--outline {
-    border: 1px solid hsl(215.4 16.3% 46.9% / 0.8);
+  &--variant-outline {
+    border: 1px solid hsl(215.4 16.3% 35% / 0.9);
     background-color: hsl(0 0% 100% / 0.8);
-    color: hsl(215.4 16.3% 46.9%);
+    color: hsl(222.2 47.4% 11.2%);
 
     &:hover:not(:disabled) {
       background-color: hsl(0 0% 100%);
-      border-color: hsl(215.4 16.3% 35%);
+      border-color: hsl(215.4 16.3% 28%);
+      color: hsl(222.2 47.4% 9%);
     }
   }
 
-  &--secondary {
+  &--variant-secondary {
     background-color: hsl(210 40% 96.1%);
-    color: hsl(215.4 16.3% 46.9%);
+    color: hsl(222.2 47.4% 11.2%);
 
     &:hover:not(:disabled) {
       background-color: hsl(214.3 31.8% 91.4%);
+      color: hsl(222.2 47.4% 9%);
     }
   }
 
-  &--ghost {
+  &--variant-ghost {
     background-color: transparent;
 
     &:hover:not(:disabled) {
@@ -110,7 +113,7 @@
     }
   }
 
-  &--link {
+  &--variant-link {
     color: hsl(var(--primary));
     text-decoration: underline;
     text-underline-offset: 4px;
