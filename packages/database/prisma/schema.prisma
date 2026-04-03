@@ -817,6 +817,7 @@ model AuditLog {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+  @@index([companyId, createdAt(sort: Desc)])
   @@map("audit_logs")
 }
 

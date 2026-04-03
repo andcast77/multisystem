@@ -16,6 +16,7 @@ const MembersPage = lazy(() => import("@/pages/MembersPage").then(m => ({ defaul
 const MemberPermissionsPage = lazy(() => import("@/pages/MemberPermissionsPage").then(m => ({ default: m.MemberPermissionsPage })));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 const AccountPage = lazy(() => import("@/pages/AccountPage").then(m => ({ default: m.AccountPage })));
+const AuditLogPage = lazy(() => import("@/pages/AuditLogPage").then(m => ({ default: m.AuditLogPage })));
 
 // Loading component
 const PageLoader = () => (
@@ -48,6 +49,7 @@ function App() {
               <Route element={<DashboardLayout><MemberPermissionsPage /></DashboardLayout>} path="/dashboard/members/:memberId/permissions" />
               <Route element={<DashboardLayout><SettingsPage /></DashboardLayout>} path="/dashboard/settings" />
               <Route element={<DashboardLayout><AccountPage /></DashboardLayout>} path="/dashboard/account" />
+              <Route element={<DashboardLayout><AuditLogPage /></DashboardLayout>} path="/dashboard/audit" />
             </Route>
 
             {/* Catch all - redirect to home */}

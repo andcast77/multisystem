@@ -5,6 +5,7 @@ import * as shopflowService from '../../../services/shopflow.service.js'
 import { sseManager } from '../../../services/sse.service.js'
 import { requirePermission } from '../../../core/permissions.js'
 import { getCtx, handle, pre } from './_shared.js'
+import { writeAuditLog } from '../../../services/audit-log.service.js'
 
 async function listSales(
   request: FastifyRequest<{
@@ -26,17 +27,49 @@ async function createSale(request: FastifyRequest, reply: FastifyReply) {
   const ctx = getCtx(request, true)
   const result = await shopflowService.createSale(ctx, body)
   sseManager.emit(ctx.companyId, 'sale:created', { companyId: ctx.companyId, storeId: request.storeId ?? null })
+  if (result.success && result.data) {
+    writeAuditLog({
+      companyId: ctx.companyId,
+      userId: ctx.userId,
+      action: 'SALE_CREATED',
+      entityType: 'sale',
+      entityId: (result.data as { id?: string }).id,
+      after: { total: (result.data as Record<string, unknown>).total, status: (result.data as Record<string, unknown>).status },
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return result
 }
 
 async function cancelSale(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const ctx = getCtx(request, true)
-  return shopflowService.cancelSale(ctx, request.params.id)
+  const result = await shopflowService.cancelSale(ctx, request.params.id)
+  writeAuditLog({
+    companyId: ctx.companyId,
+    userId: ctx.userId,
+    action: 'SALE_CANCELLED',
+    entityType: 'sale',
+    entityId: request.params.id,
+    ipAddress: request.ip,
+    userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+  })
+  return result
 }
 
 async function refundSale(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const ctx = getCtx(request, true)
-  return shopflowService.refundSale(ctx, request.params.id)
+  const result = await shopflowService.refundSale(ctx, request.params.id)
+  writeAuditLog({
+    companyId: ctx.companyId,
+    userId: ctx.userId,
+    action: 'SALE_REFUNDED',
+    entityType: 'sale',
+    entityId: request.params.id,
+    ipAddress: request.ip,
+    userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+  })
+  return result
 }
 
 export function registerRoutes(fastify: FastifyInstance) {

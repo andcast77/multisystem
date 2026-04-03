@@ -90,6 +90,66 @@ export const authApi = {
     client.post<{ success: boolean; message?: string; error?: string }>("/v1/auth/reset-password", { token, newPassword }),
 };
 
+export type AuditLogUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+} | null;
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  before: unknown;
+  after: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  userId: string | null;
+  user: AuditLogUser;
+};
+
+export type AuditLogPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type AuditLogResponse = {
+  items: AuditLogEntry[];
+  pagination: AuditLogPagination;
+};
+
+export type AuditLogFilters = {
+  entityType?: string;
+  action?: string;
+  userId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export const auditLogApi = {
+  list: (filters: AuditLogFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.entityType) params.set("entityType", filters.entityType);
+    if (filters.action) params.set("action", filters.action);
+    if (filters.userId) params.set("userId", filters.userId);
+    if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo) params.set("dateTo", filters.dateTo);
+    if (filters.page) params.set("page", String(filters.page));
+    if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+    const qs = params.toString();
+    return client.get<{ success: boolean; data: AuditLogResponse; error?: string }>(
+      `/v1/company/audit-logs${qs ? `?${qs}` : ""}`
+    );
+  },
+};
+
 export const companyApi = {
   getCompany: (id: string) =>
     client.get<{ success: boolean; data: Company; error?: string }>(`/v1/companies/${id}`),
