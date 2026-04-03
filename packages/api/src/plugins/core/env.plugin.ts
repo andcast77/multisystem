@@ -42,6 +42,18 @@ export const envSchema = {
     TRUST_PROXY: {
       type: 'string',
       default: ''
+    },
+    VAPID_SUBJECT: {
+      type: 'string',
+      default: ''
+    },
+    VAPID_PUBLIC_KEY: {
+      type: 'string',
+      default: ''
+    },
+    VAPID_PRIVATE_KEY: {
+      type: 'string',
+      default: ''
     }
   }
 } as const

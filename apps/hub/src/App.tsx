@@ -17,6 +17,7 @@ const MemberPermissionsPage = lazy(() => import("@/pages/MemberPermissionsPage")
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 const AccountPage = lazy(() => import("@/pages/AccountPage").then(m => ({ default: m.AccountPage })));
 const AuditLogPage = lazy(() => import("@/pages/AuditLogPage").then(m => ({ default: m.AuditLogPage })));
+const JobHistoryPage = lazy(() => import("@/pages/JobHistoryPage").then(m => ({ default: m.JobHistoryPage })));
 
 // Loading component
 const PageLoader = () => (
@@ -50,6 +51,7 @@ function App() {
               <Route element={<DashboardLayout><SettingsPage /></DashboardLayout>} path="/dashboard/settings" />
               <Route element={<DashboardLayout><AccountPage /></DashboardLayout>} path="/dashboard/account" />
               <Route element={<DashboardLayout><AuditLogPage /></DashboardLayout>} path="/dashboard/audit" />
+              <Route element={<DashboardLayout><JobHistoryPage /></DashboardLayout>} path="/dashboard/jobs" />
             </Route>
 
             {/* Catch all - redirect to home */}

@@ -21,6 +21,7 @@ import { websocketPlugin } from './plugins/core/websocket.plugin.js'
 import { healthPlugin } from './plugins/health/health.plugin.js'
 import { registerV1 } from './controllers/v1/index.js'
 import { getConfig, parseTrustProxy, type AppConfig } from './core/config.js'
+import { startJobRunner, stopJobRunner } from './jobs/runner.js'
 
 const __dirname = __dirnameApi
 const trustProxy = parseTrustProxy(process.env.TRUST_PROXY)
@@ -80,6 +81,13 @@ async function start() {
       await fastify.listen({ port, host: '0.0.0.0' })
       console.log(`🚀 API server listening on port ${port}`)
       console.log(`📋 CORS origins: ${config.CORS_ORIGIN}`)
+
+      if (!isTest) {
+        startJobRunner()
+        fastify.addHook('onClose', async () => {
+          stopJobRunner()
+        })
+      }
     }
     return fastify
   } catch (err) {

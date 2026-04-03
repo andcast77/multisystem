@@ -38,6 +38,14 @@ enum SaleStatus {
   REFUNDED
 }
 
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -234,7 +242,8 @@ model User {
   userPermissions   UserPermission[]
   employees         Employee[]
   workOrdersCreated WorkOrder[] @relation("WorkOrderCreatedBy")
-  
+  invoicesCreated   Invoice[]   @relation("InvoiceCreatedBy")
+
   // Relaciones Shopflow
   sales             Sale[]
   actionHistory      ActionHistory[]
@@ -333,6 +342,7 @@ model Company {
   suppliers         Supplier[]
   customers        Customer[]
   sales             Sale[]
+  invoices          Invoice[]
   storeConfigs      StoreConfig[]
   ticketConfigs     TicketConfig[]
   inventoryTransfers InventoryTransfer[]
@@ -1048,6 +1058,7 @@ model Customer {
   // Relaciones
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sales           Sale[]
+  invoices        Invoice[]
   loyaltyPoints   LoyaltyPoint[]
 
   @@index([companyId])
@@ -1104,6 +1115,36 @@ model SaleItem {
   @@index([saleId])
   @@index([productId])
   @@map("sale_items")
+}
+
+/// Factura emitida o pendiente de cobro. Fuente de verdad para recordatorios de vencimiento.
+model Invoice {
+  id              String        @id @default(uuid())
+  companyId       String
+  customerId      String?
+  createdByUserId String
+  invoiceNumber   String?
+  status          InvoiceStatus @default(DRAFT)
+  total           Decimal       @db.Decimal(10, 2)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  tax             Decimal       @db.Decimal(10, 2)
+  discount        Decimal?      @db.Decimal(10, 2)
+  dueDate         DateTime?
+  issueDate       DateTime      @default(now())
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relaciones
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer?     @relation(fields: [customerId, companyId], references: [id, companyId])
+  createdByUser   User          @relation("InvoiceCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@unique([companyId, invoiceNumber])
+  @@unique([id, companyId])
+  @@index([companyId, dueDate])
+  @@index([companyId, status])
+  @@map("invoices")
 }
 
 model StoreConfig {
