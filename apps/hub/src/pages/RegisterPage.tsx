@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 import {
+  AuthLayout,
   Button,
   Input,
   Label,
@@ -78,21 +79,41 @@ export function RegisterPage() {
     }
   }
 
+  const decorativePanel = (
+    <>
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-indigo-700 font-medium mb-6 shadow-sm">
+        <span>🚀</span>
+        <span>Multisystem Hub</span>
+      </div>
+
+      <h2 className="text-4xl font-bold text-white mb-4">
+        Tu negocio listo para crecer
+      </h2>
+      <p className="text-white/80 text-lg leading-relaxed">
+        Accede a todas las herramientas que necesitas para gestionar y hacer crecer
+        tu negocio con claridad.
+      </p>
+
+      <div className="mt-8 pt-8 border-t border-white/30">
+        <p className="text-white/60 text-sm italic">
+          "Empieza rápido, crece con claridad."
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <main className="min-h-screen bg-slate-50 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] relative overflow-hidden">
-        {/* Left side - Form */}
-        <div className="flex items-center justify-center p-4 lg:p-12">
-          <div className="w-full max-w-md">
-            {/* Logo/Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-slate-900">
-                {registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
-              </h1>
-              <p className="text-slate-600 mt-2">
-                {registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"}
-              </p>
-            </div>
+      <AuthLayout panel={decorativePanel}>
+        {/* Logo/Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">
+            {registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
+          </h1>
+          <p className="text-slate-600 mt-2">
+            {registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"}
+          </p>
+        </div>
 
             {/* Success Message or Register Form Card */}
             {registrationSuccess ? (
@@ -300,38 +321,7 @@ export function RegisterPage() {
               </CardContent>
             </Card>
             )}
-          </div>
-        </div>
-
-        {/* Right side - Decorative Sidebar */}
-        <div className="hidden lg:flex flex-col items-center justify-center relative bg-gradient-to-br from-indigo-700 via-indigo-600 to-blue-600 overflow-hidden p-12">
-          {/* Decorative circles */}
-          <div className="absolute -top-40 left-20 h-[520px] w-[520px] rounded-full border border-white/30" />
-          <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
-
-          {/* Content */}
-          <div className="relative z-10 text-center max-w-sm">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-indigo-700 font-medium mb-6 shadow-sm">
-              <span>🚀</span>
-              <span>Multisystem Hub</span>
-            </div>
-
-            <h2 className="text-4xl font-bold text-white mb-4">
-              Tu negocio listo para crecer
-            </h2>
-            <p className="text-white/80 text-lg leading-relaxed">
-              Accede a todas las herramientas que necesitas para gestionar y hacer crecer
-              tu negocio con claridad.
-            </p>
-
-            <div className="mt-8 pt-8 border-t border-white/30">
-              <p className="text-white/60 text-sm italic">
-                "Empieza rápido, crece con claridad."
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
+      </AuthLayout>
 
       {/* Terms & Conditions Modal */}
       <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
