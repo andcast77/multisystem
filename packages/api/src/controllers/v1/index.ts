@@ -3,6 +3,7 @@ import * as auth from './auth.controller.js'
 import * as users from './users.controller.js'
 import * as companies from './companies.controller.js'
 import * as companyMembers from './company-members.controller.js'
+import * as memberRbac from './member-rbac.controller.js'
 import * as shopflow from './shopflow/index.js'
 import * as workify from './workify.controller.js'
 import * as techservices from './techservices.controller.js'
@@ -18,6 +19,7 @@ export async function registerV1(fastify: FastifyInstance) {
   await users.registerRoutes(fastify)
   await companies.registerRoutes(fastify)
   await companyMembers.registerRoutes(fastify)
+  await memberRbac.registerRoutes(fastify)
   await shopflow.registerRoutes(fastify)
   await workify.registerRoutes(fastify)
   await techservices.registerRoutes(fastify)

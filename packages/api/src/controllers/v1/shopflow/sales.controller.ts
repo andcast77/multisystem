@@ -3,6 +3,7 @@ import { validateBody } from '../../../core/validate.js'
 import { createSaleSchema } from '../../../dto/shopflow.dto.js'
 import * as shopflowService from '../../../services/shopflow.service.js'
 import { sseManager } from '../../../services/sse.service.js'
+import { requirePermission } from '../../../core/permissions.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function listSales(
@@ -41,7 +42,7 @@ async function refundSale(request: FastifyRequest<{ Params: { id: string } }>, r
 export function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/shopflow/sales', { preHandler: pre }, handle(listSales))
   fastify.get<{ Params: { id: string } }>('/v1/shopflow/sales/:id', { preHandler: pre }, handle(getSaleById))
-  fastify.post('/v1/shopflow/sales', { preHandler: pre }, handle(createSale))
-  fastify.post<{ Params: { id: string } }>('/v1/shopflow/sales/:id/cancel', { preHandler: pre }, handle(cancelSale))
+  fastify.post('/v1/shopflow/sales', { preHandler: [...pre, requirePermission('shopflow.sales', 'create')] }, handle(createSale))
+  fastify.post<{ Params: { id: string } }>('/v1/shopflow/sales/:id/cancel', { preHandler: [...pre, requirePermission('shopflow.sales', 'cancel')] }, handle(cancelSale))
   fastify.post<{ Params: { id: string } }>('/v1/shopflow/sales/:id/refund', { preHandler: pre }, handle(refundSale))
 }
