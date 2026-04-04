@@ -228,6 +228,8 @@ model User {
   passwordResetTokenExpiry DateTime?
   /// Empresa preferida/por defecto en Shopflow; se asigna automáticamente si es null (primera por nombre).
   shopflowPreferredCompanyId String?
+  /// Timestamp de aceptación explícita de la política de privacidad (GDPR Art. 7 / LFPDPPP).
+  privacyAcceptedAt DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -90,6 +90,17 @@ export const authApi = {
     client.post<{ success: boolean; message?: string; error?: string }>("/v1/auth/reset-password", { token, newPassword }),
 };
 
+export const accountApi = {
+  acceptPrivacy: () =>
+    client.post<{ success: boolean; message?: string }>("/v1/account/accept-privacy", {}),
+
+  exportMyData: () =>
+    client.get<{ success: boolean; data: Record<string, unknown> }>("/v1/account/my-data"),
+
+  deleteMyData: () =>
+    client.delete<{ success: boolean; message?: string }>("/v1/account/my-data"),
+};
+
 export type AuditLogUser = {
   id: string;
   email: string;

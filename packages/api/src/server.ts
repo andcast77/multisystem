@@ -16,6 +16,7 @@ import { envPlugin, getValidatedConfig } from './plugins/core/env.plugin.js'
 import { errorsPlugin } from './plugins/core/errors.plugin.js'
 import { rateLimitPlugin } from './plugins/core/rate-limit.plugin.js'
 import { schemaSanitizerPlugin } from './plugins/core/schema-sanitizer.plugin.js'
+import { securityHeadersPlugin } from './plugins/core/security-headers.plugin.js'
 import { swaggerPlugin } from './plugins/core/swagger.plugin.js'
 import { websocketPlugin } from './plugins/core/websocket.plugin.js'
 import { healthPlugin } from './plugins/health/health.plugin.js'
@@ -80,6 +81,7 @@ async function start() {
 
     // Registrar CORS con orígenes desde .env
     await fastify.register(corsPlugin, { corsOrigin: config.CORS_ORIGIN })
+    await fastify.register(securityHeadersPlugin)
     await fastify.register(rateLimitPlugin)
     await fastify.register(schemaSanitizerPlugin)
     await fastify.register(errorsPlugin)
