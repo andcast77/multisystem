@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { FastifyReply, FastifyRequest } from 'fastify'
+
+/** auth-context imports prisma at module load; avoid initializing Prisma in unit tests */
+vi.mock('../../db/index.js', () => ({
+  prisma: {},
+  Prisma: {},
+}))
+
 import { requireRole } from '../../core/auth-context.js'
 
 type ReplyStub = Pick<FastifyReply, 'code' | 'send'> & {
