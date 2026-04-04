@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { useModuleAccess } from '@/hooks/usePermissions'
 import { useUser } from '@/hooks/useUser'
 import { useCompanies } from '@/hooks/useCompanies'
@@ -26,12 +27,14 @@ import {
 } from 'lucide-react'
 import { Sidebar as SidebarComponent } from '@multisystem/ui'
 import {
+  InAppNotificationBell,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@multisystem/ui'
+import { useInAppNotifications } from '@/hooks/useInAppNotifications'
 
 // Navigation groups - Only add routes that actually exist!
 type SidebarProps = React.ComponentProps<typeof SidebarComponent>
@@ -152,7 +155,7 @@ export function Sidebar() {
         }
       }
     } catch {
-      // ignore
+      toast.error('No se pudo cambiar de empresa. Intenta de nuevo.')
     } finally {
       isChangingCompany.current = false
     }
@@ -277,19 +280,47 @@ export function Sidebar() {
     )
   })()
 
+  const notif = useInAppNotifications(user?.id, user?.companyId)
+
+  const showMobileContext =
+    needCompanySelector || !!storeSelector || !!(user?.companyId && user?.company?.name)
+
   return (
-    <SidebarComponent
-      navGroups={navGroups}
-      user={sidebarUser}
-      branding={{
-        name: 'ShopFlow',
-        shortName: 'SF',
-      }}
-      isLoadingUser={isLoadingUser}
-      checkModuleAccess={checkModuleAccess}
-      companySelector={companySelector}
-      storeSelector={storeSelector}
-      variant="dark"
-    />
+    <>
+      {showMobileContext ? (
+        <div className="lg:hidden w-full shrink-0 border-b border-gray-700 bg-gray-900 px-3 py-2 space-y-2">
+          {companySelector}
+          {storeSelector}
+        </div>
+      ) : null}
+      <SidebarComponent
+        navGroups={navGroups}
+        user={sidebarUser}
+        branding={{
+          name: 'ShopFlow',
+          shortName: 'SF',
+        }}
+        isLoadingUser={isLoadingUser}
+        checkModuleAccess={checkModuleAccess}
+        companySelector={companySelector}
+        storeSelector={storeSelector}
+        variant="dark"
+        appendContent={
+          user?.id ? (
+            <div className="flex justify-center px-1">
+              <InAppNotificationBell
+                unreadCount={notif.unreadCount}
+                items={notif.items}
+                loading={notif.isLoading}
+                onOpen={notif.refetch}
+                onMarkRead={notif.markRead}
+                onMarkAllRead={notif.markAllRead}
+                align="start"
+              />
+            </div>
+          ) : null
+        }
+      />
+    </>
   )
 }

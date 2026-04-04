@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -97,7 +97,7 @@ export function DeleteCompanyDialog({
             <Input
               id="confirm"
               value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmText(e.target.value)}
               placeholder={companyName}
               disabled={isDeleting}
               className={error ? "border-red-500" : ""}

@@ -1,4 +1,3 @@
-import React from "react";
 import { BarChart3, Lock, Zap, Users } from "lucide-react";
 
 const features = [

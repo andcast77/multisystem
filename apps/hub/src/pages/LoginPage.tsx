@@ -1,5 +1,5 @@
-import { useNavigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
@@ -16,11 +16,23 @@ import {
   CardTitle,
 } from "@multisystem/ui";
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = useMemo(
+    () => safeNextPath(searchParams.get("next")),
+    [searchParams]
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [resendHint, setResendHint] = useState<string | null>(null);
 
   const {
     register,
@@ -35,14 +47,14 @@ export function LoginPage() {
     const checkAuth = async () => {
       try {
         await authApi.me();
-        navigate("/dashboard", { replace: true });
+        navigate(nextPath ?? "/dashboard", { replace: true });
       } catch {
         // Not logged in, stay on login page
       }
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [navigate, nextPath]);
 
   async function onSubmit(data: LoginInput) {
     try {
@@ -51,9 +63,12 @@ export function LoginPage() {
       setUserEmail(data.email);
 
       const res = await authApi.login(data.email, data.password);
-      if (!res.success || !res.data) return;
+      if (!res.success || !res.data) {
+        setErrorMessage(res.error || "No se pudo iniciar sesión. Revisa tus credenciales.");
+        return;
+      }
 
-      navigate("/dashboard", { replace: true });
+      navigate(nextPath ?? "/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Login error:", err);
       
@@ -122,21 +137,31 @@ export function LoginPage() {
                     : errorMessage}
                 </p>
                 {needsVerification && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="text-xs text-amber-700 hover:text-amber-800 p-0 h-auto mt-2"
-                    onClick={async () => {
-                      try {
-                        await authApi.resendVerification(userEmail);
-                        alert('Email de verificación reenviado. Revisa tu bandeja de entrada.');
-                      } catch (error) {
-                        alert('Error al reenviar email. Inténtalo más tarde.');
-                      }
-                    }}
-                  >
-                    Reenviar email de verificación
-                  </Button>
+                  <div className="mt-2 space-y-1">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-xs text-amber-700 hover:text-amber-800 p-0 h-auto"
+                      onClick={async () => {
+                        try {
+                          setResendHint(null);
+                          await authApi.resendVerification(userEmail);
+                          setResendHint(
+                            "Te enviamos otro correo de verificación. Revisa tu bandeja de entrada."
+                          );
+                        } catch {
+                          setResendHint(
+                            "No pudimos reenviar el correo. Inténtalo de nuevo más tarde."
+                          );
+                        }
+                      }}
+                    >
+                      Reenviar email de verificación
+                    </Button>
+                    {resendHint ? (
+                      <p className="text-xs text-amber-800">{resendHint}</p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             )}

@@ -63,6 +63,8 @@ enum NotificationType {
   IMPORTANT_SALE
   PENDING_TASK
   SYSTEM
+  COLLAB
+  SECURITY
 }
 
 enum NotificationPriority {

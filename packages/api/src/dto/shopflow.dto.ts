@@ -181,6 +181,32 @@ export const notificationUserSchema = z.object({
 })
 export type NotificationUserBody = z.infer<typeof notificationUserSchema>
 
+const notificationChannelPrefsSchema = z
+  .object({
+    inApp: z.boolean().optional(),
+    push: z.boolean().optional(),
+    email: z.boolean().optional(),
+  })
+  .strict()
+
+export const updateNotificationPreferencesSchema = z
+  .object({
+    inAppEnabled: z.boolean().optional(),
+    pushEnabled: z.boolean().optional(),
+    emailEnabled: z.boolean().optional(),
+    /** Per notification-type channel toggles, merged server-side */
+    preferences: z.record(z.string(), notificationChannelPrefsSchema).optional(),
+  })
+  .refine(
+    (data) =>
+      data.inAppEnabled !== undefined ||
+      data.pushEnabled !== undefined ||
+      data.emailEnabled !== undefined ||
+      (data.preferences !== undefined && Object.keys(data.preferences).length > 0),
+    { message: 'Se requiere al menos un campo para actualizar' }
+  )
+export type UpdateNotificationPreferencesBody = z.infer<typeof updateNotificationPreferencesSchema>
+
 // --- User preferences ---
 export const updateUserPreferencesSchema = z.object({
   language: z.string().optional(),

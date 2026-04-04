@@ -141,6 +141,21 @@ export async function markAsRead(notificationId: string, userId: string): Promis
 }
 
 /**
+ * Mark all notifications as read for the user.
+ */
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const response = await shopflowApi.put<{
+    success: boolean
+    data?: { count: number }
+    error?: string
+  }>('/notifications/read-all', { userId })
+
+  if (!response.success) {
+    throw new ApiError(400, response.error || 'No se pudieron marcar las notificaciones', ErrorCodes.NOT_FOUND)
+  }
+}
+
+/**
  * Archive notification (delete for now, can be extended later)
  */
 export async function archiveNotification(notificationId: string, userId: string): Promise<void> {
@@ -177,33 +192,53 @@ export async function getUserNotificationPreferences(userId: string): Promise<No
  */
 export async function updateNotificationPreferences(
   userId: string,
-  updates: Partial<Omit<NotificationPreference, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
+  updates: {
+    inAppEnabled?: boolean
+    pushEnabled?: boolean
+    emailEnabled?: boolean
+    preferences?: Record<string, { inApp?: boolean; push?: boolean; email?: boolean }>
+  }
 ): Promise<NotificationPreference> {
-  // For now, get preferences and note that update endpoint may need to be added
-  // This can be implemented when the update endpoint is added to the API
-  const current = await getUserNotificationPreferences(userId)
-  return { ...current, ...updates } as NotificationPreference
+  const response = await shopflowApi.put<{
+    success: boolean
+    data?: NotificationPreference
+    error?: string
+  }>(`/users/${userId}/notification-preferences`, updates)
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'Error al actualizar preferencias')
+  }
+
+  return response.data
 }
 
 /**
  * Check if notification should be sent based on preferences
  */
+function preferenceTypeKey(type: NotificationType): string {
+  return String(type)
+}
+
 function checkNotificationPreference(
   preferences: NotificationPreference,
   type: NotificationType,
   channel: 'email' | 'inApp' | 'push'
 ): boolean {
-  // Check if channel is enabled
   const channelEnabled = preferences[`${channel}Enabled` as keyof NotificationPreference] as boolean
   if (!channelEnabled) {
     return false
   }
 
-  // Check specific type preference
-  const typeKey = getNotificationTypeKey(type)
-  const typeEnabled = preferences[`${channel}${typeKey}` as keyof NotificationPreference] as boolean
+  const slug = preferenceTypeKey(type)
+  const perType = preferences.preferences?.[slug]
+  const ch = channel === 'inApp' ? 'inApp' : channel
+  if (perType && perType[ch] === false) return false
+  if (perType && perType[ch] === true) return true
 
-  return typeEnabled
+  const typeKey = getNotificationTypeKey(type)
+  const legacy = preferences[`${channel}${typeKey}` as keyof NotificationPreference] as boolean | undefined
+  if (legacy === false) return false
+  return true
 }
 
 /**
@@ -211,12 +246,16 @@ function checkNotificationPreference(
  */
 function getNotificationTypeKey(type: NotificationType): string {
   const typeMap: Partial<Record<NotificationType, string>> = {
+    [NotificationType.LOW_STOCK]: 'LowStock',
     [NotificationType.LOW_STOCK_ALERT]: 'LowStock',
     [NotificationType.IMPORTANT_SALE]: 'ImportantSales',
     [NotificationType.PENDING_TASK]: 'PendingTasks',
-    [NotificationType.SYSTEM_MAINTENANCE]: 'SecurityAlerts', // Using security alerts for system maintenance
+    [NotificationType.SYSTEM]: 'PendingTasks',
+    [NotificationType.SYSTEM_MAINTENANCE]: 'SecurityAlerts',
     [NotificationType.SECURITY_ALERT]: 'SecurityAlerts',
-    [NotificationType.CUSTOM]: 'SecurityAlerts', // Using security alerts for custom notifications
+    [NotificationType.SECURITY]: 'SecurityAlerts',
+    [NotificationType.COLLAB]: 'SecurityAlerts',
+    [NotificationType.CUSTOM]: 'SecurityAlerts',
   }
 
   return typeMap[type] || 'SecurityAlerts'

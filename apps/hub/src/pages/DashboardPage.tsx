@@ -5,6 +5,7 @@ import { useCompanyStats } from "@/hooks/useCompanyStats";
 import { usePresence } from "@/hooks/usePresence";
 import { StatsCard } from "@/components/features/StatsCard";
 import { ModuleCard } from "@/components/features/ModuleCard";
+import { OnboardingChecklist } from "@/components/features/OnboardingChecklist";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Badge } from "@multisystem/ui";
 import { Users, UserCheck, Shield, User, Calendar, Settings, Briefcase, ShoppingCart, Wrench, Wifi } from "lucide-react";
 
@@ -66,6 +67,9 @@ export function DashboardPage() {
   ];
 
   const enabledModulesCount = modules.filter((m) => m.enabled).length;
+  const shopflowUrl =
+    (import.meta as { env?: { VITE_SHOPFLOW_URL?: string } }).env?.VITE_SHOPFLOW_URL ||
+    "http://localhost:3002";
 
   return (
     <div className="p-6 space-y-6">
@@ -93,6 +97,8 @@ export function DashboardPage() {
           {user?.membershipRole === "ADMIN" && <Badge variant="outline">Administrador</Badge>}
         </div>
       </div>
+
+      <OnboardingChecklist company={company} stats={stats} shopflowUrl={shopflowUrl} />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

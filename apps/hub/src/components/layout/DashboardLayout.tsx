@@ -1,13 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, type ComponentProps } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sidebar as SidebarComponent, type NavGroup, type SidebarUser } from "@multisystem/ui";
+import { Sidebar as SidebarComponent } from "@multisystem/ui";
 import {
   LayoutDashboard,
   Settings,
   Users,
   Building2,
-  LogOut,
   Shield,
   Timer,
 } from "lucide-react";
@@ -15,8 +14,12 @@ import { useUser } from "@/hooks/useUser";
 import { CompanySelector } from "@/components/features/CompanySelector";
 import { clearTokenCookie } from "@/lib/auth";
 import { authApi } from "@/lib/api-client";
+import { InAppNotificationBell } from "@multisystem/ui";
+import { useInAppNotifications } from "@/hooks/useInAppNotifications";
 
-const navGroups: NavGroup[] = [
+type SidebarComponentProps = ComponentProps<typeof SidebarComponent>;
+
+const navGroups: SidebarComponentProps["navGroups"] = [
   {
     title: "Principal",
     items: [
@@ -82,7 +85,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const sidebarUser: SidebarUser = {
+  const sidebarUser: NonNullable<SidebarComponentProps["user"]> = {
     name: user.name || user.email,
     email: user.email,
     role: user.membershipRole || user.role,
@@ -90,6 +93,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   // Only show company selector for superusers or users with multiple companies
   const showCompanySelector = user.isSuperuser || false; // Will be enhanced with multi-company check
+
+  const shopflowEnabled = user.company?.modules?.shopflow === true;
+  const notif = useInAppNotifications(user.id, user.companyId, shopflowEnabled);
 
   return (
     <div className="flex h-screen">
@@ -117,6 +123,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-y-auto">
+        {shopflowEnabled ? (
+          <div className="sticky top-0 z-30 flex justify-end border-b border-slate-100 bg-white/90 px-4 py-2 backdrop-blur-sm">
+            <InAppNotificationBell
+              unreadCount={notif.unreadCount}
+              items={notif.items}
+              loading={notif.isLoading}
+              onOpen={notif.refetch}
+              onMarkRead={notif.markRead}
+              onMarkAllRead={notif.markAllRead}
+            />
+          </div>
+        ) : null}
         {children}
       </main>
     </div>

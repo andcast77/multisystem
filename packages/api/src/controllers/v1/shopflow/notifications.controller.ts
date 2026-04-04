@@ -1,6 +1,10 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { validateBody } from '../../../core/validate.js'
-import { createNotificationSchema, notificationUserSchema } from '../../../dto/shopflow.dto.js'
+import {
+  createNotificationSchema,
+  notificationUserSchema,
+  updateNotificationPreferencesSchema,
+} from '../../../dto/shopflow.dto.js'
 import { ok } from '../../../common/api-response.js'
 import * as shopflowService from '../../../services/shopflow.service.js'
 import { getCtx, handle, pre } from './_shared.js'
@@ -73,6 +77,16 @@ async function getNotificationPreferences(request: FastifyRequest<{ Params: { us
   return ok(data)
 }
 
+async function patchNotificationPreferences(
+  request: FastifyRequest<{ Params: { userId: string } }>,
+  reply: FastifyReply
+) {
+  const body = validateBody(updateNotificationPreferencesSchema, request.body)
+  const ctx = getCtx(request, true)
+  const data = await shopflowService.updateNotificationPreferences(ctx, request.params.userId, body)
+  return ok(data)
+}
+
 export function registerRoutes(fastify: FastifyInstance) {
   fastify.post('/v1/shopflow/notifications', { preHandler: pre }, handle(createNotification))
   fastify.get('/v1/shopflow/notifications', { preHandler: pre }, handle(listNotifications))
@@ -83,4 +97,9 @@ export function registerRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { userId: string } }>('/v1/shopflow/notifications/unread-count', { preHandler: pre }, handle(getUnreadNotificationCount))
   fastify.get<{ Params: { userId: string } }>('/v1/shopflow/notifications/preferences/:userId', { preHandler: pre }, handle(getNotificationPreferences))
   fastify.get<{ Params: { userId: string } }>('/v1/shopflow/users/:userId/notification-preferences', { preHandler: pre }, handle(getNotificationPreferences))
+  fastify.put<{ Params: { userId: string } }>(
+    '/v1/shopflow/users/:userId/notification-preferences',
+    { preHandler: pre },
+    handle(patchNotificationPreferences)
+  )
 }

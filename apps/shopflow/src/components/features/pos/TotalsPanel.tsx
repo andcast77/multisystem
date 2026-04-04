@@ -89,9 +89,21 @@ export function TotalsPanel({ onCheckout, taxRate = 0 }: TotalsPanelProps) {
           size="lg"
           onClick={onCheckout}
           disabled={!canCheckout}
+          title={
+            !canCheckout && items.length > 0 && total <= 0
+              ? 'El total es 0 (por ejemplo por descuento del 100%). Ajusta el carrito o el descuento para poder cobrar.'
+              : items.length === 0
+                ? 'Agrega productos al carrito para cobrar.'
+                : undefined
+          }
         >
           Procesar Pago
         </Button>
+        {!canCheckout && items.length > 0 && total <= 0 ? (
+          <p className="mt-2 text-center text-xs text-amber-800">
+            El total es $0 (descuento total o carrito vacío de importe). Ajusta descuentos o agrega productos para habilitar el cobro.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   )

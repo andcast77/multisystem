@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
 import { PageFrame } from "@/views/PageFrame";
 import { StatsCards } from "@/components/features/reports/StatsCards";
 import { DailySalesChart } from "@/components/features/reports/DailySalesChart";
@@ -33,6 +33,8 @@ import { useCategories, useCreateCategory, useDeleteCategory } from "@/hooks/use
 import { useCreateCustomer, useCustomer, useUpdateCustomer } from "@/hooks/useCustomers";
 import { useCreateSupplier, useSupplier, useUpdateSupplier } from "@/hooks/useSuppliers";
 import { useCreateUser, useUser, useUpdateUser } from "@/hooks/useUsers";
+import { useSale, useSales } from "@/hooks/useSales";
+import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { useLoyaltyConfig, useUpdateLoyaltyConfig } from "@/hooks/useLoyalty";
 import { useStoreConfig as usePosStoreConfig } from "@/hooks/useStoreConfig";
 import { authApi } from "@/lib/api/client";
@@ -105,7 +107,13 @@ export function CategoriesPage() {
   const createMutation = useCreateCategory();
   const deleteMutation = useDeleteCategory();
   return (
-    <PageFrame title="Categorias">
+    <PageFrame
+      title="Categorias"
+      breadcrumbs={[
+        { label: "Panel", href: "/dashboard" },
+        { label: "Categorías" },
+      ]}
+    >
       <div className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Nueva categoria</CardTitle></CardHeader>
@@ -153,50 +161,265 @@ function CrudGuard({ children, loading, notFound }: { children: React.ReactNode;
 export function ProductCreatePage() {
   const navigate = useNavigate();
   const mutation = useCreateProduct();
-  return <PageFrame title="Nuevo Producto"><ProductForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/products"); }} isLoading={mutation.isPending} /></PageFrame>;
+  return (
+    <PageFrame
+      title="Nuevo Producto"
+      breadcrumbs={[
+        { label: "Productos", href: "/products" },
+        { label: "Nuevo" },
+      ]}
+    >
+      <ProductForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/products"); }} isLoading={mutation.isPending} />
+    </PageFrame>
+  );
 }
 export function ProductEditPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = useProduct(id);
   const mutation = useUpdateProduct();
-  return <CrudGuard loading={isLoading} notFound={!data}><PageFrame title="Editar Producto"><ProductForm initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/products"); }} isLoading={mutation.isPending} /></PageFrame></CrudGuard>;
+  const productName =
+    data && typeof (data as { name?: string }).name === "string"
+      ? (data as { name: string }).name
+      : "Producto";
+  return (
+    <CrudGuard loading={isLoading} notFound={!data}>
+      <PageFrame
+        title="Editar producto"
+        breadcrumbs={[
+          { label: "Productos", href: "/products" },
+          { label: productName },
+          { label: "Editar" },
+        ]}
+      >
+        <ProductForm
+          initialData={data as any}
+          onSubmit={async (form) => {
+            await mutation.mutateAsync({ id, data: form as any });
+            navigate("/products");
+          }}
+          isLoading={mutation.isPending}
+        />
+      </PageFrame>
+    </CrudGuard>
+  );
 }
 export function CustomerCreatePage() {
   const navigate = useNavigate();
   const mutation = useCreateCustomer();
-  return <PageFrame title="Nuevo Cliente"><CustomerForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/customers"); }} isLoading={mutation.isPending} /></PageFrame>;
+  return (
+    <PageFrame
+      title="Nuevo Cliente"
+      breadcrumbs={[
+        { label: "Clientes", href: "/customers" },
+        { label: "Nuevo" },
+      ]}
+    >
+      <CustomerForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/customers"); }} isLoading={mutation.isPending} />
+    </PageFrame>
+  );
 }
 export function CustomerEditPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = useCustomer(id);
   const mutation = useUpdateCustomer();
-  return <CrudGuard loading={isLoading} notFound={!data}><PageFrame title="Editar Cliente"><CustomerForm initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/customers"); }} isLoading={mutation.isPending} /></PageFrame></CrudGuard>;
+  const customerName =
+    data && typeof (data as { name?: string }).name === "string"
+      ? (data as { name: string }).name
+      : "Cliente";
+  return (
+    <CrudGuard loading={isLoading} notFound={!data}>
+      <PageFrame
+        title="Editar Cliente"
+        breadcrumbs={[
+          { label: "Clientes", href: "/customers" },
+          { label: customerName },
+          { label: "Editar" },
+        ]}
+      >
+        <CustomerForm initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/customers"); }} isLoading={mutation.isPending} />
+      </PageFrame>
+    </CrudGuard>
+  );
 }
 export function SupplierCreatePage() {
   const navigate = useNavigate();
   const mutation = useCreateSupplier();
-  return <PageFrame title="Nuevo Proveedor"><SupplierForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/suppliers"); }} isLoading={mutation.isPending} /></PageFrame>;
+  return (
+    <PageFrame
+      title="Nuevo Proveedor"
+      breadcrumbs={[
+        { label: "Proveedores", href: "/suppliers" },
+        { label: "Nuevo" },
+      ]}
+    >
+      <SupplierForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/suppliers"); }} isLoading={mutation.isPending} />
+    </PageFrame>
+  );
 }
 export function SupplierEditPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = useSupplier(id);
   const mutation = useUpdateSupplier();
-  return <CrudGuard loading={isLoading} notFound={!data}><PageFrame title="Editar Proveedor"><SupplierForm initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/suppliers"); }} isLoading={mutation.isPending} /></PageFrame></CrudGuard>;
+  const supplierName =
+    data && typeof (data as { name?: string }).name === "string"
+      ? (data as { name: string }).name
+      : "Proveedor";
+  return (
+    <CrudGuard loading={isLoading} notFound={!data}>
+      <PageFrame
+        title="Editar Proveedor"
+        breadcrumbs={[
+          { label: "Proveedores", href: "/suppliers" },
+          { label: supplierName },
+          { label: "Editar" },
+        ]}
+      >
+        <SupplierForm initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/suppliers"); }} isLoading={mutation.isPending} />
+      </PageFrame>
+    </CrudGuard>
+  );
 }
 export function UserCreatePage() {
   const navigate = useNavigate();
   const mutation = useCreateUser();
-  return <PageFrame title="Nuevo Usuario"><UserForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/admin/users"); }} isLoading={mutation.isPending} /></PageFrame>;
+  return (
+    <PageFrame
+      title="Nuevo Usuario"
+      breadcrumbs={[
+        { label: "Usuarios", href: "/admin/users" },
+        { label: "Nuevo" },
+      ]}
+    >
+      <UserForm onSubmit={async (data) => { await mutation.mutateAsync(data as any); navigate("/admin/users"); }} isLoading={mutation.isPending} />
+    </PageFrame>
+  );
 }
 export function UserEditPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = useUser(id);
   const mutation = useUpdateUser();
-  return <CrudGuard loading={isLoading} notFound={!data}><PageFrame title="Editar Usuario"><UserForm isEdit initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/admin/users"); }} isLoading={mutation.isPending} /></PageFrame></CrudGuard>;
+  const userName =
+    data && typeof (data as { name?: string }).name === "string"
+      ? (data as { name: string }).name
+      : "Usuario";
+  return (
+    <CrudGuard loading={isLoading} notFound={!data}>
+      <PageFrame
+        title="Editar Usuario"
+        breadcrumbs={[
+          { label: "Usuarios", href: "/admin/users" },
+          { label: userName },
+          { label: "Editar" },
+        ]}
+      >
+        <UserForm isEdit initialData={data as any} onSubmit={async (form) => { await mutation.mutateAsync({ id, data: form as any }); navigate("/admin/users"); }} isLoading={mutation.isPending} />
+      </PageFrame>
+    </CrudGuard>
+  );
+}
+
+export function SaleDetailPage() {
+  const { id = "" } = useParams();
+  const { data: sale, isLoading } = useSale(id);
+  const { data: storeConfig } = useStoreConfig();
+  const currency = storeConfig?.currency ?? "USD";
+
+  if (isLoading) {
+    return (
+      <PageFrame title="Detalle de venta">
+        <p className="text-slate-600">Cargando venta…</p>
+      </PageFrame>
+    );
+  }
+  if (!sale) {
+    return (
+      <PageFrame title="Venta no encontrada">
+        <p className="text-slate-600">No se encontró la venta.</p>
+      </PageFrame>
+    );
+  }
+
+  const s = sale as typeof sale & {
+    invoiceNumber?: string | null;
+    total: number;
+    subtotal: number;
+    tax: number;
+    status: string;
+    createdAt: string | Date;
+    customer: { name: string } | null;
+    items: Array<{
+      id: string;
+      quantity: number;
+      price: number;
+      subtotal: number;
+      product: { name: string; sku: string };
+    }>;
+  };
+
+  const label = s.invoiceNumber ?? s.id.slice(0, 8);
+
+  return (
+    <PageFrame
+      title={`Venta ${label}`}
+      breadcrumbs={[
+        { label: "Reportes", href: "/reports" },
+        { label: "Ventas", href: "/reports/sales" },
+        { label: String(label) },
+      ]}
+    >
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumen</CardTitle>
+            <CardDescription>{formatDate(s.createdAt)}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2 sm:grid-cols-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Estado</span>
+              <Badge variant="outline">{s.status}</Badge>
+            </div>
+            <div>
+              <span className="text-slate-500">Cliente </span>
+              {s.customer?.name ?? "—"}
+            </div>
+            <div>
+              <span className="text-slate-500">Subtotal </span>
+              {formatCurrency(s.subtotal, currency)}
+            </div>
+            <div>
+              <span className="text-slate-500">Impuestos </span>
+              {formatCurrency(s.tax, currency)}
+            </div>
+            <div className="sm:col-span-2 font-semibold">
+              <span className="text-slate-500 font-normal">Total </span>
+              {formatCurrency(s.total, currency)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Ítems</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {(s.items ?? []).map((it) => (
+                <div key={it.id} className="flex justify-between border-b py-2 text-sm">
+                  <span>
+                    {it.product.name} × {it.quantity}
+                  </span>
+                  <span>{formatCurrency(it.subtotal, currency)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PageFrame>
+  );
 }
 
 export function ReportsPage() {
@@ -212,14 +435,72 @@ export function ReportsPage() {
 export function ReportsSalesPage() {
   const storeContext = useStoreContextOptional();
   const storeId = storeContext?.reportStoreId ?? storeContext?.currentStoreId ?? undefined;
-  return <PageFrame title="Reporte de Ventas"><div className="space-y-4"><StatsCards period="month" storeId={storeId} /><DailySalesChart days={30} storeId={storeId} /><TopProductsTable storeId={storeId} /></div></PageFrame>;
+  const { data: storeConfig } = useStoreConfig();
+  const currency = storeConfig?.currency ?? "USD";
+  const { data: salesData, isLoading: salesLoading } = useSales({ page: 1, limit: 15 });
+  const recentSales = salesData?.sales ?? [];
+
+  return (
+    <PageFrame
+      title="Reporte de Ventas"
+      breadcrumbs={[
+        { label: "Reportes", href: "/reports" },
+        { label: "Ventas" },
+      ]}
+    >
+      <div className="space-y-4">
+        <StatsCards period="month" storeId={storeId} />
+        <DailySalesChart days={30} storeId={storeId} />
+        <TopProductsTable storeId={storeId} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Ventas recientes</CardTitle>
+            <CardDescription>
+              Selecciona una venta para ver el detalle (también desde enlaces en alertas y recibos).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {salesLoading ? (
+              <p className="text-sm text-slate-500">Cargando ventas…</p>
+            ) : recentSales.length === 0 ? (
+              <p className="text-sm text-slate-500">No hay ventas recientes en este período.</p>
+            ) : (
+              <ul className="divide-y rounded-lg border">
+                {recentSales.map((sale: { id: string; invoiceNumber?: string | null; total: number; createdAt: string | Date; status: string }) => (
+                  <li key={sale.id}>
+                    <Link
+                      to={`/sales/${sale.id}`}
+                      className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-slate-50"
+                    >
+                      <span className="font-medium">{sale.invoiceNumber ?? sale.id.slice(0, 8)}</span>
+                      <span className="text-slate-600">{formatDate(sale.createdAt)}</span>
+                      <span className="text-slate-800">{formatCurrency(sale.total, currency)}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {sale.status}
+                      </Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </PageFrame>
+  );
 }
 export function ReportsInventoryPage() {
   const storeContext = useStoreContextOptional();
   const storeId = storeContext?.reportStoreId ?? storeContext?.currentStoreId ?? undefined;
   const { data } = useInventoryStats(storeId);
   return (
-    <PageFrame title="Reporte de Inventario">
+    <PageFrame
+      title="Reporte de Inventario"
+      breadcrumbs={[
+        { label: "Reportes", href: "/reports" },
+        { label: "Inventario" },
+      ]}
+    >
       <div className="space-y-6">
         <InventoryOverview />
         <Card>
@@ -234,13 +515,29 @@ export function ReportsInventoryPage() {
 }
 
 export function InventoryLowStockPage() {
-  return <PageFrame title="Stock Bajo"><LowStockAlert /></PageFrame>;
+  return (
+    <PageFrame
+      title="Stock Bajo"
+      breadcrumbs={[
+        { label: "Inventario", href: "/inventory" },
+        { label: "Stock bajo" },
+      ]}
+    >
+      <LowStockAlert />
+    </PageFrame>
+  );
 }
 export function InventoryAdjustmentsPage() {
   const { data } = useProducts();
   const first = useMemo(() => (Array.isArray(data) && data.length > 0 ? data[0] : null), [data]);
   return (
-    <PageFrame title="Ajustes de Inventario">
+    <PageFrame
+      title="Ajustes de Inventario"
+      breadcrumbs={[
+        { label: "Inventario", href: "/inventory" },
+        { label: "Ajustes" },
+      ]}
+    >
       {!first ? <p>No hay productos para ajustar.</p> : <InventoryAdjustmentForm productId={first.id} currentStock={first.stock ?? 0} onSubmit={async () => Promise.resolve()} />}
     </PageFrame>
   );
@@ -251,9 +548,21 @@ export function AdminSettingsPage() {
   const { data: ticketConfig } = useTicketConfig();
   const updateStore = useUpdateStoreConfig();
   const updateTicket = useUpdateTicketConfig();
-  if (!storeConfig || !ticketConfig) return <PageFrame title="Configuracion"><p>Cargando...</p></PageFrame>;
+  if (!storeConfig || !ticketConfig) {
+    return (
+      <PageFrame title="Configuracion" breadcrumbs={[{ label: "Panel", href: "/dashboard" }, { label: "Configuración" }]}>
+        <p>Cargando...</p>
+      </PageFrame>
+    );
+  }
   return (
-    <PageFrame title="Configuracion">
+    <PageFrame
+      title="Configuracion"
+      breadcrumbs={[
+        { label: "Panel", href: "/dashboard" },
+        { label: "Configuración" },
+      ]}
+    >
       <div className="space-y-8">
         <Card><CardHeader><CardTitle>Configuracion de tienda</CardTitle></CardHeader><CardContent><StoreConfigForm initialData={storeConfig as any} onSubmit={async (d) => { await updateStore.mutateAsync(d); }} isLoading={updateStore.isPending} /></CardContent></Card>
         <Card><CardHeader><CardTitle>Configuracion de ticket</CardTitle></CardHeader><CardContent><TicketConfigForm initialData={ticketConfig as any} onSubmit={async (d) => { await updateTicket.mutateAsync(d); }} isLoading={updateTicket.isPending} /></CardContent></Card>
@@ -267,7 +576,13 @@ export function LoyaltyPage() {
   const [pointsPerDollar, setPointsPerDollar] = useState("1");
   const [redemptionRate, setRedemptionRate] = useState("0.01");
   return (
-    <PageFrame title="Lealtad">
+    <PageFrame
+      title="Lealtad"
+      breadcrumbs={[
+        { label: "Panel", href: "/dashboard" },
+        { label: "Programa de lealtad" },
+      ]}
+    >
       <Card>
         <CardHeader><CardTitle>Configuracion de puntos</CardTitle><CardDescription>Alineado con `/api/shopflow/loyalty/config`.</CardDescription></CardHeader>
         <CardContent className="space-y-3">
@@ -282,7 +597,13 @@ export function LoyaltyPage() {
 }
 export function BackupPage() {
   return (
-    <PageFrame title="Copias de Seguridad">
+    <PageFrame
+      title="Copias de Seguridad"
+      breadcrumbs={[
+        { label: "Panel", href: "/dashboard" },
+        { label: "Copias de seguridad" },
+      ]}
+    >
       <div className="space-y-4">
         <Card><CardHeader><CardTitle>Gestion de backups</CardTitle><CardDescription>Si el backend no expone `/api/shopflow/backup/*`, esta pagina mostrara errores de API.</CardDescription></CardHeader><CardContent className="flex gap-2"><CreateBackupButton /><RestoreBackupDialog /></CardContent></Card>
         <BackupList />
@@ -298,7 +619,7 @@ export function AccountPage() {
     navigate("/login", { replace: true });
   };
   return (
-    <PageFrame title="Mi Cuenta">
+    <PageFrame title="Mi Cuenta" breadcrumbs={[{ label: "Panel", href: "/dashboard" }, { label: "Mi cuenta" }]}>
       <Card>
         <CardHeader><CardTitle>Sesion</CardTitle><CardDescription>Gestion de sesion y datos de usuario.</CardDescription></CardHeader>
         <CardContent><Button variant="outline" onClick={handleLogout}>Cerrar sesion</Button></CardContent>

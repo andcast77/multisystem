@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { useMemberModules, useUpdateMemberModules } from "@/hooks/useMemberModules";
 import { useMemberRoles, useUpdateMemberRoles } from "@/hooks/useMemberRoles";
 import { useCompanyMembers } from "@/hooks/useCompanyMembers";
 import {
+  AppBreadcrumb,
   Card,
   CardContent,
   CardDescription,
@@ -109,6 +110,14 @@ export function MemberPermissionsPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <AppBreadcrumb
+        items={[
+          { label: "Miembros", href: "/dashboard/members" },
+          { label: memberName },
+          { label: "Permisos" },
+        ]}
+        Link={Link}
+      />
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button
@@ -180,7 +189,7 @@ export function MemberPermissionsPage() {
                     <Switch
                       checked={mod.enabled}
                       disabled={modulesSaving}
-                      onCheckedChange={(checked) =>
+                      onCheckedChange={(checked: boolean) =>
                         handleModuleToggle(mod, checked)
                       }
                     />
@@ -242,7 +251,7 @@ export function MemberPermissionsPage() {
                     <Switch
                       checked={role.assigned}
                       disabled={rolesSaving}
-                      onCheckedChange={(checked) =>
+                      onCheckedChange={(checked: boolean) =>
                         handleRoleToggle(role, checked)
                       }
                     />

@@ -25,6 +25,7 @@ import { X, Printer } from 'lucide-react'
 import { useRef } from 'react'
 import { TicketPrintTemplate } from '@/components/features/pos/TicketPrintTemplate'
 import { SheetPrintTemplate } from '@/components/features/pos/SheetPrintTemplate'
+import { toast } from 'sonner'
 
 interface TicketConfigFormProps {
   initialData: TicketConfig
@@ -323,7 +324,7 @@ export function TicketConfigForm({
       
       // Usar alert temporalmente (se puede mejorar con un toast notification)
       if (typeof window !== 'undefined') {
-        alert(errorMessage)
+        toast.error(errorMessage)
       }
     }
   }
@@ -349,14 +350,14 @@ export function TicketConfigForm({
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecciona un archivo de imagen válido (JPG, PNG, etc.)')
+      toast.error('Por favor, selecciona un archivo de imagen válido (JPG, PNG, etc.)')
       return
     }
 
     // Validar tamaño (máximo 5MB)
     const maxSize = 5 * 1024 * 1024 // 5MB
     if (file.size > maxSize) {
-      alert('El archivo es demasiado grande. Por favor, selecciona una imagen menor a 5MB.')
+      toast.error('El archivo es demasiado grande. Por favor, selecciona una imagen menor a 5MB.')
       return
     }
 
@@ -395,7 +396,7 @@ export function TicketConfigForm({
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Error al subir el logo. Por favor, verifica que el archivo sea válido e intenta nuevamente.'
-      alert(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsUploadingLogo(false)
       // Resetear el input para permitir subir el mismo archivo nuevamente

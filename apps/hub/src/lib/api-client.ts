@@ -26,7 +26,7 @@ import type {
   CompanyRow,
 } from "@multisystem/contracts";
 
-import { ApiClient } from "@multisystem/shared";
+import { ApiClient, type ApiResponse } from "@multisystem/shared";
 
 export type { LoginResponse, MeResponse, ContextResponse, CompaniesResponse, RegisterResponse, CompanyRow };
 
@@ -45,7 +45,7 @@ const client = new ApiClient(API_URL);
 
 export const authApi = {
   login: (email: string, password: string, companyId?: string) =>
-    client.post<LoginResponse>("/v1/auth/login", { email, password, companyId }),
+    client.post<ApiResponse<LoginResponse>>("/v1/auth/login", { email, password, companyId }),
 
   register: (data: {
     email: string;
@@ -57,14 +57,14 @@ export const authApi = {
     shopflowEnabled?: boolean;
     technicalServicesEnabled?: boolean;
   }) =>
-    client.post<RegisterResponse>("/v1/auth/register", data),
+    client.post<ApiResponse<RegisterResponse>>("/v1/auth/register", data),
 
-  me: () => client.get<MeResponse>("/v1/auth/me"),
+  me: () => client.get<ApiResponse<MeResponse>>("/v1/auth/me"),
 
   context: (companyId: string) =>
-    client.post<ContextResponse>("/v1/auth/context", { companyId }),
+    client.post<ApiResponse<ContextResponse>>("/v1/auth/context", { companyId }),
 
-  companies: () => client.get<CompaniesResponse>("/v1/auth/companies"),
+  companies: () => client.get<ApiResponse<CompaniesResponse>>("/v1/auth/companies"),
 
   logout: () =>
     client.post<{ success: boolean }>("/v1/auth/logout", {}),
@@ -220,5 +220,89 @@ export const companyApi = {
     client.put<{ success: boolean; data: MemberRoleItem[]; error?: string }>(
       `/v1/companies/${companyId}/members/${memberId}/roles`,
       { roleIds }
+    ),
+};
+
+/** Shopflow module API (same session cookie). Used for in-app notifications from Hub when Shopflow is enabled. */
+export type InAppNotificationDto = {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  type: string;
+  status: string;
+  data?: Record<string, unknown> | null;
+};
+
+export const shopflowNotificationsApi = {
+  list: (userId: string) =>
+    client.get<{
+      success: boolean;
+      data?: {
+        notifications: InAppNotificationDto[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      };
+      error?: string;
+    }>(
+      `/v1/shopflow/notifications?userId=${encodeURIComponent(userId)}&limit=50&page=1`
+    ),
+
+  unreadCount: (userId: string) =>
+    client.get<{ success: boolean; data?: { count: number }; error?: string }>(
+      `/v1/shopflow/notifications/unread-count?userId=${encodeURIComponent(userId)}`
+    ),
+
+  markRead: (id: string, userId: string) =>
+    client.put<{ success: boolean; error?: string }>(`/v1/shopflow/notifications/${id}/read`, {
+      userId,
+    }),
+
+  markAllRead: (userId: string) =>
+    client.put<{ success: boolean; data?: { count: number }; error?: string }>(
+      `/v1/shopflow/notifications/read-all`,
+      { userId }
+    ),
+
+  getPreferences: (userId: string) =>
+    client.get<{
+      success: boolean;
+      data?: {
+        id: string;
+        userId: string;
+        inAppEnabled: boolean;
+        pushEnabled: boolean;
+        emailEnabled: boolean;
+        preferences?: Record<string, { inApp?: boolean; push?: boolean; email?: boolean }> | null;
+      };
+      error?: string;
+    }>(`/v1/shopflow/users/${userId}/notification-preferences`),
+
+  updatePreferences: (
+    userId: string,
+    body: {
+      inAppEnabled?: boolean;
+      pushEnabled?: boolean;
+      emailEnabled?: boolean;
+      preferences?: Record<string, { inApp?: boolean; push?: boolean; email?: boolean }>;
+    }
+  ) =>
+    client.put<{
+      success: boolean;
+      data?: {
+        id: string;
+        userId: string;
+        inAppEnabled: boolean;
+        pushEnabled: boolean;
+        emailEnabled: boolean;
+        preferences?: Record<string, { inApp?: boolean; push?: boolean; email?: boolean }> | null;
+      };
+      error?: string;
+    }>(`/v1/shopflow/users/${userId}/notification-preferences`, body),
+};
+
+export const shopflowStoresApi = {
+  list: () =>
+    client.get<{ success: boolean; data?: { id: string; name: string; active?: boolean }[]; error?: string }>(
+      `/v1/shopflow/stores`
     ),
 };

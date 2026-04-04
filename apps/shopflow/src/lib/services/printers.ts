@@ -3,6 +3,7 @@
 
 import type { DetectedPrinter, PrinterType } from '@/lib/utils/printerDetection'
 import { detectSerialPorts } from '@/lib/utils/printerDetection'
+import { toast } from 'sonner'
 
 export type { DetectedPrinter }
 
@@ -221,7 +222,7 @@ export function testPrint(content: string): void {
   
   const printWindow = window.open('', '_blank')
   if (!printWindow) {
-    alert('No se pudo abrir la ventana de impresión. Por favor, permite ventanas emergentes.')
+    toast.error('No se pudo abrir la ventana de impresión. Por favor, permite ventanas emergentes.')
     return
   }
   

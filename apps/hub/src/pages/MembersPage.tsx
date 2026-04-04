@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { useCompanyMembers } from "@/hooks/useCompanyMembers";
 import {
@@ -15,6 +15,7 @@ import {
   CardTitle,
   Badge,
   Button,
+  AppBreadcrumb,
 } from "@multisystem/ui";
 import { Mail, Calendar, AlertCircle, Users, Shield } from "lucide-react";
 
@@ -58,6 +59,10 @@ export function MembersPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <AppBreadcrumb
+        items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Miembros" }]}
+        Link={Link}
+      />
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Miembros de la Empresa</h1>
         <p className="text-slate-600 mt-1">Gestiona los usuarios de tu empresa</p>
@@ -71,6 +76,9 @@ export function MembersPage() {
               <div>
                 <p className="text-sm text-slate-600">Total de Miembros</p>
                 <p className="text-2xl font-bold">{members.length}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {ownerCount} propietario{ownerCount !== 1 ? "s" : ""}
+                </p>
               </div>
               <Users className="h-8 w-8 text-indigo-600 opacity-20" />
             </div>

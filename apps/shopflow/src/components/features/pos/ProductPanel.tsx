@@ -8,12 +8,14 @@ import { formatCurrency } from '@/lib/utils/format'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { Card, CardContent } from '@multisystem/ui'
 import { Input } from '@multisystem/ui'
-import { Search, AlertTriangle } from 'lucide-react'
+import { Search, AlertTriangle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { BarcodeScanResult } from '@/lib/services/barcodeService'
 
 export function ProductPanel() {
   const [search, setSearch] = useState('')
+  const [scanPendingCode, setScanPendingCode] = useState<string | null>(null)
   const { data: storeConfig } = useStoreConfig()
 
   // Virtual grid layout constants (fixed sizing enables windowed rendering).
@@ -52,18 +54,8 @@ export function ProductPanel() {
 
   // Barcode scanner integration
   const handleBarcodeScan = (result: BarcodeScanResult) => {
-    // Search for product by barcode
     setSearch(result.code)
-    // Try to find and add product automatically
-    if (products.length > 0) {
-      const product = products.find(
-        (p) => p.barcode === result.code || p.sku === result.code
-      )
-      if (product && product.stock > 0) {
-        addItem(product, 1)
-        setSearch('') // Clear search after adding
-      }
-    }
+    setScanPendingCode(result.code)
   }
 
   const { ref: barcodeRef } = useBarcodeScanner(handleBarcodeScan, true)
@@ -86,6 +78,35 @@ export function ProductPanel() {
     appendedPagesRef.current = {}
     setScrollTop(0)
   }, [search])
+
+  useEffect(() => {
+    if (!scanPendingCode) return
+
+    const match = products.find(
+      (p) => p.barcode === scanPendingCode || p.sku === scanPendingCode
+    )
+    if (match) {
+      if (match.stock > 0) {
+        addItem(match, 1)
+        setSearch('')
+        setScanPendingCode(null)
+        toast.success(`${match.name} agregado al carrito`)
+      } else {
+        toast.error('El producto no tiene stock disponible')
+        setScanPendingCode(null)
+      }
+      return
+    }
+
+    const finishedLoading = !isLoading && !isFetching
+    if (!finishedLoading) return
+
+    const loadedAllPages = totalPages == null || page >= totalPages
+    if (products.length === 0 || loadedAllPages) {
+      toast.error(`No se encontró un producto con el código «${scanPendingCode}».`)
+      setScanPendingCode(null)
+    }
+  }, [scanPendingCode, products, isLoading, isFetching, totalPages, page, addItem])
 
   // Append newly fetched page results.
   useEffect(() => {
@@ -204,10 +225,24 @@ export function ProductPanel() {
             type="text"
             placeholder="Buscar productos o escanear código de barras..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              setSearch(v)
+              if (scanPendingCode && v !== scanPendingCode) setScanPendingCode(null)
+            }}
             className="pl-10"
           />
         </div>
+        {scanPendingCode ? (
+          <div
+            className="mt-2 flex items-center gap-2 rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+            Buscando producto por código…
+          </div>
+        ) : null}
       </div>
 
       {/* Products Grid */}

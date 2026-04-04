@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUser } from "@/hooks/useUser";
 import { useCompany } from "@/hooks/useCompany";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  AppBreadcrumb,
   Button,
   Card,
   CardContent,
@@ -27,9 +28,19 @@ import { companyApi } from "@/lib/api-client";
 import { DeleteCompanyDialog } from "@/components/features/DeleteCompanyDialog";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
+const SETTINGS_TABS = ["general", "modules", "fiscal", "preferences"] as const;
+type SettingsTab = (typeof SETTINGS_TABS)[number];
+
+const TAB_LABELS: Record<SettingsTab, string> = {
+  general: "Información general",
+  modules: "Módulos",
+  fiscal: "Datos fiscales",
+  preferences: "Preferencias",
+};
+
 export function SettingsPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: user } = useUser();
   const { data: company } = useCompany(user?.companyId);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -128,8 +139,23 @@ export function SettingsPage() {
     );
   }
 
+  const tabParam = searchParams.get("tab");
+  const activeTab: SettingsTab = SETTINGS_TABS.includes(tabParam as SettingsTab)
+    ? (tabParam as SettingsTab)
+    : "general";
+
+  const breadcrumbItems =
+    activeTab === "general"
+      ? [{ label: "Dashboard", href: "/dashboard" }, { label: "Configuración" }]
+      : [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Configuración", href: "/dashboard/settings" },
+          { label: TAB_LABELS[activeTab] },
+        ];
+
   return (
     <div className="p-6 space-y-6">
+      <AppBreadcrumb items={breadcrumbItems} Link={Link} />
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Configuración de Empresa</h1>
         <p className="text-slate-600 mt-1">Gestiona los ajustes y datos de tu empresa</p>
@@ -149,7 +175,14 @@ export function SettingsPage() {
         </Alert>
       )}
 
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v: string) => {
+          const next = v as SettingsTab;
+          setSearchParams({ tab: next }, { replace: true });
+        }}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="general">Información General</TabsTrigger>
           <TabsTrigger value="modules">Módulos</TabsTrigger>
@@ -212,7 +245,7 @@ export function SettingsPage() {
                   </div>
                   <Switch
                     checked={company.modules?.workify ?? company.workifyEnabled ?? false}
-                    onCheckedChange={(checked) => handleModulesChange("workify", checked)}
+                    onCheckedChange={(checked: boolean) => handleModulesChange("workify", checked)}
                     disabled={!isOwner}
                   />
                 </div>
@@ -225,7 +258,7 @@ export function SettingsPage() {
                   </div>
                   <Switch
                     checked={company.modules?.shopflow ?? company.shopflowEnabled ?? false}
-                    onCheckedChange={(checked) => handleModulesChange("shopflow", checked)}
+                    onCheckedChange={(checked: boolean) => handleModulesChange("shopflow", checked)}
                     disabled={!isOwner}
                   />
                 </div>
@@ -238,7 +271,7 @@ export function SettingsPage() {
                   </div>
                   <Switch
                     checked={company.modules?.techservices ?? company.technicalServicesEnabled ?? false}
-                    onCheckedChange={(checked) => handleModulesChange("techServices", checked)}
+                    onCheckedChange={(checked: boolean) => handleModulesChange("techServices", checked)}
                     disabled={!isOwner}
                   />
                 </div>

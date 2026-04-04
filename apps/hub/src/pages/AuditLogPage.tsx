@@ -14,7 +14,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Badge,
   Button,
 } from "@multisystem/ui";
 import { Shield, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";

@@ -370,6 +370,7 @@ export {
 export {
   createNotification, listNotifications, markNotificationAsRead, markNotificationAsUnread,
   markAllNotificationsRead, deleteNotification, getUnreadCount, getNotificationPreferences,
+  updateNotificationPreferences,
 } from './shopflow-notifications.service.js'
 
 // --- User preferences ---

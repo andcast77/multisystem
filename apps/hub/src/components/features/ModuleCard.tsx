@@ -30,7 +30,7 @@ export function ModuleCard({ title, description, icon: Icon, href, enabled, colo
   }
 
   return (
-    <Link href={href} className="block transition-transform hover:scale-105">
+    <Link to={href} className="block transition-transform hover:scale-105">
       <Card className="h-full hover:shadow-lg transition-shadow">
         <CardHeader>
           <div className="flex items-center justify-between">

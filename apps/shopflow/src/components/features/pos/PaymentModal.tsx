@@ -20,6 +20,7 @@ import { useStoreContextOptional } from '@/components/providers/StoreContext'
 import { formatCurrency } from '@/lib/utils/format'
 import { PaymentMethod } from '@/types'
 import { Badge } from '@multisystem/ui'
+import { toast } from 'sonner'
 
 interface PaymentModalProps {
   open: boolean
@@ -62,7 +63,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 
     const points = parseInt(pointsToRedeem)
     if (points <= 0 || points > (customerPoints?.availablePoints || 0)) {
-      alert('Cantidad de puntos inválida')
+      toast.error('Cantidad de puntos inválida')
       return
     }
 
@@ -75,7 +76,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
       setPointsDiscount(result.discountAmount)
       setPointsToRedeem('')
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al canjear puntos')
+      toast.error(error instanceof Error ? error.message : 'Error al canjear puntos')
     }
   }
 
@@ -87,7 +88,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user?.id) {
-      alert('Usuario no cargado. Intenta de nuevo.')
+      toast.error('Usuario no cargado. Intenta de nuevo.')
       return
     }
     setIsProcessing(true)
@@ -116,15 +117,31 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
       onClose()
     } catch (error) {
       console.error('Payment error:', error)
-      alert(error instanceof Error ? error.message : 'Error al procesar el pago')
+      toast.error(error instanceof Error ? error.message : 'Error al procesar el pago')
     } finally {
       setIsProcessing(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          if (isProcessing) return
+          onClose()
+        }
+      }}
+    >
+      <DialogContent
+        className="max-w-md"
+        onPointerDownOutside={(e) => {
+          if (isProcessing) e.preventDefault()
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isProcessing) e.preventDefault()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Procesar Pago</DialogTitle>
           <DialogDescription>

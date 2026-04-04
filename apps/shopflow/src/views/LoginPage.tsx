@@ -1,11 +1,22 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { loginSchema } from "@/lib/validations/auth";
 import { authApi } from "@/lib/api/client";
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = useMemo(
+    () => safeNextPath(searchParams.get("next")),
+    [searchParams]
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +34,9 @@ export function LoginPage() {
           <Card className="border-white/60 bg-white/85 shadow-2xl backdrop-blur">
             <CardHeader>
               <CardTitle>Iniciar sesion</CardTitle>
-              <CardDescription>Acceso contra `/api/auth/login`</CardDescription>
+              <CardDescription>
+                Ingresa el email y la contraseña de tu cuenta Multisystem para usar Shopflow.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
@@ -48,7 +61,7 @@ export function LoginPage() {
                   setIsLoading(true);
                   try {
                     await authApi.post("/login", { email, password });
-                    navigate("/dashboard");
+                    navigate(nextPath ?? "/dashboard", { replace: true });
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "No se pudo iniciar sesion");
                   } finally {
