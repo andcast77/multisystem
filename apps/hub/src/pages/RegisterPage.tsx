@@ -2,9 +2,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authApi } from "@/lib/api-client";
+import { authApi, accountApi } from "@/lib/api-client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 import {
+  AuthLayout,
   Button,
   Input,
   Label,
@@ -24,6 +25,7 @@ import {
 export function RegisterPage() {
   const navigate = useNavigate();
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registrationEmail, setRegistrationEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -38,6 +40,7 @@ export function RegisterPage() {
   });
 
   const termsAccepted = watch("termsAccepted");
+  const privacyAccepted = watch("privacyAccepted");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -69,7 +72,14 @@ export function RegisterPage() {
         return;
       }
 
-      // Show success message instead of auto-login
+      // Record explicit privacy policy acceptance (GDPR Art. 7 / LFPDPPP)
+      // The session cookie is set by the register endpoint so this call is authenticated.
+      try {
+        await accountApi.acceptPrivacy();
+      } catch {
+        // Non-blocking: registration succeeded; privacy timestamp can be back-filled via support.
+      }
+
       setRegistrationEmail(data.email);
       setRegistrationSuccess(true);
     } catch (err: any) {
@@ -78,21 +88,41 @@ export function RegisterPage() {
     }
   }
 
+  const decorativePanel = (
+    <>
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-indigo-700 font-medium mb-6 shadow-sm">
+        <span>🚀</span>
+        <span>Multisystem Hub</span>
+      </div>
+
+      <h2 className="text-4xl font-bold text-white mb-4">
+        Tu negocio listo para crecer
+      </h2>
+      <p className="text-white/80 text-lg leading-relaxed">
+        Accede a todas las herramientas que necesitas para gestionar y hacer crecer
+        tu negocio con claridad.
+      </p>
+
+      <div className="mt-8 pt-8 border-t border-white/30">
+        <p className="text-white/60 text-sm italic">
+          "Empieza rápido, crece con claridad."
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <main className="min-h-screen bg-slate-50 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] relative overflow-hidden">
-        {/* Left side - Form */}
-        <div className="flex items-center justify-center p-4 lg:p-12">
-          <div className="w-full max-w-md">
-            {/* Logo/Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-slate-900">
-                {registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
-              </h1>
-              <p className="text-slate-600 mt-2">
-                {registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"}
-              </p>
-            </div>
+      <AuthLayout panel={decorativePanel}>
+        {/* Logo/Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">
+            {registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
+          </h1>
+          <p className="text-slate-600 mt-2">
+            {registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"}
+          </p>
+        </div>
 
             {/* Success Message or Register Form Card */}
             {registrationSuccess ? (
@@ -277,10 +307,36 @@ export function RegisterPage() {
                       )}
                     </div>
 
+                    {/* Privacy Policy Checkbox */}
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3">
+                        <input
+                          id="privacy"
+                          type="checkbox"
+                          {...register("privacyAccepted")}
+                          className="mt-1"
+                        />
+                        <label htmlFor="privacy" className="text-sm text-slate-700">
+                          He leído y acepto la{" "}
+                          <button
+                            type="button"
+                            onClick={() => setShowPrivacyModal(true)}
+                            className="text-indigo-600 hover:text-indigo-700 font-medium underline"
+                          >
+                            política de privacidad
+                          </button>{" "}
+                          y el tratamiento de mis datos personales
+                        </label>
+                      </div>
+                      {errors.privacyAccepted && (
+                        <p className="text-sm text-red-600">{errors.privacyAccepted.message}</p>
+                      )}
+                    </div>
+
                     {/* Submit Button */}
                     <Button
                       type="submit"
-                      disabled={isSubmitting || !termsAccepted}
+                      disabled={isSubmitting || !termsAccepted || !privacyAccepted}
                       className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-medium py-2 rounded-md transition-all"
                     >
                       {isSubmitting ? "Registrando…" : "Crear cuenta"}
@@ -300,38 +356,7 @@ export function RegisterPage() {
               </CardContent>
             </Card>
             )}
-          </div>
-        </div>
-
-        {/* Right side - Decorative Sidebar */}
-        <div className="hidden lg:flex flex-col items-center justify-center relative bg-gradient-to-br from-indigo-700 via-indigo-600 to-blue-600 overflow-hidden p-12">
-          {/* Decorative circles */}
-          <div className="absolute -top-40 left-20 h-[520px] w-[520px] rounded-full border border-white/30" />
-          <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
-
-          {/* Content */}
-          <div className="relative z-10 text-center max-w-sm">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-indigo-700 font-medium mb-6 shadow-sm">
-              <span>🚀</span>
-              <span>Multisystem Hub</span>
-            </div>
-
-            <h2 className="text-4xl font-bold text-white mb-4">
-              Tu negocio listo para crecer
-            </h2>
-            <p className="text-white/80 text-lg leading-relaxed">
-              Accede a todas las herramientas que necesitas para gestionar y hacer crecer
-              tu negocio con claridad.
-            </p>
-
-            <div className="mt-8 pt-8 border-t border-white/30">
-              <p className="text-white/60 text-sm italic">
-                "Empieza rápido, crece con claridad."
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
+      </AuthLayout>
 
       {/* Terms & Conditions Modal */}
       <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
@@ -403,6 +428,103 @@ export function RegisterPage() {
 
           <Button
             onClick={() => setShowTermsModal(false)}
+            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 mt-4"
+          >
+            Entendido
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Policy Modal */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Política de Privacidad</DialogTitle>
+            <DialogDescription>
+              Cómo recopilamos, usamos y protegemos tus datos personales
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 pr-4 -mr-6 pr-6">
+            <div className="space-y-4 text-sm text-slate-600">
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">1. Responsable del Tratamiento</h3>
+                <p>
+                  Multisystem Hub es el responsable del tratamiento de tus datos personales,
+                  en cumplimiento del RGPD (UE 2016/679), la Ley Argentina 25.326 y la
+                  LFPDPPP mexicana.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">2. Datos que Recopilamos</h3>
+                <p>Recopilamos los siguientes datos para prestarte el servicio:</p>
+                <ul className="mt-2 ml-4 space-y-1 list-disc">
+                  <li><strong>Identificación:</strong> nombre, apellido y dirección de email</li>
+                  <li><strong>Cuenta:</strong> contraseña (almacenada con hash bcrypt), empresa</li>
+                  <li><strong>Actividad:</strong> registros de auditoría e historial de acciones</li>
+                  <li><strong>Técnicos:</strong> dirección IP y agente de usuario en cada sesión</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">3. Finalidad y Base Legal</h3>
+                <p>
+                  Tus datos se tratan para la ejecución del contrato de servicio, el cumplimiento
+                  de obligaciones legales y, con tu consentimiento explícito, para la mejora
+                  continua de la plataforma. La base legal es el Art. 6(1)(b) y (a) del RGPD.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">4. Retención de Datos</h3>
+                <ul className="mt-1 ml-4 space-y-1 list-disc">
+                  <li>Sesiones: eliminadas al expirar o al cerrar sesión</li>
+                  <li>Registros de auditoría: 12 meses</li>
+                  <li>Datos de perfil: durante la vigencia de la cuenta + 30 días post-baja</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">5. Tus Derechos</h3>
+                <p>
+                  Tienes derecho de acceso, rectificación, supresión, portabilidad y oposición
+                  al tratamiento de tus datos. Puedes ejercerlos desde tu perfil
+                  (<em>Mi cuenta → Mis datos</em>) o contactando a nuestro equipo de soporte.
+                  Para Argentina: derechos según Ley 25.326. Para México: derechos ARCO según LFPDPPP.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">6. Transferencias Internacionales</h3>
+                <p>
+                  Tus datos pueden ser procesados en servidores ubicados fuera de tu país de
+                  residencia. En todos los casos se aplican garantías adecuadas conforme a la
+                  normativa aplicable (cláusulas contractuales tipo o equivalentes).
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">7. Seguridad</h3>
+                <p>
+                  Aplicamos cifrado en tránsito (TLS), contraseñas con hash bcrypt,
+                  cifrado de campos sensibles en base de datos, y controles de acceso
+                  basados en roles para proteger tus datos.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-slate-900 mb-2">8. Contacto</h3>
+                <p>
+                  Para cualquier consulta sobre privacidad o para ejercer tus derechos,
+                  contacta a nuestro equipo a través de los canales de soporte de la plataforma.
+                </p>
+              </section>
+            </div>
+          </ScrollArea>
+
+          <Button
+            onClick={() => setShowPrivacyModal(false)}
             className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 mt-4"
           >
             Entendido

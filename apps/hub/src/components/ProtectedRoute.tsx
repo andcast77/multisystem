@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 
 export function ProtectedRoute() {
   const { data: user, isLoading } = useUser();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -16,7 +17,10 @@ export function ProtectedRoute() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const next = `${location.pathname}${location.search}`;
+    const qs =
+      next && next !== "/login" ? `?next=${encodeURIComponent(next)}` : "";
+    return <Navigate to={`/login${qs}`} replace />;
   }
 
   return <Outlet />;

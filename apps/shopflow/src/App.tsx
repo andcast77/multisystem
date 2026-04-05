@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes, BrowserRouter } from "react-router-dom";
+import { Toaster } from "sonner";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -33,6 +34,7 @@ import {
   ReportsInventoryPage,
   ReportsPage,
   ReportsSalesPage,
+  SaleDetailPage,
   SupplierCreatePage,
   SupplierEditPage,
   UserCreatePage,
@@ -45,9 +47,9 @@ function ProtectedAppLayout() {
       <ShopflowModuleGuard>
         <CompanyContextBootstrap>
           <StoreProvider>
-            <div className="flex min-h-screen">
+            <div className="flex min-h-screen flex-col lg:flex-row">
               <Sidebar />
-              <div className="min-w-0 flex-1">
+              <div className="min-h-0 min-w-0 flex-1">
                 <Outlet />
               </div>
             </div>
@@ -62,6 +64,7 @@ function App() {
   return (
     <BrowserRouter>
       <QueryProvider>
+        <Toaster richColors position="top-center" closeButton />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -94,6 +97,7 @@ function App() {
               <Route path="/inventory/adjustments" element={<InventoryAdjustmentsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/reports/sales" element={<ReportsSalesPage />} />
+              <Route path="/sales/:id" element={<SaleDetailPage />} />
               <Route path="/reports/inventory" element={<ReportsInventoryPage />} />
               <Route
                 path="/customers"

@@ -10,6 +10,7 @@ import { ok } from '../../../common/api-response.js'
 import { apiOkEnvelope200 } from '../../../common/fastify-response-schemas.js'
 import * as shopflowService from '../../../services/shopflow.service.js'
 import * as shopflowHelper from '../../../helpers/shopflow.helper.js'
+import { sseManager } from '../../../services/sse.service.js'
 import { getCtx, handle, pre } from './_shared.js'
 
 async function listProducts(
@@ -91,6 +92,7 @@ async function updateProductInventory(
   const ctx = getCtx(request, true)
   const product = await shopflowService.updateProductInventory(ctx, request.params.id, body)
   if (!product) throw new NotFoundError('Producto no encontrado')
+  sseManager.emit(ctx.companyId, 'stock:updated', { companyId: ctx.companyId, productId: request.params.id, storeId: request.storeId ?? null })
   return ok(shopflowHelper.toProductResponse(product))
 }
 

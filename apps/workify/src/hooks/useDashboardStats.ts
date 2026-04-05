@@ -1,120 +1,113 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { workifyApi } from '@/lib/api/client';
+import { useState, useEffect, useCallback } from 'react'
+import { workifyApi } from '@/lib/api/client'
 
-interface DashboardStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  inactiveEmployees: number;
-  suspendedEmployees: number;
-  totalRoles: number;
-  totalDepartments: number;
-  // Estadísticas de hoy
-  todayScheduled: number;
-  todayActive: number;
-  isWorkDay: boolean;
-  workDayReason?: string;
+export interface DashboardStats {
+  totalEmployees: number
+  activeEmployees: number
+  inactiveEmployees: number
+  suspendedEmployees: number
+  totalRoles: number
+  totalDepartments: number
+  todayScheduled: number
+  todayActive: number
+  todayPresent: number
+  registeredHoursToday: number
+  weeklyAttendanceRate: number
+  isWorkDay: boolean
+  workDayReason?: string
 }
 
-interface DepartmentStat {
-  name: string;
-  count: number;
+export interface WeeklyAttendancePoint {
+  date: string
+  scheduled: number
+  present: number
 }
 
-interface RecentActivity {
-  id: string;
-  name: string;
-  position: string;
-  department: string;
-  dateJoined: string;
-  createdAt: string;
-  type: string;
-  message: string;
+export interface DepartmentAttendancePoint {
+  departmentId: string | null
+  departmentName: string
+  scheduled: number
+  present: number
 }
 
 interface DashboardData {
-  stats: DashboardStats;
-  departmentStats: DepartmentStat[];
-  recentActivity: RecentActivity[];
-  company: {
-    name: string;
-  };
+  stats: DashboardStats
+  weeklyAttendance: WeeklyAttendancePoint[]
+  departmentAttendance: DepartmentAttendancePoint[]
+  departmentStats: { name: string; count: number }[]
+  recentActivity: unknown[]
+  company: { name: string }
+}
+
+function mapApiToDashboardStats(res: Record<string, unknown>): DashboardData {
+  const todayActive = typeof res.todayActive === 'number' ? res.todayActive : 0
+  return {
+    stats: {
+      totalEmployees: typeof res.totalEmployees === 'number' ? res.totalEmployees : 0,
+      activeEmployees: todayActive,
+      inactiveEmployees: 0,
+      suspendedEmployees: 0,
+      totalRoles: 0,
+      totalDepartments: 0,
+      todayScheduled: typeof res.todayScheduled === 'number' ? res.todayScheduled : 0,
+      todayActive,
+      todayPresent: typeof res.todayPresent === 'number' ? res.todayPresent : 0,
+      registeredHoursToday: typeof res.registeredHoursToday === 'number' ? res.registeredHoursToday : 0,
+      weeklyAttendanceRate: typeof res.weeklyAttendanceRate === 'number' ? res.weeklyAttendanceRate : 0,
+      isWorkDay: res.isWorkDay !== false,
+      workDayReason: typeof res.workDayReason === 'string' ? res.workDayReason : undefined,
+    },
+    weeklyAttendance: Array.isArray(res.weeklyAttendance) ? (res.weeklyAttendance as WeeklyAttendancePoint[]) : [],
+    departmentAttendance: Array.isArray(res.departmentAttendance)
+      ? (res.departmentAttendance as DepartmentAttendancePoint[])
+      : [],
+    departmentStats: [],
+    recentActivity: [],
+    company: { name: '' },
+  }
 }
 
 export function useDashboardStats() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = (await workifyApi.get<Record<string, unknown>>('/dashboard/stats')) as Record<string, unknown>
+      setData(mapApiToDashboardStats(result))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    fetchStats()
+  }, [fetchStats])
 
-        const result = await workifyApi.get<{ totalEmployees?: number }>('/dashboard/stats');
-        setData({
-          stats: {
-            totalEmployees: result.totalEmployees ?? 0,
-            activeEmployees: 0,
-            inactiveEmployees: 0,
-            suspendedEmployees: 0,
-            totalRoles: 0,
-            totalDepartments: 0,
-            todayScheduled: 0,
-            todayActive: 0,
-            isWorkDay: true,
-          },
-          departmentStats: [],
-          recentActivity: [],
-          company: { name: '' },
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  const refetch = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await workifyApi.get<{ totalEmployees?: number }>('/dashboard/stats');
-      setData({
-        stats: {
-          totalEmployees: result.totalEmployees ?? 0,
-          activeEmployees: 0,
-          inactiveEmployees: 0,
-          suspendedEmployees: 0,
-          totalRoles: 0,
-          totalDepartments: 0,
-          todayScheduled: 0,
-          todayActive: 0,
-          isWorkDay: true,
-        },
-        departmentStats: [],
-        recentActivity: [],
-        company: { name: '' },
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const h = () => {
+      fetchStats()
     }
-  };
+    window.addEventListener('workify-dashboard-refresh', h)
+    return () => window.removeEventListener('workify-dashboard-refresh', h)
+  }, [fetchStats])
 
   return {
     stats: data?.stats,
+    weeklyAttendance: data?.weeklyAttendance ?? [],
+    departmentAttendance: data?.departmentAttendance ?? [],
     departmentStats: data?.departmentStats || [],
     recentActivity: data?.recentActivity || [],
     company: data?.company,
     loading,
     error,
-    refetch,
-  };
-} 
+    refetch: fetchStats,
+  }
+}

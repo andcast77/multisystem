@@ -1,20 +1,16 @@
-'use client';
+'use client'
 
-import { useAttendanceStats } from '@/hooks/api/useAttendanceStats';
-import { Badge, Card } from '@multisystem/ui';
-import { 
-  AlertTriangle, 
-  Clock, 
-  UserX, 
-  Coffee,
-  CheckCircle,
-  Loader2,
-  Calendar,
-  PartyPopper
-} from 'lucide-react';
+import { useAttendanceStats } from '@/hooks/api/useAttendanceStats'
+import { useDashboardAlerts } from '@/hooks/useDashboardAlerts'
+import { Badge, Card } from '@multisystem/ui'
+import { AlertTriangle, Loader2, CheckCircle, PartyPopper } from 'lucide-react'
 
 export function DailyAlerts() {
-  const { stats, loading, error } = useAttendanceStats();
+  const { stats: att, loading: attLoading, error: attError } = useAttendanceStats()
+  const { alerts, loading: alertsLoading, error: alertsError } = useDashboardAlerts()
+
+  const loading = attLoading || alertsLoading
+  const error = attError || alertsError
 
   if (loading) {
     return (
@@ -24,7 +20,7 @@ export function DailyAlerts() {
           <span className="text-sm">Cargando alertas...</span>
         </div>
       </Card>
-    );
+    )
   }
 
   if (error) {
@@ -35,169 +31,72 @@ export function DailyAlerts() {
           <span className="text-sm">Error al cargar alertas: {error}</span>
         </div>
       </Card>
-    );
+    )
   }
 
-  if (!stats) {
-    return null;
+  if (!att) {
+    return null
   }
 
-  const alerts = [];
-
-  // Alerta principal: Día no laborable
-  if (!stats.isWorkDay) {
-    alerts.push({
-      type: 'info',
-      icon: PartyPopper,
-      title: 'Día No Laborable',
-      message: stats.workDayReason || 'Hoy no es un día laborable',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200'
-    });
-
-    // Si es un día no laborable, no mostrar otras alertas de asistencia
+  if (!att.isWorkDay) {
     return (
       <div className="space-y-3">
-        {alerts.map((alert, index) => {
-          const Icon = alert.icon;
-          
-          return (
-            <Card key={index} className={`p-4 border-l-4 ${alert.borderColor} ${alert.bgColor}`}>
-              <div className="flex items-start gap-3">
-                <Icon className={`h-5 w-5 mt-0.5 ${alert.color}`} />
-                <div className="flex-1">
-                  <h4 className={`font-medium ${alert.color}`}>
-                    {alert.title}
-                  </h4>
-                  <p className="text-sm text-gray-700 mt-1">
-                    {alert.message}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    No hay empleados programados para trabajar hoy
-                  </p>
-                </div>
-                <Badge 
-                  variant="outline"
-                  className="text-xs"
-                >
-                  Info
-                </Badge>
-              </div>
-            </Card>
-          );
-        })}
+        <Card className="p-4 border-l-4 border-purple-200 bg-purple-50">
+          <div className="flex items-start gap-3">
+            <PartyPopper className="h-5 w-5 mt-0.5 text-purple-600" />
+            <div className="flex-1">
+              <h4 className="font-medium text-purple-800">Día no laborable</h4>
+              <p className="text-sm text-gray-700 mt-1">{att.workDayReason || 'Hoy no aplica control de asistencia.'}</p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Info
+            </Badge>
+          </div>
+        </Card>
       </div>
-    );
-  }
-
-  // Alerta por tardanzas (solo si es día laborable)
-  if ((stats.employeesLate ?? 0) > 0) {
-    alerts.push({
-      type: 'warning',
-      icon: Clock,
-      title: 'Tardanzas Detectadas',
-      message: `${stats.employeesLate} empleado${(stats.employeesLate ?? 0) > 1 ? 's' : ''} llegó tarde hoy`,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200'
-    });
-  }
-
-  // Alerta por ausencias (solo si es día laborable)
-  if ((stats.employeesAbsent ?? 0) > 0) {
-    alerts.push({
-      type: 'error',
-      icon: UserX,
-      title: 'Ausencias Detectadas',
-      message: `${stats.employeesAbsent} de ${stats.employeesScheduled} empleado${(stats.employeesScheduled ?? 0) > 1 ? 's' : ''} programado${(stats.employeesScheduled ?? 0) > 1 ? 's' : ''} no asistió hoy`,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200'
-    });
-  }
-
-  // Alerta por empleados en descanso
-  if ((stats.employeesOnBreak ?? 0) > 0) {
-    alerts.push({
-      type: 'info',
-      icon: Coffee,
-      title: 'Empleados en Descanso',
-      message: `${stats.employeesOnBreak} empleado${(stats.employeesOnBreak ?? 0) > 1 ? 's' : ''} está en pausa`,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200'
-    });
-  }
-
-  // Mensaje positivo si no hay problemas y es día laborable
-  if (alerts.length === 0 && (stats.employeesWorking ?? 0) > 0) {
-    alerts.push({
-      type: 'success',
-      icon: CheckCircle,
-      title: 'Todo en Orden',
-      message: `${stats.employeesWorking} de ${stats.employeesScheduled} empleado${(stats.employeesScheduled ?? 0) > 1 ? 's' : ''} programado${(stats.employeesScheduled ?? 0) > 1 ? 's' : ''} trabajando normalmente`,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200'
-    });
-  }
-
-  // Si no hay empleados programados pero es día laborable
-  if (alerts.length === 0 && (stats.employeesScheduled ?? 0) === 0) {
-    alerts.push({
-      type: 'info',
-      icon: Calendar,
-      title: 'Sin Empleados Programados',
-      message: 'No hay empleados programados para trabajar hoy',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      borderColor: 'border-gray-200'
-    });
+    )
   }
 
   if (alerts.length === 0) {
     return (
       <Card className="p-6">
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-green-700">
           <CheckCircle className="h-4 w-4" />
-          <span className="text-sm">No hay alertas para mostrar</span>
+          <span className="text-sm">No hay alertas críticas para hoy.</span>
         </div>
       </Card>
-    );
+    )
   }
 
   return (
     <div className="space-y-3">
-      {alerts.map((alert, index) => {
-        const Icon = alert.icon;
-        
-        return (
-          <Card key={index} className={`p-4 border-l-4 ${alert.borderColor} ${alert.bgColor}`}>
-            <div className="flex items-start gap-3">
-              <Icon className={`h-5 w-5 mt-0.5 ${alert.color}`} />
-              <div className="flex-1">
-                <h4 className={`font-medium ${alert.color}`}>
-                  {alert.title}
-                </h4>
-                <p className="text-sm text-gray-700 mt-1">
-                  {alert.message}
-                </p>
-              </div>
-              <Badge 
-                variant={alert.type === 'success' ? 'default' : 
-                        alert.type === 'warning' ? 'secondary' : 
-                        alert.type === 'error' ? 'destructive' : 'outline'}
-                className="text-xs"
-              >
-                {alert.type === 'success' ? 'Éxito' :
-                 alert.type === 'warning' ? 'Advertencia' :
-                 alert.type === 'error' ? 'Error' : 'Info'}
-              </Badge>
+      {alerts.map((alert, index) => (
+        <Card
+          key={`${alert.type}-${index}`}
+          className={`p-4 border-l-4 ${
+            alert.priority === 'high'
+              ? 'border-red-300 bg-red-50'
+              : alert.priority === 'medium'
+                ? 'border-amber-300 bg-amber-50'
+                : 'border-slate-200 bg-slate-50'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle
+              className={`h-5 w-5 mt-0.5 shrink-0 ${
+                alert.priority === 'high' ? 'text-red-600' : alert.priority === 'medium' ? 'text-amber-600' : 'text-slate-500'
+              }`}
+            />
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-gray-900">{alert.title}</h4>
+              <p className="text-sm text-gray-700 mt-1">{alert.message}</p>
             </div>
-          </Card>
-        );
-      })}
+            <Badge variant={alert.priority === 'high' ? 'destructive' : 'outline'} className="text-xs shrink-0">
+              {alert.type}
+            </Badge>
+          </div>
+        </Card>
+      ))}
     </div>
-  );
-} 
+  )
+}

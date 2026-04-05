@@ -272,6 +272,51 @@ async function main() {
       action: 'access',
       description: 'Acceder al módulo de servicios técnicos',
     },
+    {
+      name: 'techservices.visits.close',
+      resource: 'techservices.visits',
+      action: 'close',
+      description: 'Cerrar órdenes de servicio técnico',
+    },
+    // Shopflow — ventas granulares
+    {
+      name: 'shopflow.sales.read',
+      resource: 'shopflow.sales',
+      action: 'read',
+      description: 'Ver ventas en Shopflow',
+    },
+    {
+      name: 'shopflow.sales.create',
+      resource: 'shopflow.sales',
+      action: 'create',
+      description: 'Crear nuevas ventas en Shopflow',
+    },
+    {
+      name: 'shopflow.sales.cancel',
+      resource: 'shopflow.sales',
+      action: 'cancel',
+      description: 'Cancelar ventas en Shopflow',
+    },
+    // Shopflow — inventario granular
+    {
+      name: 'shopflow.inventory.read',
+      resource: 'shopflow.inventory',
+      action: 'read',
+      description: 'Ver inventario y transferencias en Shopflow',
+    },
+    {
+      name: 'shopflow.inventory.write',
+      resource: 'shopflow.inventory',
+      action: 'write',
+      description: 'Crear y modificar transferencias de inventario en Shopflow',
+    },
+    // Workify — empleados
+    {
+      name: 'workify.employees.manage',
+      resource: 'workify.employees',
+      action: 'manage',
+      description: 'Gestionar empleados en Workify',
+    },
   ] as const
 
   await prisma.permission.createMany({
@@ -415,6 +460,31 @@ async function main() {
     },
   })
 
+  // Shopflow functional roles
+  const gerenteRole = await prisma.role.create({
+    data: {
+      name: 'Gerente',
+      description: 'Gerente de tienda con acceso completo a ventas e inventario',
+      companyId: company.id,
+    },
+  })
+
+  const cajeroRole = await prisma.role.create({
+    data: {
+      name: 'Cajero',
+      description: 'Cajero con acceso a creación y lectura de ventas',
+      companyId: company.id,
+    },
+  })
+
+  const supervisorRole = await prisma.role.create({
+    data: {
+      name: 'Supervisor',
+      description: 'Supervisor con acceso a ventas e inventario en modo lectura y escritura',
+      companyId: company.id,
+    },
+  })
+
   // Permisos por rol (simplificados según el modelo definido)
   const rolePermissionsData = [
     // Owner: prácticamente todos los permisos
@@ -436,10 +506,17 @@ async function main() {
       'workify.access',
       'workify.users.read',
       'workify.users.manage',
+      'workify.employees.manage',
       'shopflow.access',
       'shopflow.users.read',
       'shopflow.users.manage',
+      'shopflow.sales.read',
+      'shopflow.sales.create',
+      'shopflow.sales.cancel',
+      'shopflow.inventory.read',
+      'shopflow.inventory.write',
       'techservices.access',
+      'techservices.visits.close',
     ].map((name) => ({
       roleId: ownerRole.id,
       permissionId: permissionsByName[name]!.id,
@@ -461,10 +538,17 @@ async function main() {
       'workify.access',
       'workify.users.read',
       'workify.users.manage',
+      'workify.employees.manage',
       'shopflow.access',
       'shopflow.users.read',
       'shopflow.users.manage',
+      'shopflow.sales.read',
+      'shopflow.sales.create',
+      'shopflow.sales.cancel',
+      'shopflow.inventory.read',
+      'shopflow.inventory.write',
       'techservices.access',
+      'techservices.visits.close',
     ].map((name) => ({
       roleId: adminRole.id,
       permissionId: permissionsByName[name]!.id,
@@ -480,6 +564,7 @@ async function main() {
       'workify.access',
       'workify.users.read',
       'workify.users.manage',
+      'workify.employees.manage',
     ].map((name) => ({
       roleId: hrRole.id,
       permissionId: permissionsByName[name]!.id,
@@ -491,6 +576,8 @@ async function main() {
       'workify.users.read',
       'shopflow.access',
       'shopflow.users.read',
+      'shopflow.sales.read',
+      'shopflow.inventory.read',
     ].map((name) => ({
       roleId: managerRole.id,
       permissionId: permissionsByName[name]!.id,
@@ -504,6 +591,37 @@ async function main() {
       roleId: basicUserRole.id,
       permissionId: permissionsByName[name]!.id,
     })),
+    // Gerente Shopflow: acceso completo a ventas e inventario
+    ...[
+      'shopflow.access',
+      'shopflow.sales.read',
+      'shopflow.sales.create',
+      'shopflow.sales.cancel',
+      'shopflow.inventory.read',
+      'shopflow.inventory.write',
+    ].map((name) => ({
+      roleId: gerenteRole.id,
+      permissionId: permissionsByName[name]!.id,
+    })),
+    // Cajero: solo crear y leer ventas
+    ...[
+      'shopflow.access',
+      'shopflow.sales.read',
+      'shopflow.sales.create',
+    ].map((name) => ({
+      roleId: cajeroRole.id,
+      permissionId: permissionsByName[name]!.id,
+    })),
+    // Supervisor: ventas e inventario (lectura + escritura inventario)
+    ...[
+      'shopflow.access',
+      'shopflow.sales.read',
+      'shopflow.inventory.read',
+      'shopflow.inventory.write',
+    ].map((name) => ({
+      roleId: supervisorRole.id,
+      permissionId: permissionsByName[name]!.id,
+    })),
   ]
 
   await prisma.rolePermission.createMany({
@@ -515,9 +633,15 @@ async function main() {
     data: { userId: acmeGerente.id, roleId: ownerRole.id, companyId: company.id },
   })
   await prisma.userRoleAssignment.create({
+    data: { userId: acmeGerente.id, roleId: gerenteRole.id, companyId: company.id },
+  })
+  await prisma.userRoleAssignment.create({
     data: { userId: acmeVentas.id, roleId: basicUserRole.id, companyId: company.id },
   })
-  console.log('✅ Roles y permisos de Acme creados y asignados')
+  await prisma.userRoleAssignment.create({
+    data: { userId: acmeVentas.id, roleId: cajeroRole.id, companyId: company.id },
+  })
+  console.log('✅ Roles y permisos de Acme creados y asignados (Owner/Gerente para acmeGerente, BasicUser/Cajero para acmeVentas)')
 
   // 3. Workify (opcional: si las tablas no existen se omite)
   let hrDepartment: { id: string; name: string } | null = null
@@ -668,6 +792,7 @@ async function main() {
   // 10. Crear horarios
   await prisma.schedule.create({
     data: {
+      companyId: company.id,
       employeeId: employee1.id,
       workShiftId: morningShift.id,
       dayOfWeek: 1, // Lunes
@@ -1530,6 +1655,7 @@ async function main() {
 
   await prisma.schedule.create({
     data: {
+      companyId: company2.id,
       employeeId: employee1Beta.id,
       workShiftId: morningShiftBeta.id,
       dayOfWeek: 1,

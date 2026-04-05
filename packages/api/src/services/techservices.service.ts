@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { getCompanyModules } from '../core/modules.js'
+import { sseManager } from './sse.service.js'
 import * as workOrdersService from './work-orders.service.js'
 import * as techservicesHelper from '../helpers/techservices.helper.js'
 import { parsePagination } from '../common/database/index.js'
@@ -60,6 +61,7 @@ export async function createWorkOrder(ctx: CompanyContext, body: WorkOrderCreate
   const refError = await validateWorkOrderRefs(ctx, body)
   if (refError) return refError
   const row = await workOrdersService.createWorkOrder(ctx, body)
+  sseManager.emit(ctx.companyId, 'techservices:dashboard:invalidate', { reason: 'work-order-created' })
   return { data: techservicesHelper.toWorkOrderResponse(row) }
 }
 
@@ -67,6 +69,7 @@ export async function updateWorkOrder(ctx: CompanyContext, id: string, body: Wor
   const refError = await validateWorkOrderRefs(ctx, body)
   if (refError) return refError
   const row = await workOrdersService.updateWorkOrder(ctx, id, body)
+  if (row) sseManager.emit(ctx.companyId, 'techservices:dashboard:invalidate', { reason: 'work-order-updated' })
   return row ? { data: techservicesHelper.toWorkOrderResponse(row) } : null
 }
 
@@ -189,6 +192,7 @@ export async function createPart(ctx: CompanyContext, workOrderId: string, body:
 
   const row = await prisma.workOrderPart.create({
     data: {
+      companyId: ctx.companyId,
       workOrderId,
       name: body.name.trim(),
       quantity: body.quantity ?? 1,
@@ -283,6 +287,7 @@ export async function createVisit(ctx: CompanyContext, workOrderId: string, body
       notes: body.notes ?? null,
     },
   })
+  sseManager.emit(ctx.companyId, 'techservices:dashboard:invalidate', { reason: 'visit-created' })
   return { data: techservicesHelper.toVisitResponse(row as techservicesHelper.VisitEntity) }
 }
 
@@ -316,6 +321,7 @@ export async function updateVisit(ctx: CompanyContext, visitId: string, body: Vi
     data,
   })
   if (updated.count === 0) return null
+  sseManager.emit(ctx.companyId, 'techservices:dashboard:invalidate', { reason: 'visit-updated' })
   return { updated: true }
 }
 
@@ -327,7 +333,145 @@ export async function deleteVisit(ctx: CompanyContext, visitId: string) {
   const deleted = await prisma.serviceVisit.deleteMany({
     where: { id: visitId, workOrder: { companyId: ctx.companyId } },
   })
+  if (deleted.count > 0) sseManager.emit(ctx.companyId, 'techservices:dashboard:invalidate', { reason: 'visit-deleted' })
   return deleted.count > 0
+}
+
+export async function getDashboardStats(ctx: CompanyContext) {
+  const now = new Date()
+  const weekStart = new Date(now)
+  const dow = weekStart.getDay()
+  const diff = weekStart.getDate() - dow + (dow === 0 ? -6 : 1)
+  weekStart.setDate(diff)
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+
+  const fourWeeksAgo = new Date(now)
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
+
+  const companyId = ctx.companyId
+
+  const [
+    openOrders,
+    closedThisWeek,
+    completedForAvg,
+    overdueOrders,
+    statusGroups,
+    activeVisits,
+    techVisitGroups,
+    assetsCount,
+  ] = await Promise.all([
+    prisma.workOrder.count({
+      where: { companyId, status: { in: ['OPEN', 'IN_PROGRESS', 'ON_HOLD'] } },
+    }),
+    prisma.workOrder.count({
+      where: {
+        companyId,
+        status: 'COMPLETED',
+        completedAt: { gte: weekStart, lt: weekEnd },
+      },
+    }),
+    prisma.workOrder.findMany({
+      where: {
+        companyId,
+        status: 'COMPLETED',
+        completedAt: { not: null, gte: fourWeeksAgo },
+      },
+      select: { requestedAt: true, completedAt: true },
+    }),
+    prisma.workOrder.count({
+      where: {
+        companyId,
+        status: { in: ['OPEN', 'IN_PROGRESS', 'ON_HOLD'] },
+        OR: [
+          { dueAt: { lt: now } },
+          {
+            requestedAt: { lt: new Date(now.getTime() - 7 * 24 * 3600_000) },
+          },
+        ],
+      },
+    }),
+    prisma.workOrder.groupBy({
+      by: ['status'],
+      where: { companyId },
+      _count: true,
+    }),
+    prisma.serviceVisit.count({
+      where: {
+        companyId,
+        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+      },
+    }),
+    prisma.serviceVisit.groupBy({
+      by: ['assignedEmployeeId'],
+      where: {
+        companyId,
+        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+        assignedEmployeeId: { not: null },
+      },
+      _count: true,
+    }),
+    prisma.technicalAsset.count({ where: { companyId, isActive: true } }),
+  ])
+
+  let totalMs = 0
+  let n = 0
+  for (const r of completedForAvg) {
+    if (r.completedAt && r.requestedAt) {
+      totalMs += r.completedAt.getTime() - r.requestedAt.getTime()
+      n++
+    }
+  }
+  const avgResolutionHours = n > 0 ? Math.round((totalMs / n / 3_600_000) * 100) / 100 : 0
+
+  const techniciansWithActiveVisits = techVisitGroups.length
+  const technicianUtilizationRatio =
+    techniciansWithActiveVisits > 0 ? Math.round((activeVisits / techniciansWithActiveVisits) * 100) / 100 : 0
+
+  const ordersByStatus: Record<string, number> = {}
+  for (const g of statusGroups) {
+    ordersByStatus[g.status] = g._count
+  }
+
+  const weeklyOrderTrend: { date: string; opened: number; closed: number }[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const ds = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const de = new Date(ds)
+    de.setDate(de.getDate() + 1)
+    const [opened, closed] = await Promise.all([
+      prisma.workOrder.count({
+        where: { companyId, createdAt: { gte: ds, lt: de } },
+      }),
+      prisma.workOrder.count({
+        where: {
+          companyId,
+          status: 'COMPLETED',
+          completedAt: { gte: ds, lt: de },
+        },
+      }),
+    ])
+    weeklyOrderTrend.push({
+      date: ds.toISOString().split('T')[0],
+      opened,
+      closed,
+    })
+  }
+
+  return {
+    openOrders,
+    closedThisWeek,
+    avgResolutionHours,
+    overdueOrders,
+    ordersByStatus,
+    weeklyOrderTrend,
+    activeVisits,
+    techniciansWithActiveVisits,
+    technicianUtilizationRatio,
+    assetsCount,
+  }
 }
 
 // ----- Me -----

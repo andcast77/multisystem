@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
 import { authApi } from "@/lib/api/client";
 
 type CompanyOption = {
@@ -20,6 +21,11 @@ export default function LoginPage() {
   const [companies, setCompanies] = useState<CompanyOption[] | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [selectingCompany, setSelectingCompany] = useState(false);
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
+  const [mfaCompanyId, setMfaCompanyId] = useState<string | undefined>(undefined);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBackup, setMfaBackup] = useState(false);
 
   async function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,18 +33,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await authApi.post<{
-        success?: boolean;
-        data?: {
-          companyId?: string;
-          company?: CompanyOption;
-          companies?: CompanyOption[];
-        };
-        error?: string;
-      }>("/login", { email, password });
+      const res = await authApi.post<ApiResponse<LoginResponse>>("/login", { email, password });
 
       if (!res?.success || !res.data) {
         setError(res?.error || "Error al iniciar sesion");
+        return;
+      }
+
+      if (res.data.mfaRequired && res.data.tempToken) {
+        setMfaStep(true);
+        setMfaTempToken(res.data.tempToken);
+        setMfaCompanyId(res.data.companyId);
+        setMfaCode("");
+        setMfaBackup(false);
         return;
       }
 
@@ -97,6 +104,94 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleMfaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!mfaTempToken || !mfaCode.trim()) {
+      setError("Introduce el codigo.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = mfaBackup
+        ? await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify-backup", {
+            tempToken: mfaTempToken,
+            backupCode: mfaCode.trim(),
+            companyId: mfaCompanyId,
+          })
+        : await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify", {
+            tempToken: mfaTempToken,
+            totpCode: mfaCode.trim(),
+            companyId: mfaCompanyId,
+          });
+      if (!res?.success || !res.data) {
+        setError(res?.error || "Codigo invalido");
+        return;
+      }
+      window.location.href = "/dashboard";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (mfaStep && mfaTempToken) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow p-6">
+          <h1 className="text-2xl font-bold text-center mb-4">Verificacion en dos pasos</h1>
+          <p className="text-slate-600 text-sm text-center mb-6">
+            {mfaBackup ? "Codigo de respaldo" : "Codigo TOTP de tu app"}
+          </p>
+          <form onSubmit={handleMfaSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Codigo</label>
+              <input
+                type="text"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                required
+                className="w-full border border-slate-300 rounded px-3 py-2"
+                autoComplete="one-time-code"
+              />
+            </div>
+            <button
+              type="button"
+              className="text-sm text-slate-600 hover:underline"
+              onClick={() => {
+                setMfaBackup(!mfaBackup);
+                setMfaCode("");
+              }}
+            >
+              {mfaBackup ? "Usar TOTP" : "Usar codigo de respaldo"}
+            </button>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 text-white py-2 rounded font-medium hover:bg-slate-800 disabled:opacity-50"
+            >
+              {loading ? "Verificando..." : "Continuar"}
+            </button>
+            <button
+              type="button"
+              className="w-full border border-slate-300 py-2 rounded"
+              onClick={() => {
+                setMfaStep(false);
+                setMfaTempToken(null);
+                setMfaCode("");
+                setError(null);
+              }}
+            >
+              Volver
+            </button>
+          </form>
+        </div>
+      </main>
+    );
   }
 
   if (selectingCompany && companies && companies.length > 1) {

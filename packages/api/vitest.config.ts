@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Integration tests share a single database; run files sequentially to avoid
+    // concurrent seed races (each worker would run db:seed against the same DB).
+    fileParallelism: false,
     include: ['src/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
       provider: 'v8',

@@ -202,6 +202,70 @@ export async function getMonthStats(storeId?: string | null) {
   return response.data
 }
 
+export interface DashboardBusinessMetrics {
+  grossMarginPct: number
+  inventoryValue: number
+  refundRate: number
+  pendingInvoicesTotal: number
+  oldestOverdueInvoices: Array<{
+    id: string
+    invoiceNumber: string | null
+    total: number
+    dueDate: string | null
+    status: string
+    customerName: string | null
+  }>
+}
+
+function periodToRange(period: 'today' | 'week' | 'month'): { start: Date; end: Date } {
+  const now = new Date()
+  if (period === 'today') {
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+  }
+  if (period === 'week') {
+    const dayOfWeek = now.getDay()
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const start = new Date(now)
+    start.setDate(diff)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+  }
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+export async function getDashboardBusinessMetrics(
+  period: 'today' | 'week' | 'month',
+  storeId?: string | null,
+): Promise<DashboardBusinessMetrics> {
+  const { start, end } = periodToRange(period)
+  const params = new URLSearchParams()
+  params.append('startDate', start.toISOString())
+  params.append('endDate', end.toISOString())
+  if (storeId) params.append('storeId', storeId)
+  const response = await shopflowApi.get<{
+    success: boolean
+    data?: DashboardBusinessMetrics
+    error?: string
+  }>(`/reports/dashboard-metrics?${params.toString()}`)
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'Error al obtener métricas del panel')
+  }
+
+  return response.data
+}
+
 export interface SalesByUserData {
   userId: string
   userName: string

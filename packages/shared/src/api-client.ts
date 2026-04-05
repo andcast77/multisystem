@@ -1,8 +1,16 @@
+export type ApiClientOptions = {
+  /** On 401, POST `/v1/auth/refresh` once then retry the request (cookie-based sessions). */
+  refreshOn401?: boolean
+}
+
 /**
  * Shared API client — sends httpOnly session cookie via credentials (API must set CORS origin).
  */
 export class ApiClient {
-  constructor(private baseURL: string) {}
+  constructor(
+    private baseURL: string,
+    private clientOptions?: ApiClientOptions,
+  ) {}
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
@@ -12,22 +20,45 @@ export class ApiClient {
       headers.set('Content-Type', 'application/json')
     }
 
-    const response = await fetch(url, {
-      headers,
-      credentials: 'include',
-      ...options,
-    })
+    const fetchOnce = () =>
+      fetch(url, {
+        headers,
+        credentials: 'include',
+        ...options,
+      })
+
+    let response = await fetchOnce()
+
+    if (
+      response.status === 401 &&
+      this.clientOptions?.refreshOn401 === true &&
+      !endpoint.startsWith('/v1/auth/refresh')
+    ) {
+      const refreshRes = await fetch(`${this.baseURL}/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (refreshRes.ok) {
+        response = await fetchOnce()
+      }
+    }
 
     if (!response.ok) {
       let errorMessage = `API Error: ${response.status} ${response.statusText}`
+      let code: string | undefined
+      let retryAfterSeconds: number | undefined
       try {
-        const errorData = await response.json()
-        if (errorData.error) errorMessage = errorData.error
-        else if (errorData.message) errorMessage = errorData.message
+        const errorData = (await response.json()) as Record<string, unknown>
+        if (typeof errorData.error === 'string') errorMessage = errorData.error
+        else if (typeof errorData.message === 'string') errorMessage = errorData.message
+        if (typeof errorData.code === 'string') code = errorData.code
+        if (typeof errorData.retryAfterSeconds === 'number') retryAfterSeconds = errorData.retryAfterSeconds
       } catch {
         // Response body is not JSON
       }
-      throw new ApiError(errorMessage, response.status)
+      throw new ApiError(errorMessage, response.status, code, retryAfterSeconds)
     }
 
     return response.json()
@@ -66,6 +97,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly statusCode: number,
+    public readonly code?: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message)
     this.name = 'ApiError'

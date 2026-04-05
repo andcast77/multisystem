@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@multisystem/ui': path.resolve(__dirname, '../../packages/component-library/src/index.ts'),
     },
   },
   server: {

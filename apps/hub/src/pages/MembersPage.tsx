@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { useCompanyMembers } from "@/hooks/useCompanyMembers";
 import {
@@ -13,8 +14,10 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  Button,
+  AppBreadcrumb,
 } from "@multisystem/ui";
-import { Mail, Calendar, AlertCircle, Users } from "lucide-react";
+import { Mail, Calendar, AlertCircle, Users, Shield } from "lucide-react";
 
 const roleColors = {
   OWNER: "bg-amber-100 text-amber-800 border-amber-300",
@@ -23,6 +26,7 @@ const roleColors = {
 };
 
 export function MembersPage() {
+  const navigate = useNavigate();
   const { data: user } = useUser();
   const { data: members, isLoading } = useCompanyMembers(user?.companyId);
 
@@ -55,6 +59,10 @@ export function MembersPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <AppBreadcrumb
+        items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Miembros" }]}
+        Link={Link}
+      />
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Miembros de la Empresa</h1>
         <p className="text-slate-600 mt-1">Gestiona los usuarios de tu empresa</p>
@@ -68,6 +76,9 @@ export function MembersPage() {
               <div>
                 <p className="text-sm text-slate-600">Total de Miembros</p>
                 <p className="text-2xl font-bold">{members.length}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {ownerCount} propietario{ownerCount !== 1 ? "s" : ""}
+                </p>
               </div>
               <Users className="h-8 w-8 text-indigo-600 opacity-20" />
             </div>
@@ -182,8 +193,18 @@ export function MembersPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {/* Placeholder for future actions */}
-                        <div className="text-xs text-slate-500">—</div>
+                        {isAdmin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/dashboard/members/${member.id}/permissions`)
+                            }
+                          >
+                            <Shield className="h-3 w-3 mr-1" />
+                            Permisos
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

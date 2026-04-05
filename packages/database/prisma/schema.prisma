@@ -38,6 +38,14 @@ enum SaleStatus {
   REFUNDED
 }
 
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -55,6 +63,8 @@ enum NotificationType {
   IMPORTANT_SALE
   PENDING_TASK
   SYSTEM
+  COLLAB
+  SECURITY
 }
 
 enum NotificationPriority {
@@ -220,6 +230,12 @@ model User {
   passwordResetTokenExpiry DateTime?
   /// Empresa preferida/por defecto en Shopflow; se asigna automáticamente si es null (primera por nombre).
   shopflowPreferredCompanyId String?
+  /// Timestamp de aceptación explícita de la política de privacidad (GDPR Art. 7 / LFPDPPP).
+  privacyAcceptedAt DateTime?
+  /// Intentos fallidos de contraseña consecutivos (PLAN-26 lockout).
+  failedLoginAttempts Int      @default(0)
+  /// Cuenta bloqueada hasta este instante (null = no bloqueada).
+  lockedUntil         DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -234,7 +250,8 @@ model User {
   userPermissions   UserPermission[]
   employees         Employee[]
   workOrdersCreated WorkOrder[] @relation("WorkOrderCreatedBy")
-  
+  invoicesCreated   Invoice[]   @relation("InvoiceCreatedBy")
+
   // Relaciones Shopflow
   sales             Sale[]
   actionHistory      ActionHistory[]
@@ -245,18 +262,41 @@ model User {
   userStores        UserStore[]
   pushSubscriptions PushSubscription[]
   sessions         Session[]
+  mfaBackupCodes   MfaBackupCode[]
 
   @@map("users")
+}
+
+/// One-time recovery codes for TOTP MFA (hashed at rest).
+model MfaBackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_backup_codes")
 }
 
 model Session {
   id           String    @id @default(uuid())
   userId       String
+  /// Hash SHA-256 del refresh opaco (web) o token legado (p. ej. JWT en Shopflow).
   sessionToken String    @unique
   ipAddress    String?
   userAgent    String?
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
+  /// Última actividad autenticada (actualización acotada en `requireAuth`).
+  lastSeenAt   DateTime?
+  /// Último `jti` del access JWT asociado a esta sesión (revocación / blacklist).
+  accessJti    String?
+  /// Contexto de empresa rehidratado en refresh (no sustituye validación en cada request).
+  companyId         String?
+  membershipRole    String?
 
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -333,6 +373,7 @@ model Company {
   suppliers         Supplier[]
   customers        Customer[]
   sales             Sale[]
+  invoices          Invoice[]
   storeConfigs      StoreConfig[]
   ticketConfigs     TicketConfig[]
   inventoryTransfers InventoryTransfer[]
@@ -568,6 +609,7 @@ model Employee {
   positionId             String?
   userId                 String?
   idNumber               String?
+  idNumberHash           String?
   firstName              String
   lastName               String
   birthDate              DateTime?
@@ -599,6 +641,7 @@ model Employee {
   @@unique([companyId, userId])
   @@index([companyId])
   @@index([departmentId])
+  @@index([companyId, idNumberHash])
   @@map("employees")
 }
 
@@ -802,7 +845,8 @@ model Document {
 
 model AuditLog {
   id          String   @id @default(uuid())
-  companyId   String
+  /// Null for platform-wide security events (e.g. failed login with no resolved tenant).
+  companyId   String?
   userId      String?
   action      String
   entityType  String
@@ -814,9 +858,10 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   // Relaciones
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+  @@index([companyId, createdAt(sort: Desc)])
   @@map("audit_logs")
 }
 
@@ -1047,6 +1092,7 @@ model Customer {
   // Relaciones
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sales           Sale[]
+  invoices        Invoice[]
   loyaltyPoints   LoyaltyPoint[]
 
   @@index([companyId])
@@ -1103,6 +1149,36 @@ model SaleItem {
   @@index([saleId])
   @@index([productId])
   @@map("sale_items")
+}
+
+/// Factura emitida o pendiente de cobro. Fuente de verdad para recordatorios de vencimiento.
+model Invoice {
+  id              String        @id @default(uuid())
+  companyId       String
+  customerId      String?
+  createdByUserId String
+  invoiceNumber   String?
+  status          InvoiceStatus @default(DRAFT)
+  total           Decimal       @db.Decimal(10, 2)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  tax             Decimal       @db.Decimal(10, 2)
+  discount        Decimal?      @db.Decimal(10, 2)
+  dueDate         DateTime?
+  issueDate       DateTime      @default(now())
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relaciones
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer?     @relation(fields: [customerId, companyId], references: [id, companyId])
+  createdByUser   User          @relation("InvoiceCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@unique([companyId, invoiceNumber])
+  @@unique([id, companyId])
+  @@index([companyId, dueDate])
+  @@index([companyId, status])
+  @@map("invoices")
 }
 
 model StoreConfig {

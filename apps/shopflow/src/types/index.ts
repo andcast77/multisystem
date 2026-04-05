@@ -28,6 +28,10 @@ export enum TicketType {
 }
 
 export enum NotificationType {
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  ERROR = 'ERROR',
+  SUCCESS = 'SUCCESS',
   LOW_STOCK = 'LOW_STOCK',
   LOW_STOCK_ALERT = 'LOW_STOCK_ALERT',
   IMPORTANT_SALE = 'IMPORTANT_SALE',
@@ -36,6 +40,8 @@ export enum NotificationType {
   SECURITY_ALERT = 'SECURITY_ALERT',
   CUSTOM = 'CUSTOM',
   SYSTEM = 'SYSTEM',
+  COLLAB = 'COLLAB',
+  SECURITY = 'SECURITY',
 }
 
 export enum NotificationPriority {
@@ -244,6 +250,8 @@ export interface Notification {
   readAt: Date | null
   createdAt: Date
   updatedAt: Date
+  data?: Record<string, unknown> | null
+  actionUrl?: string | null
 }
 
 export interface NotificationPreference {
@@ -252,6 +260,8 @@ export interface NotificationPreference {
   emailEnabled: boolean
   inAppEnabled: boolean
   pushEnabled: boolean
+  /** Per NotificationType key, e.g. LOW_STOCK → { inApp, push, email } */
+  preferences?: Record<string, { inApp?: boolean; push?: boolean; email?: boolean }> | null
   emailLowStock?: boolean
   inAppLowStock?: boolean
   pushLowStock?: boolean

@@ -17,11 +17,38 @@ Working copies of engineering implementation plans. Source context: [ENGINEERING
 | ongoing | 11 — Re-audit Task 5: Standardize Frontend API Usage | [PLAN-11-reaudit-task-5-frontend-api-usage.md](./PLAN-11-reaudit-task-5-frontend-api-usage.md) |
 | ongoing | 12 — Re-audit Task 6: Env Configuration | [PLAN-12-reaudit-task-6-env-configuration.md](./PLAN-12-reaudit-task-6-env-configuration.md) |
 
+## Product capability plans (PLAN-17 → PLAN-22)
+
+Planes orientados a cumplir los claims de producto del landing page. Origen: auditoría técnica de abril 2026.
+
+| Plan | Claim que respalda | Dependencias |
+|------|--------------------|--------------|
+| [17 — Real-time Layer](./PLAN-17-realtime-layer.md) | Datos en tiempo real · Colaboración total | — |
+| [18 — RBAC Unificado](./PLAN-18-rbac-unificado.md) | Colaboración total · Roles granulares por módulo | — |
+| [19 — Enterprise Audit Log](./PLAN-19-enterprise-audit-log.md) | Seguridad empresarial | PLAN-18 (permisos de consulta) |
+| [20 — Automation Job Runner](./PLAN-20-automation-job-runner.md) | Velocidad operativa · Automatización | — |
+| [21 — Field-level Encryption](./PLAN-21-field-level-encryption.md) | Seguridad empresarial · Encriptación nivel bancario | — |
+| [22 — Compliance Program](./PLAN-22-compliance-program.md) | Seguridad empresarial · Estándares internacionales | PLAN-19, PLAN-21 |
+| [23 — UX: Cero Fricción](./PLAN-23-ux-zero-friction.md) | Velocidad operativa · Interfaz cero fricción | PLAN-17 (notif. SSE) |
+| [24 — MFA / TOTP](./PLAN-24-mfa-totp.md) | Seguridad empresarial · Nivel bancario | PLAN-21, PLAN-19 |
+| [25 — Dashboard Data Completeness](./[completed]%20PLAN-25-dashboard-data-completeness.md) | Datos en tiempo real · Información concreta | PLAN-17 |
+| [26 — Auth Session Hardening](./[completed]%20PLAN-26-auth-session-hardening.md) | Seguridad empresarial · Nivel bancario | PLAN-19 |
+
+Orden de ejecución recomendado: `(17 + 18 + 20 + 23 + 25)` en paralelo → `(19 + 21 + 24 + 26)` → `22`.
+
+### Nota sobre PLAN-6
+El archivo `[completed] PLAN-6-performance-followups.md` tiene el prefijo `[completed]` pero contiene **2 ítems sin completar**:
+- Virtualización de listas grandes en POS/reportes ([ ] línea 26).
+- Exports async: jobs + download link ([ ] línea 27) — parcialmente cubierto por el servicio de export jobs existente, pero no marcado como hecho.
+
+Estos ítems deben completarse o descartarse explícitamente antes de considerar PLAN-6 cerrado.
+
 ## Execution status (reality)
 
 - Recommended historical order remains: `2 -> 1 -> (3 + 4) -> 6`, with `5` optional/done.
 - Actual execution completed: `1 -> 2` (both completed, no regressions after CORS alignment).
 - Effective remaining focus: `3` (optional docs path) + `4` (done) in parallel context, `6` ongoing.
+- Product capability plans (17–22): pending execution.
 
 ## Syncing checklists
 

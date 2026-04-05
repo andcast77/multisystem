@@ -4,8 +4,9 @@ import { BadRequestError } from '../common/errors/app-error.js'
 
 const ALLOWED_TABLES = [
   'users', 'customers', 'products', 'categories', 'suppliers', 'sales', 'saleItems',
-  'stores', 'storeConfig', 'ticketConfig', 'userPreferences', 'actionHistory', 'notifications',
-  'notificationPreferences', 'loyaltyConfig', 'loyaltyPoints', 'inventoryTransfers', 'pushSubscriptions',
+  'invoices', 'stores', 'storeConfig', 'ticketConfig', 'userPreferences', 'actionHistory',
+  'notifications', 'notificationPreferences', 'loyaltyConfig', 'loyaltyPoints',
+  'inventoryTransfers', 'pushSubscriptions',
 ] as const
 type TableKey = (typeof ALLOWED_TABLES)[number]
 
@@ -34,6 +35,8 @@ async function fetchTableData(table: TableKey, companyId: string): Promise<unkno
       return prisma.sale.findMany({ where: { companyId } })
     case 'saleItems':
       return prisma.saleItem.findMany({ where: { sale: { companyId } } })
+    case 'invoices':
+      return prisma.invoice.findMany({ where: { companyId } })
     case 'stores':
       return prisma.store.findMany({ where: { companyId } })
     case 'storeConfig':

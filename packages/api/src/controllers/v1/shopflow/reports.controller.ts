@@ -84,6 +84,15 @@ async function getReportByUser(
   return ok(data)
 }
 
+async function getDashboardBusinessMetrics(
+  request: FastifyRequest<{ Querystring: { storeId?: string; startDate?: string; endDate?: string } }>,
+  reply: FastifyReply
+) {
+  const ctx = getCtx(request, true)
+  const data = await shopflowService.getDashboardBusinessMetrics(ctx, request.query)
+  return ok(data)
+}
+
 export function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/shopflow/reports/stats', { preHandler: pre }, handle(getStats))
   fastify.get('/v1/shopflow/reports/daily', { preHandler: pre }, handle(getDaily))
@@ -93,5 +102,6 @@ export function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/shopflow/reports/today', { preHandler: pre }, handle(getTodayReport))
   fastify.get('/v1/shopflow/reports/week', { preHandler: pre }, handle(getWeekReport))
   fastify.get('/v1/shopflow/reports/month', { preHandler: pre }, handle(getMonthReport))
+  fastify.get('/v1/shopflow/reports/dashboard-metrics', { preHandler: pre }, handle(getDashboardBusinessMetrics))
   fastify.get<{ Params: { userId: string } }>('/v1/shopflow/reports/by-user/:userId', { preHandler: pre }, handle(getReportByUser))
 }

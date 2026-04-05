@@ -31,6 +31,26 @@ export const envSchema = {
       type: 'string',
       default: '7d'
     },
+    JWT_ACCESS_EXPIRES_IN: {
+      type: 'string',
+      default: '15m'
+    },
+    REFRESH_TOKEN_EXPIRES_IN: {
+      type: 'string',
+      default: '30d'
+    },
+    MAX_LOGIN_ATTEMPTS: {
+      type: 'string',
+      default: '5'
+    },
+    LOCKOUT_DURATION_MINUTES: {
+      type: 'string',
+      default: '15'
+    },
+    SESSION_LAST_SEEN_THROTTLE_SECONDS: {
+      type: 'string',
+      default: '300'
+    },
     UPSTASH_REDIS_REST_URL: {
       type: 'string',
       default: ''
@@ -40,6 +60,22 @@ export const envSchema = {
       default: ''
     },
     TRUST_PROXY: {
+      type: 'string',
+      default: ''
+    },
+    VAPID_SUBJECT: {
+      type: 'string',
+      default: ''
+    },
+    VAPID_PUBLIC_KEY: {
+      type: 'string',
+      default: ''
+    },
+    VAPID_PRIVATE_KEY: {
+      type: 'string',
+      default: ''
+    },
+    FIELD_ENCRYPTION_KEY: {
       type: 'string',
       default: ''
     }

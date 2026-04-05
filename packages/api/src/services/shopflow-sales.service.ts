@@ -8,6 +8,7 @@ import {
   hasFullStoreAccess,
   resolveEffectiveStoreIdForScopedUser,
 } from '../policies/shopflow-authorization.policy.js'
+import { checkAndAlertLowStock } from '../jobs/inventory-alert.job.js'
 
 const num = toNumber
 
@@ -311,6 +312,10 @@ export async function createSale(
   })
 
   if (!created) return { success: false, error: 'Error al crear venta' }
+
+  // Fire-and-forget: check low stock for affected products after inventory is decremented
+  void checkAndAlertLowStock(ctx.companyId).catch(() => { /* swallow — never block sale response */ })
+
   return {
     success: true,
     data: {

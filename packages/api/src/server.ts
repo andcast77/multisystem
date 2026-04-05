@@ -16,10 +16,13 @@ import { envPlugin, getValidatedConfig } from './plugins/core/env.plugin.js'
 import { errorsPlugin } from './plugins/core/errors.plugin.js'
 import { rateLimitPlugin } from './plugins/core/rate-limit.plugin.js'
 import { schemaSanitizerPlugin } from './plugins/core/schema-sanitizer.plugin.js'
+import { securityHeadersPlugin } from './plugins/core/security-headers.plugin.js'
 import { swaggerPlugin } from './plugins/core/swagger.plugin.js'
+import { websocketPlugin } from './plugins/core/websocket.plugin.js'
 import { healthPlugin } from './plugins/health/health.plugin.js'
 import { registerV1 } from './controllers/v1/index.js'
 import { getConfig, parseTrustProxy, type AppConfig } from './core/config.js'
+import { startJobRunner, stopJobRunner } from './jobs/runner.js'
 
 const __dirname = __dirnameApi
 const trustProxy = parseTrustProxy(process.env.TRUST_PROXY)
@@ -62,12 +65,28 @@ async function start() {
       )
     }
 
+    const fieldKey = config.FIELD_ENCRYPTION_KEY
+    if (!isTest && deployed && (!fieldKey || fieldKey.trim() === '')) {
+      fastify.log.error('FIELD_ENCRYPTION_KEY is required in deployed environments (production, staging, Vercel).')
+      if (process.env.VERCEL) {
+        throw new Error('FIELD_ENCRYPTION_KEY is required. Set it in project environment variables.')
+      }
+      process.exit(1)
+    }
+    if (!isTest && config.NODE_ENV === 'development' && (!fieldKey || fieldKey.trim() === '')) {
+      fastify.log.warn(
+        'FIELD_ENCRYPTION_KEY is unset; field-level encryption will be unavailable. Generate one with: openssl rand -base64 32'
+      )
+    }
+
     // Registrar CORS con orígenes desde .env
     await fastify.register(corsPlugin, { corsOrigin: config.CORS_ORIGIN })
+    await fastify.register(securityHeadersPlugin)
     await fastify.register(rateLimitPlugin)
     await fastify.register(schemaSanitizerPlugin)
     await fastify.register(errorsPlugin)
     await fastify.register(swaggerPlugin, { nodeEnv: config.NODE_ENV })
+    await fastify.register(websocketPlugin)
 
     await fastify.register(healthPlugin)
     await registerV1(fastify)
@@ -75,9 +94,19 @@ async function start() {
     // On Vercel we export the app for serverless; locally we listen
     if (!process.env.VERCEL) {
       const port = parseInt(config.PORT, 10)
+      // Hooks must be registered before listen(); onClose still runs when the server stops.
+      if (!isTest) {
+        fastify.addHook('onClose', async () => {
+          stopJobRunner()
+        })
+      }
       await fastify.listen({ port, host: '0.0.0.0' })
       console.log(`🚀 API server listening on port ${port}`)
       console.log(`📋 CORS origins: ${config.CORS_ORIGIN}`)
+
+      if (!isTest) {
+        startJobRunner()
+      }
     }
     return fastify
   } catch (err) {

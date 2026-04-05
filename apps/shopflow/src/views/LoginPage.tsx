@@ -1,15 +1,32 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
 import { loginSchema } from "@/lib/validations/auth";
 import { authApi } from "@/lib/api/client";
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = useMemo(
+    () => safeNextPath(searchParams.get("next")),
+    [searchParams]
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
+  const [mfaCompanyId, setMfaCompanyId] = useState<string | undefined>(undefined);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBackup, setMfaBackup] = useState(false);
 
   return (
     <main className="min-h-screen bg-slate-50 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] overflow-hidden">
@@ -22,24 +39,86 @@ export function LoginPage() {
 
           <Card className="border-white/60 bg-white/85 shadow-2xl backdrop-blur">
             <CardHeader>
-              <CardTitle>Iniciar sesion</CardTitle>
-              <CardDescription>Acceso contra `/api/auth/login`</CardDescription>
+              <CardTitle>{mfaStep ? "Verificacion en dos pasos" : "Iniciar sesion"}</CardTitle>
+              <CardDescription>
+                {mfaStep
+                  ? "Introduce el codigo de tu app autenticadora o un codigo de respaldo."
+                  : "Ingresa el email y la contraseña de tu cuenta Multisystem para usar Shopflow."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Contrasena</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
+              {!mfaStep ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Contrasena</Label>
+                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>{mfaBackup ? "Codigo de respaldo" : "Codigo TOTP"}</Label>
+                    <Input
+                      type="text"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      placeholder={mfaBackup ? "XXXX-XXXX-XXXX" : "000000"}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-sm p-0 h-auto"
+                    onClick={() => {
+                      setMfaBackup(!mfaBackup);
+                      setMfaCode("");
+                    }}
+                  >
+                    {mfaBackup ? "Usar codigo TOTP" : "Usar codigo de respaldo"}
+                  </Button>
+                </>
+              )}
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
               <Button
                 className="w-full"
                 disabled={isLoading}
                 onClick={async () => {
                   setError(null);
+                  if (mfaStep && mfaTempToken) {
+                    const parsedCode = mfaCode.trim();
+                    if (!parsedCode) {
+                      setError("Introduce el codigo.");
+                      return;
+                    }
+                    setIsLoading(true);
+                    try {
+                      const res = mfaBackup
+                        ? await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify-backup", {
+                            tempToken: mfaTempToken,
+                            backupCode: parsedCode,
+                            companyId: mfaCompanyId,
+                          })
+                        : await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify", {
+                            tempToken: mfaTempToken,
+                            totpCode: parsedCode,
+                            companyId: mfaCompanyId,
+                          });
+                      if (!res.success || !res.data) {
+                        setError(res.error || "Codigo invalido");
+                        return;
+                      }
+                      navigate(nextPath ?? "/dashboard", { replace: true });
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "No se pudo verificar");
+                    } finally {
+                      setIsLoading(false);
+                    }
+                    return;
+                  }
                   const parsed = loginSchema.safeParse({ email, password });
                   if (!parsed.success) {
                     setError(parsed.error.issues[0]?.message || "Datos invalidos");
@@ -47,8 +126,20 @@ export function LoginPage() {
                   }
                   setIsLoading(true);
                   try {
-                    await authApi.post("/login", { email, password });
-                    navigate("/dashboard");
+                    const res = await authApi.post<ApiResponse<LoginResponse>>("/login", { email, password });
+                    if (!res.success || !res.data) {
+                      setError(res.error || "Credenciales invalidas");
+                      return;
+                    }
+                    if (res.data.mfaRequired && res.data.tempToken) {
+                      setMfaStep(true);
+                      setMfaTempToken(res.data.tempToken);
+                      setMfaCompanyId(res.data.companyId);
+                      setMfaCode("");
+                      setMfaBackup(false);
+                      return;
+                    }
+                    navigate(nextPath ?? "/dashboard", { replace: true });
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "No se pudo iniciar sesion");
                   } finally {
@@ -56,14 +147,32 @@ export function LoginPage() {
                   }
                 }}
               >
-                {isLoading ? "Ingresando..." : "Entrar al dashboard"}
+                {isLoading ? "Ingresando..." : mfaStep ? "Continuar" : "Entrar al dashboard"}
               </Button>
-              <Link to="/" className="block">
-                <Button variant="outline" className="w-full">Volver a la landing</Button>
-              </Link>
-              <Link to="/register" className="block">
-                <Button variant="outline" className="w-full">Crear cuenta</Button>
-              </Link>
+              {mfaStep ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setMfaStep(false);
+                    setMfaTempToken(null);
+                    setMfaCode("");
+                    setError(null);
+                  }}
+                >
+                  Volver
+                </Button>
+              ) : (
+                <>
+                  <Link to="/" className="block">
+                    <Button variant="outline" className="w-full">Volver a la landing</Button>
+                  </Link>
+                  <Link to="/register" className="block">
+                    <Button variant="outline" className="w-full">Crear cuenta</Button>
+                  </Link>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

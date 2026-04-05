@@ -99,18 +99,15 @@ describe('PLAN-13 Task 8: Shopflow Tenant Mutation Isolation', () => {
     if (!acmeSupplier) throw new Error('Missing seeded Acme suppliers')
     acmeSupplierId = acmeSupplier.id
 
-    const acmeStore1 = await prisma.store.findFirst({
-      where: { companyId: acmeCompanyId },
-      select: { id: true },
-    })
-    const acmeStore2 = await prisma.store.findMany({
+    const acmeStores = await prisma.store.findMany({
       where: { companyId: acmeCompanyId },
       take: 2,
       select: { id: true },
+      orderBy: { id: 'asc' },
     })
-    if (!acmeStore1 || acmeStore2.length < 2) throw new Error('Missing Acme stores for transfer')
-    acmeStore1Id = acmeStore1.id
-    acmeStore2Id = acmeStore2[1]!.id
+    if (acmeStores.length < 2) throw new Error('Missing Acme stores for transfer')
+    acmeStore1Id = acmeStores[0]!.id
+    acmeStore2Id = acmeStores[1]!.id
 
     // Create a PENDING transfer (seeded ones are COMPLETED; we need PENDING for complete/cancel tests)
     const { res: createTransferRes, json: createTransferJson } = await injectJson(app, {

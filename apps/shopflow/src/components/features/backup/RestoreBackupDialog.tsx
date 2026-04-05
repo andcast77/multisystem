@@ -18,6 +18,7 @@ import { Input } from '@multisystem/ui'
 import { Label } from '@multisystem/ui'
 import { Upload, AlertTriangle } from 'lucide-react'
 import { restoreBackup } from '@/lib/services/backupApiService'
+import { toast } from 'sonner'
 
 export function RestoreBackupDialog() {
   const [filename, setFilename] = useState('')
@@ -26,7 +27,7 @@ export function RestoreBackupDialog() {
 
   const handleRestore = async () => {
     if (!filename.trim()) {
-      alert('Por favor ingresa el nombre del archivo de respaldo')
+      toast.error('Por favor ingresa el nombre del archivo de respaldo')
       return
     }
 
@@ -38,10 +39,10 @@ export function RestoreBackupDialog() {
       setIsRestoring(true)
       await restoreBackup(filename.trim())
       await queryClient.invalidateQueries({ queryKey: ['backups'] })
-      alert('Base de datos restaurada exitosamente. La página se recargará.')
+      toast.success('Base de datos restaurada exitosamente. La página se recargará.')
       window.location.reload()
     } catch (err) {
-      alert('Error al restaurar respaldo: ' + (err instanceof Error ? err.message : String(err)))
+      toast.error('Error al restaurar respaldo: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsRestoring(false)
     }

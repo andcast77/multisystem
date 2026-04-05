@@ -1,20 +1,78 @@
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 import { prisma } from '../db/index.js'
-import { generateToken, verifyToken, type TokenPayload } from '../core/auth.js'
+import {
+  generateToken,
+  generateMfaPendingToken,
+  verifyMfaPendingToken,
+  verifyToken,
+  accessTokenTtlSeconds,
+  type TokenPayload,
+} from '../core/auth.js'
+import { getConfig } from '../core/config.js'
+import { hashRefreshToken, generateRefreshTokenPlain } from '../core/refresh-token.js'
+import { blacklistJti, blacklistJtis, isJtiBlacklisted } from '../core/jwt-blacklist.js'
 import { getUserCompanies, selectCompanyForUser } from '../core/auth-context.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
 import type { CompanyRow } from '../core/auth-context.js'
-import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../common/errors/app-error.js'
+import {
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+  TooManyRequestsError,
+} from '../common/errors/app-error.js'
 import { assertSelfOrSuperuser, resolveCompanyAccess } from '../policies/company-authorization.policy.js'
+import {
+  decryptTotpSecret,
+  verifyTotp,
+  verifyBackupCodeAndConsume,
+} from './mfa.service.js'
+import { writeAuditLog } from './audit-log.service.js'
+import { summarizeUserAgent } from '../core/user-agent-summary.js'
+import { jwtExpiresInToMaxAgeSeconds } from '../core/session-cookie.js'
 
-export type LoginResult = {
-  user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
-  token: string
-  companyId?: string
-  company?: CompanyRow
-  companies?: CompanyRow[]
+async function resolveAuditCompanyId(userId: string, bodyCompanyId?: string): Promise<string | null> {
+  if (bodyCompanyId) return bodyCompanyId
+  const m = await prisma.companyMember.findFirst({
+    where: { userId },
+    select: { companyId: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  return m?.companyId ?? null
 }
+
+function refreshSessionExpiresAt(): Date {
+  const ms = jwtExpiresInToMaxAgeSeconds(getConfig().REFRESH_TOKEN_EXPIRES_IN) * 1000
+  return new Date(Date.now() + ms)
+}
+
+export function accessJtiFromJwtString(accessToken: string): string | null {
+  const decoded = jwt.decode(accessToken) as { jti?: string } | null
+  return typeof decoded?.jti === 'string' ? decoded.jti : null
+}
+
+export type LoginResult =
+  | {
+      mfaRequired: true
+      tempToken: string
+      user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
+      companyId?: string
+      company?: CompanyRow
+      companies?: CompanyRow[]
+      membershipRole?: string
+    }
+  | {
+      mfaRequired?: false
+      user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
+      token: string
+      companyId?: string
+      company?: CompanyRow
+      companies?: CompanyRow[]
+      membershipRole?: string
+    }
 
 export type RegisterResult = {
   user: { id: string; email: string; name: string; role: string; companyId?: string }
@@ -32,11 +90,13 @@ export type MeResult = {
   preferredCompanyId?: string
   membershipRole?: string
   isSuperuser?: boolean
+  twoFactorEnabled?: boolean
   company?: { id: string; name: string; modules: { workify: boolean; shopflow: boolean; techservices: boolean } }
 }
 
 export async function login(body: LoginBody): Promise<LoginResult> {
   const { email, password, companyId: bodyCompanyId } = body
+  const config = getConfig()
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -50,17 +110,220 @@ export async function login(body: LoginBody): Promise<LoginResult> {
       firstName: true,
       lastName: true,
       shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
+      failedLoginAttempts: true,
+      lockedUntil: true,
+    },
+  })
+
+  if (!user) throw new UnauthorizedError('Credenciales inválidas')
+
+  const now = new Date()
+  if (user.lockedUntil && user.lockedUntil > now) {
+    const retrySec = Math.ceil((user.lockedUntil.getTime() - now.getTime()) / 1000)
+    throw new TooManyRequestsError(
+      'Cuenta bloqueada por demasiados intentos fallidos. Inténtalo más tarde.',
+      retrySec,
+      'ACCOUNT_LOCKED',
+    )
+  }
+
+  if (!user.isActive) throw new UnauthorizedError('Usuario inactivo')
+
+  const isValidPassword = await bcrypt.compare(password, user.password)
+  if (!isValidPassword) {
+    const attempts = user.failedLoginAttempts + 1
+    const lockUntil =
+      attempts >= config.MAX_LOGIN_ATTEMPTS
+        ? new Date(now.getTime() + config.LOCKOUT_DURATION_MINUTES * 60 * 1000)
+        : null
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: attempts,
+        lockedUntil: lockUntil,
+      },
+    })
+    const auditCo = await resolveAuditCompanyId(user.id, bodyCompanyId)
+    writeAuditLog({
+      companyId: auditCo,
+      userId: user.id,
+      action: 'LOGIN_FAILED',
+      entityType: 'auth',
+      entityId: user.id,
+    })
+    if (lockUntil) {
+      writeAuditLog({
+        companyId: auditCo,
+        userId: user.id,
+        action: 'ACCOUNT_LOCKED',
+        entityType: 'auth',
+        entityId: user.id,
+        after: { lockedUntil: lockUntil.toISOString(), attempts },
+      })
+      const retrySec = Math.ceil(config.LOCKOUT_DURATION_MINUTES * 60)
+      throw new TooManyRequestsError(
+        'Cuenta bloqueada por demasiados intentos fallidos. Inténtalo más tarde.',
+        retrySec,
+        'ACCOUNT_LOCKED',
+      )
+    }
+    throw new UnauthorizedError('Credenciales inválidas')
+  }
+
+  const wasLocked = user.lockedUntil != null
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginAttempts: 0, lockedUntil: null },
+  })
+  if (wasLocked) {
+    const aCo = await resolveAuditCompanyId(user.id, bodyCompanyId)
+    writeAuditLog({
+      companyId: aCo,
+      userId: user.id,
+      action: 'ACCOUNT_UNLOCKED',
+      entityType: 'auth',
+      entityId: user.id,
+    })
+  }
+
+  const companies = await getUserCompanies(user.id, user.isSuperuser ?? false)
+  const preferredCompanyId = bodyCompanyId ?? user.shopflowPreferredCompanyId ?? undefined
+  const selected = selectCompanyForUser(companies, preferredCompanyId)
+  const selectedCompany = selected?.selectedCompany ?? null
+  const selectedMembershipRole = selected?.selectedMembershipRole ?? null
+
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
+
+  if (user.twoFactorEnabled) {
+    const tempToken = generateMfaPendingToken(user.id)
+    const mfaResult: LoginResult = {
+      mfaRequired: true,
+      tempToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name,
+        role: user.role,
+        isSuperuser: user.isSuperuser ?? false,
+      },
+    }
+    if (selectedCompany) {
+      mfaResult.companyId = selectedCompany.id
+      mfaResult.company = selectedCompany
+      if (selectedMembershipRole) mfaResult.membershipRole = selectedMembershipRole
+    }
+    if (companies.length > 1 || user.isSuperuser) {
+      mfaResult.companies = companies
+    }
+    return mfaResult
+  }
+
+  const tokenPayload: TokenPayload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    isSuperuser: user.isSuperuser ?? false,
+  }
+  if (selectedCompany) {
+    tokenPayload.companyId = selectedCompany.id
+    if (selectedMembershipRole) tokenPayload.membershipRole = selectedMembershipRole
+  }
+  const token = generateToken(tokenPayload)
+
+  const result: LoginResult = {
+    user: {
+      id: user.id,
+      email: user.email,
+      name,
+      role: user.role,
+      isSuperuser: user.isSuperuser ?? false,
+    },
+    token,
+  }
+  if (selectedCompany) {
+    result.companyId = selectedCompany.id
+    result.company = selectedCompany
+    if (selectedMembershipRole) result.membershipRole = selectedMembershipRole
+  }
+  if (companies.length > 1 || user.isSuperuser) {
+    result.companies = companies
+  }
+
+  return result
+}
+
+export type MfaVerifyBody = {
+  tempToken: string
+  companyId?: string
+  totpCode?: string
+  backupCode?: string
+}
+
+export type CompleteMfaLoginResult = {
+  login: Extract<LoginResult, { token: string }>
+  mfaUsedBackup: boolean
+}
+
+/**
+ * Completes login after MFA: validates pending JWT and TOTP or backup code, returns full session (with token).
+ */
+export async function completeMfaLogin(body: MfaVerifyBody): Promise<CompleteMfaLoginResult> {
+  const pending = verifyMfaPendingToken(body.tempToken)
+  if (!pending) throw new UnauthorizedError('Sesión MFA inválida o expirada')
+
+  const totp = body.totpCode?.trim()
+  const backup = body.backupCode?.trim()
+  if (!totp && !backup) throw new BadRequestError('Código TOTP o código de respaldo requerido')
+  if (totp && backup) throw new BadRequestError('Envía solo un tipo de código')
+
+  const user = await prisma.user.findUnique({
+    where: { id: pending.userId },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      role: true,
+      isActive: true,
+      isSuperuser: true,
+      firstName: true,
+      lastName: true,
+      shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
+      twoFactorSecret: true,
     },
   })
 
   if (!user) throw new UnauthorizedError('Credenciales inválidas')
   if (!user.isActive) throw new UnauthorizedError('Usuario inactivo')
+  if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+    throw new BadRequestError('MFA no está activo para esta cuenta')
+  }
 
-  const isValidPassword = await bcrypt.compare(password, user.password)
-  if (!isValidPassword) throw new UnauthorizedError('Credenciales inválidas')
+  let secondFactorOk = false
+  let usedBackup = false
+
+  if (totp) {
+    try {
+      const rawSecret = decryptTotpSecret(user.twoFactorSecret)
+      secondFactorOk = verifyTotp(rawSecret, totp)
+    } catch {
+      secondFactorOk = false
+    }
+  } else if (backup) {
+    secondFactorOk = await verifyBackupCodeAndConsume(user.id, backup)
+    usedBackup = secondFactorOk
+  }
+
+  if (!secondFactorOk) throw new UnauthorizedError('Código inválido')
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginAttempts: 0, lockedUntil: null },
+  })
 
   const companies = await getUserCompanies(user.id, user.isSuperuser ?? false)
-  const preferredCompanyId = bodyCompanyId ?? user.shopflowPreferredCompanyId ?? undefined
+  const preferredCompanyId = body.companyId ?? user.shopflowPreferredCompanyId ?? undefined
   const selected = selectCompanyForUser(companies, preferredCompanyId)
   const selectedCompany = selected?.selectedCompany ?? null
   const selectedMembershipRole = selected?.selectedMembershipRole ?? null
@@ -79,7 +342,7 @@ export async function login(body: LoginBody): Promise<LoginResult> {
 
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
 
-  const result: LoginResult = {
+  const result: Extract<LoginResult, { token: string }> = {
     user: {
       id: user.id,
       email: user.email,
@@ -92,12 +355,13 @@ export async function login(body: LoginBody): Promise<LoginResult> {
   if (selectedCompany) {
     result.companyId = selectedCompany.id
     result.company = selectedCompany
+    if (selectedMembershipRole) result.membershipRole = selectedMembershipRole
   }
   if (companies.length > 1 || user.isSuperuser) {
     result.companies = companies
   }
 
-  return result
+  return { login: result, mfaUsedBackup: usedBackup }
 }
 
 export async function register(body: RegisterBody): Promise<RegisterResult> {
@@ -234,6 +498,7 @@ export async function me(decoded: TokenPayload): Promise<MeResult> {
       firstName: true,
       lastName: true,
       shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
     },
   })
 
@@ -290,6 +555,7 @@ export async function me(decoded: TokenPayload): Promise<MeResult> {
     preferredCompanyId: preferredCompanyId ?? undefined,
     membershipRole: decoded.membershipRole,
     isSuperuser: decoded.isSuperuser,
+    twoFactorEnabled: user.twoFactorEnabled,
     company: company ?? undefined,
   }
 }
@@ -298,6 +564,9 @@ export async function verify(token: string): Promise<{ valid: true; user: TokenP
   if (!token) throw new BadRequestError('Token es requerido')
   const decoded = verifyToken(token)
   if (!decoded) throw new UnauthorizedError('Token inválido o expirado')
+  if (decoded.jti && (await isJtiBlacklisted(decoded.jti))) {
+    throw new UnauthorizedError('Token inválido o expirado')
+  }
   const user = await prisma.user.findUnique({
     where: { id: decoded.id },
     select: { id: true, isActive: true },
@@ -313,6 +582,7 @@ export async function getCompanies(userId: string, isSuperuser: boolean) {
 export type SetContextResult = {
   token: string
   companyId: string
+  membershipRole: string | null
   company: { id: string; name: string; modules: { workify: boolean; shopflow: boolean; techservices: boolean } } | null
 }
 
@@ -340,18 +610,15 @@ export async function setContext(
   const companyWithModules = company
     ? { id: company.id, name: company.name, modules: await getCompanyModules(company.id) }
     : null
-  return { token, companyId, company: companyWithModules }
+  return { token, companyId, membershipRole: membershipRole ?? null, company: companyWithModules }
 }
 
-export async function createSession(body: {
-  userId: string
-  sessionToken: string
-  ipAddress?: string
-  userAgent?: string
-  expiresAt?: string
-}): Promise<void> {
-  const { userId, sessionToken, ipAddress, userAgent, expiresAt } = body
-  if (!userId || !sessionToken) throw new BadRequestError('userId y sessionToken son requeridos')
+export async function createWebSessionPair(
+  userId: string,
+  accessToken: string,
+  ctx: { companyId?: string; membershipRole?: string },
+  meta: { ipAddress?: string | null; userAgent?: string | null }
+): Promise<{ refreshPlain: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     select: { id: true, role: true },
@@ -365,14 +632,159 @@ export async function createSession(body: {
   if (existingSessions.length > 0 && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
     throw new ConflictError('Concurrent sessions not allowed for this role')
   }
-  const expiresAtVal = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const refreshPlain = generateRefreshTokenPlain()
+  const sessionToken = hashRefreshToken(refreshPlain)
+  const accessJti = accessJtiFromJwtString(accessToken)
   await prisma.session.create({
     data: {
       userId,
       sessionToken,
+      accessJti,
+      lastSeenAt: new Date(),
+      ipAddress: meta.ipAddress ?? null,
+      userAgent: meta.userAgent ?? null,
+      expiresAt: refreshSessionExpiresAt(),
+      companyId: ctx.companyId ?? null,
+      membershipRole: ctx.membershipRole ?? null,
+    },
+  })
+  return { refreshPlain }
+}
+
+export async function rotateAccessForCurrentRefreshSession(
+  userId: string,
+  refreshPlain: string,
+  previousAccessToken: string,
+  newAccessToken: string,
+  ctx: { companyId?: string; membershipRole?: string }
+): Promise<void> {
+  const hash = hashRefreshToken(refreshPlain)
+  const row = await prisma.session.findFirst({
+    where: { userId, sessionToken: hash, expiresAt: { gt: new Date() } },
+    select: { id: true },
+  })
+  if (!row) return
+  const oldJti = accessJtiFromJwtString(previousAccessToken)
+  if (oldJti) await blacklistJti(oldJti, accessTokenTtlSeconds(previousAccessToken))
+  const newJti = accessJtiFromJwtString(newAccessToken)
+  await prisma.session.update({
+    where: { id: row.id },
+    data: {
+      accessJti: newJti,
+      companyId: ctx.companyId ?? null,
+      membershipRole: ctx.membershipRole ?? null,
+    },
+  })
+}
+
+export async function refreshAccessTokenFromCookie(
+  refreshPlain: string,
+  meta: { ipAddress?: string | null; userAgent?: string | null }
+): Promise<{ accessToken: string; refreshPlain: string }> {
+  const hash = hashRefreshToken(refreshPlain)
+  const session = await prisma.session.findFirst({
+    where: { sessionToken: hash, expiresAt: { gt: new Date() } },
+    select: {
+      id: true,
+      userId: true,
+      accessJti: true,
+      companyId: true,
+      membershipRole: true,
+    },
+  })
+  if (!session) throw new UnauthorizedError('Sesión inválida o expirada')
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      isActive: true,
+      isSuperuser: true,
+    },
+  })
+  if (!user?.isActive) throw new UnauthorizedError('Usuario no encontrado o inactivo')
+
+  const payload: TokenPayload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    isSuperuser: user.isSuperuser ?? false,
+  }
+  if (session.companyId) payload.companyId = session.companyId
+  if (session.membershipRole) payload.membershipRole = session.membershipRole
+
+  const accessToken = generateToken(payload)
+  const newRefreshPlain = generateRefreshTokenPlain()
+  const newHash = hashRefreshToken(newRefreshPlain)
+  const newJti = accessJtiFromJwtString(accessToken)
+  const accessMaxSec = jwtExpiresInToMaxAgeSeconds(getConfig().JWT_ACCESS_EXPIRES_IN)
+  if (session.accessJti) await blacklistJti(session.accessJti, accessMaxSec)
+
+  await prisma.session.update({
+    where: { id: session.id },
+    data: {
+      sessionToken: newHash,
+      accessJti: newJti,
+      lastSeenAt: new Date(),
+      expiresAt: refreshSessionExpiresAt(),
+      ipAddress: meta.ipAddress ?? undefined,
+      userAgent: meta.userAgent ?? undefined,
+    },
+  })
+
+  return { accessToken, refreshPlain: newRefreshPlain }
+}
+
+export async function logoutWebSession(accessToken: string | null, refreshPlain: string | null): Promise<void> {
+  if (accessToken) {
+    const jti = accessJtiFromJwtString(accessToken)
+    if (jti) await blacklistJti(jti, accessTokenTtlSeconds(accessToken))
+  }
+  if (refreshPlain) {
+    const hash = hashRefreshToken(refreshPlain)
+    await prisma.session.deleteMany({ where: { sessionToken: hash } })
+  }
+}
+
+export async function createSession(body: {
+  userId: string
+  sessionToken: string
+  ipAddress?: string
+  userAgent?: string
+  expiresAt?: string
+}): Promise<void> {
+  const { userId, sessionToken, ipAddress, userAgent, expiresAt } = body
+  if (!userId || !sessionToken) throw new BadRequestError('userId y sessionToken son requeridos')
+  const verified = verifyToken(sessionToken)
+  if (!verified) throw new BadRequestError('sessionToken debe ser un JWT de acceso válido')
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+    select: { id: true, role: true },
+  })
+  if (!user) throw new NotFoundError('Usuario no encontrado')
+  const existingSessions = await prisma.session.findMany({
+    where: { userId },
+    take: 1,
+    select: { id: true },
+  })
+  if (existingSessions.length > 0 && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+    throw new ConflictError('Concurrent sessions not allowed for this role')
+  }
+  const expiresAtVal = expiresAt ? new Date(expiresAt) : refreshSessionExpiresAt()
+  const accessJti = accessJtiFromJwtString(sessionToken)
+  await prisma.session.create({
+    data: {
+      userId,
+      sessionToken,
+      accessJti,
+      lastSeenAt: new Date(),
       ipAddress: ipAddress ?? null,
       userAgent: userAgent ?? null,
       expiresAt: expiresAtVal,
+      companyId: verified.companyId ?? null,
+      membershipRole: verified.membershipRole ?? null,
     },
   })
 }
@@ -387,8 +799,20 @@ export async function validateSession(token: string): Promise<{ valid: boolean }
   return { valid: rows.length > 0 }
 }
 
-export async function listSessions(userId: string) {
-  return prisma.session.findMany({
+export type SessionListItem = {
+  id: string
+  userId: string
+  ipAddress: string | null
+  userAgent: string | null
+  deviceSummary: string | null
+  lastSeenAt: Date | null
+  expiresAt: Date
+  createdAt: Date
+  isCurrent: boolean
+}
+
+export async function listSessions(userId: string, currentSessionKey: string | null): Promise<SessionListItem[]> {
+  const rows = await prisma.session.findMany({
     where: { userId, expiresAt: { gt: new Date() } },
     orderBy: { createdAt: 'desc' },
     select: {
@@ -397,10 +821,22 @@ export async function listSessions(userId: string) {
       sessionToken: true,
       ipAddress: true,
       userAgent: true,
+      lastSeenAt: true,
       expiresAt: true,
       createdAt: true,
     },
   })
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    ipAddress: r.ipAddress,
+    userAgent: r.userAgent,
+    deviceSummary: summarizeUserAgent(r.userAgent),
+    lastSeenAt: r.lastSeenAt,
+    expiresAt: r.expiresAt,
+    createdAt: r.createdAt,
+    isCurrent: currentSessionKey != null && r.sessionToken === currentSessionKey,
+  }))
 }
 
 export async function deleteSession(
@@ -412,12 +848,34 @@ export async function deleteSession(
   const existing = await prisma.session.findMany({
     where: { sessionToken: decodedToken },
     take: 1,
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, accessJti: true },
   })
   if (existing.length === 0) throw new NotFoundError('Session not found')
   const sessionUserId = existing[0].userId
   assertSelfOrSuperuser(callerId, sessionUserId, isSuperuser, 'No puedes eliminar sesiones de otro usuario')
+  const accessMaxSec = jwtExpiresInToMaxAgeSeconds(getConfig().JWT_ACCESS_EXPIRES_IN)
+  if (existing[0].accessJti) await blacklistJti(existing[0].accessJti, accessMaxSec)
   await prisma.session.deleteMany({ where: { sessionToken: decodedToken } })
+}
+
+export async function deleteSessionById(
+  sessionId: string,
+  callerId: string,
+  isSuperuser: boolean,
+  currentSessionKey: string | null
+): Promise<void> {
+  const row = await prisma.session.findFirst({
+    where: { id: sessionId, expiresAt: { gt: new Date() } },
+    select: { id: true, userId: true, accessJti: true, sessionToken: true },
+  })
+  if (!row) throw new NotFoundError('Session not found')
+  assertSelfOrSuperuser(callerId, row.userId, isSuperuser, 'No puedes eliminar sesiones de otro usuario')
+  if (currentSessionKey != null && row.sessionToken === currentSessionKey) {
+    throw new BadRequestError('Usa «Cerrar sesión» para terminar la sesión actual')
+  }
+  const accessMaxSec = jwtExpiresInToMaxAgeSeconds(getConfig().JWT_ACCESS_EXPIRES_IN)
+  if (row.accessJti) await blacklistJti(row.accessJti, accessMaxSec)
+  await prisma.session.delete({ where: { id: row.id } })
 }
 
 export async function terminateOthersSessions(
@@ -428,6 +886,15 @@ export async function terminateOthersSessions(
 ): Promise<void> {
   if (!userId || !currentSessionToken) throw new BadRequestError('userId y currentSessionToken son requeridos')
   assertSelfOrSuperuser(callerId, userId, isSuperuser, 'Solo puedes terminar tus propias sesiones')
+  const others = await prisma.session.findMany({
+    where: { userId, sessionToken: { not: currentSessionToken } },
+    select: { accessJti: true },
+  })
+  const accessMaxSec = jwtExpiresInToMaxAgeSeconds(getConfig().JWT_ACCESS_EXPIRES_IN)
+  await blacklistJtis(
+    others.map((o) => o.accessJti),
+    accessMaxSec,
+  )
   await prisma.session.deleteMany({
     where: { userId, sessionToken: { not: currentSessionToken } },
   })

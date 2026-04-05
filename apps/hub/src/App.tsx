@@ -13,8 +13,11 @@ const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage").then(
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
 const MembersPage = lazy(() => import("@/pages/MembersPage").then(m => ({ default: m.MembersPage })));
+const MemberPermissionsPage = lazy(() => import("@/pages/MemberPermissionsPage").then(m => ({ default: m.MemberPermissionsPage })));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 const AccountPage = lazy(() => import("@/pages/AccountPage").then(m => ({ default: m.AccountPage })));
+const AuditLogPage = lazy(() => import("@/pages/AuditLogPage").then(m => ({ default: m.AuditLogPage })));
+const JobHistoryPage = lazy(() => import("@/pages/JobHistoryPage").then(m => ({ default: m.JobHistoryPage })));
 
 // Loading component
 const PageLoader = () => (
@@ -44,8 +47,11 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<DashboardLayout><DashboardPage /></DashboardLayout>} path="/dashboard" />
               <Route element={<DashboardLayout><MembersPage /></DashboardLayout>} path="/dashboard/members" />
+              <Route element={<DashboardLayout><MemberPermissionsPage /></DashboardLayout>} path="/dashboard/members/:memberId/permissions" />
               <Route element={<DashboardLayout><SettingsPage /></DashboardLayout>} path="/dashboard/settings" />
               <Route element={<DashboardLayout><AccountPage /></DashboardLayout>} path="/dashboard/account" />
+              <Route element={<DashboardLayout><AuditLogPage /></DashboardLayout>} path="/dashboard/audit" />
+              <Route element={<DashboardLayout><JobHistoryPage /></DashboardLayout>} path="/dashboard/jobs" />
             </Route>
 
             {/* Catch all - redirect to home */}

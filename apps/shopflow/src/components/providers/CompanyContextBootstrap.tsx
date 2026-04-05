@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@/hooks/useUser'
+import { useSSEMetrics } from '@/hooks/useSSEMetrics'
 import { authApi } from '@/lib/api/client'
 
 /**
@@ -13,6 +14,8 @@ export function CompanyContextBootstrap({ children }: { children: React.ReactNod
   const { data: user } = useUser()
   const queryClient = useQueryClient()
   const restoreDone = useRef(false)
+
+  useSSEMetrics(user?.companyId)
 
   useEffect(() => {
     if (

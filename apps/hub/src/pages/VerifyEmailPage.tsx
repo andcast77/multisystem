@@ -153,6 +153,27 @@ export function VerifyEmailPage() {
             {status === 'error' && (
               <div className="space-y-3">
                 <Button
+                  type="button"
+                  onClick={() => void handleResend()}
+                  disabled={resending}
+                  className="w-full"
+                >
+                  {resending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 inline animate-spin" />
+                      Reenviando…
+                    </>
+                  ) : (
+                    'Reenviar email de verificación'
+                  )}
+                </Button>
+                {resentMsg ? (
+                  <p className="text-sm text-center text-green-700">{resentMsg}</p>
+                ) : null}
+                {resentError ? (
+                  <p className="text-sm text-center text-red-600">{resentError}</p>
+                ) : null}
+                <Button
                   onClick={() => navigate('/login')}
                   className="w-full"
                   variant="outline"

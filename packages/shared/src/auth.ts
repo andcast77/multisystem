@@ -1,5 +1,6 @@
 /**
- * Auth session lives in httpOnly `ms_session` on the API host (see docs/ADR-auth-token-storage.md).
+ * Auth session lives in httpOnly cookies on the API host: short-lived access JWT (`ms_session`) and
+ * rotated refresh token (`ms_refresh`) — see docs/ADR-auth-token-storage.md and PLAN-26.
  * Use `credentials: 'include'` on API fetches. These helpers only clear legacy JS-readable cookies.
  */
 
@@ -34,11 +35,26 @@ export function clearTokenCookie(): void {
 
 /** Whether the browser likely has an API session (httpOnly cookie is not readable). */
 export async function hasApiSession(apiBaseUrl: string): Promise<boolean> {
+  const base = apiBaseUrl.replace(/\/$/, '')
   try {
-    const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/v1/auth/me`, {
+    let res = await fetch(`${base}/v1/auth/me`, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     })
+    if (res.status === 401) {
+      const ref = await fetch(`${base}/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: '{}',
+      })
+      if (ref.ok) {
+        res = await fetch(`${base}/v1/auth/me`, {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        })
+      }
+    }
     return res.ok
   } catch {
     return false

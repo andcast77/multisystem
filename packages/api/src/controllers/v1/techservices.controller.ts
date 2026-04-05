@@ -282,6 +282,16 @@ export async function deleteVisit(
   }
 }
 
+export async function getDashboardStats(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const ctx = contextFromRequest(request)
+    const stats = await techservicesService.getDashboardStats(ctx)
+    return { success: true, ...stats }
+  } catch (error) {
+    return sendServerError(reply, error, request.log, 'Error al obtener estadísticas del panel')
+  }
+}
+
 // ----- Me -----
 
 export async function getMe(request: FastifyRequest, reply: FastifyReply) {
@@ -309,6 +319,7 @@ function handle<T extends (req: any, rep: any) => any>(
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/techservices/me', { preHandler: preTech }, handle(getMe))
+  fastify.get('/v1/techservices/dashboard/stats', { preHandler: preTech }, handle(getDashboardStats))
   fastify.get('/v1/techservices/work-orders', { preHandler: preTech }, handle(listWorkOrders))
   fastify.get<{ Params: { id: string } }>('/v1/techservices/work-orders/:id', { preHandler: preTech }, handle(getWorkOrderById))
   fastify.post('/v1/techservices/work-orders', { preHandler: preTech }, handle(createWorkOrder))

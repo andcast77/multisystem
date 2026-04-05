@@ -13,7 +13,12 @@ function pathOnly(url: string): string {
 
 function isAuthPublicPath(url: string): boolean {
   const p = pathOnly(url)
-  return p === '/v1/auth/login' || p === '/v1/auth/register' || p === '/v1/auth/verify'
+  return (
+    p === '/v1/auth/login' ||
+    p === '/v1/auth/register' ||
+    p === '/v1/auth/verify' ||
+    p === '/v1/auth/refresh'
+  )
 }
 
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
@@ -31,6 +36,16 @@ export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
     } as Parameters<typeof f.register>[1])
 
     await authController.registerPublicAuthRoutes(f)
+  })
+
+  await fastify.register(async function mfaVerifyScope(f) {
+    await f.register(rateLimit, {
+      max: 5,
+      timeWindow: '15 minutes',
+      name: 'ms-auth-mfa-verify',
+    } as Parameters<typeof f.register>[1])
+
+    await authController.registerMfaAuthRoutes(f)
   })
 }
 

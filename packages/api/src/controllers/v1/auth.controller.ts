@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { FastifyInstance } from 'fastify'
-import { requireAuth } from '../../core/auth.js'
+import { requireAuth, getAuthToken } from '../../core/auth.js'
 import { validateBody, validateQuery } from '../../core/validate.js'
 import {
   loginBodySchema,
@@ -11,27 +11,194 @@ import {
   terminateOthersSessionsSchema,
   validateSessionQuerySchema,
   listSessionsQuerySchema,
+  mfaVerifyTotpSchema,
+  mfaVerifyBackupSchema,
 } from '../../dto/auth.dto.js'
 import { ok } from '../../common/api-response.js'
 import * as authService from '../../services/auth.service.js'
-import { attachAuthSessionCookie, clearAuthSessionCookie } from '../../core/session-cookie.js'
+import {
+  attachAuthSessionCookie,
+  clearAllAuthCookies,
+  attachRefreshSessionCookie,
+  getRefreshTokenFromCookieHeader,
+} from '../../core/session-cookie.js'
+import { hashRefreshToken } from '../../core/refresh-token.js'
 import { getConfig } from '../../core/config.js'
 import { apiOkEnvelope200 } from '../../common/fastify-response-schemas.js'
 import { assertSelfOrSuperuser } from '../../policies/company-authorization.policy.js'
+import { writeAuditLog } from '../../services/audit-log.service.js'
+import { verifyMfaPendingToken, verifyToken } from '../../core/auth.js'
+import { UnauthorizedError, BadRequestError } from '../../common/errors/app-error.js'
+
+async function attachWebAuthCookies(
+  reply: FastifyReply,
+  accessToken: string,
+  userId: string,
+  ctx: { companyId?: string; membershipRole?: string },
+  meta: { ip: string; ua: string | null }
+) {
+  const config = getConfig()
+  const { refreshPlain } = await authService.createWebSessionPair(userId, accessToken, ctx, {
+    ipAddress: meta.ip,
+    userAgent: meta.ua,
+  })
+  attachAuthSessionCookie(reply, accessToken, config)
+  attachRefreshSessionCookie(reply, refreshPlain, config)
+}
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(loginBodySchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+
   const result = await authService.login(body)
+
+  if ('mfaRequired' in result && result.mfaRequired) {
+    return ok({
+      mfaRequired: true,
+      tempToken: result.tempToken,
+      user: result.user,
+      companyId: result.companyId,
+      company: result.company,
+      companies: result.companies,
+    })
+  }
+
+  if (result.companyId) {
+    writeAuditLog({
+      companyId: result.companyId,
+      userId: result.user.id,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'auth',
+      entityId: result.user.id,
+      ipAddress: ip,
+      userAgent: ua,
+    })
+  }
+
   const { token, ...data } = result
-  attachAuthSessionCookie(reply, token, getConfig())
+  await attachWebAuthCookies(reply, token, result.user.id, {
+    companyId: result.companyId,
+    membershipRole: result.membershipRole,
+  }, { ip, ua })
   return ok(data)
+}
+
+function auditMfaFailure(companyId: string | undefined, userId: string | undefined, ip: string, ua: string | null) {
+  if (!userId) return
+  writeAuditLog({
+    companyId: companyId ?? null,
+    userId,
+    action: 'MFA_FAILED',
+    entityType: 'auth',
+    entityId: userId,
+    ipAddress: ip,
+    userAgent: ua,
+  })
+}
+
+export async function verifyMfaTotp(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(mfaVerifyTotpSchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+  const pending = verifyMfaPendingToken(body.tempToken)
+
+  try {
+    const { login } = await authService.completeMfaLogin({
+      tempToken: body.tempToken,
+      companyId: body.companyId,
+      totpCode: body.totpCode,
+    })
+    if (login.companyId) {
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'MFA_VERIFIED',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'LOGIN_SUCCESS',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+    }
+    const { token, ...data } = login
+    await attachWebAuthCookies(reply, token, login.user.id, {
+      companyId: login.companyId,
+      membershipRole: login.membershipRole,
+    }, { ip, ua })
+    return ok(data)
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      auditMfaFailure(body.companyId, pending?.userId, ip, ua)
+    }
+    throw err
+  }
+}
+
+export async function verifyMfaBackup(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(mfaVerifyBackupSchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+  const pending = verifyMfaPendingToken(body.tempToken)
+
+  try {
+    const { login } = await authService.completeMfaLogin({
+      tempToken: body.tempToken,
+      companyId: body.companyId,
+      backupCode: body.backupCode,
+    })
+    if (login.companyId) {
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'MFA_BACKUP_USED',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'LOGIN_SUCCESS',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+    }
+    const { token, ...data } = login
+    await attachWebAuthCookies(reply, token, login.user.id, {
+      companyId: login.companyId,
+      membershipRole: login.membershipRole,
+    }, { ip, ua })
+    return ok(data)
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      auditMfaFailure(body.companyId, pending?.userId, ip, ua)
+    }
+    throw err
+  }
 }
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(registerBodySchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
   const result = await authService.register(body)
   const { token, ...data } = result
-  attachAuthSessionCookie(reply, token, getConfig())
+  await attachWebAuthCookies(reply, token, result.user.id, {
+    companyId: result.user.companyId,
+    membershipRole: result.user.companyId ? 'OWNER' : undefined,
+  }, { ip, ua })
   return ok(data)
 }
 
@@ -40,8 +207,23 @@ export async function me(request: FastifyRequest, reply: FastifyReply) {
   return ok(result)
 }
 
-export async function logout(_request: FastifyRequest, reply: FastifyReply) {
-  clearAuthSessionCookie(reply, getConfig())
+export async function logout(request: FastifyRequest, reply: FastifyReply) {
+  const access = getAuthToken(request)
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  await authService.logoutWebSession(access, refreshPlain)
+  clearAllAuthCookies(reply, getConfig())
+  const decoded = access ? verifyToken(access) : null
+  if (decoded) {
+    writeAuditLog({
+      companyId: decoded.companyId ?? null,
+      userId: decoded.id,
+      action: 'LOGOUT',
+      entityType: 'auth',
+      entityId: decoded.id,
+      ipAddress: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+    })
+  }
   return { success: true }
 }
 
@@ -60,9 +242,18 @@ export async function listCompanies(request: FastifyRequest, reply: FastifyReply
 export async function setContext(request: FastifyRequest, reply: FastifyReply) {
   const { companyId } = validateBody(setContextSchema, request.body)
   const decoded = request.user!
+  const oldAccess = getAuthToken(request)
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
   const result = await authService.setContext(decoded, companyId)
   const { token, ...data } = result
-  attachAuthSessionCookie(reply, token, getConfig())
+  const config = getConfig()
+  if (refreshPlain && oldAccess) {
+    await authService.rotateAccessForCurrentRefreshSession(decoded.id, refreshPlain, oldAccess, token, {
+      companyId,
+      membershipRole: result.membershipRole ?? undefined,
+    })
+  }
+  attachAuthSessionCookie(reply, token, config)
   return ok(data)
 }
 
@@ -81,11 +272,67 @@ export async function validateSession(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function listSessions(request: FastifyRequest, reply: FastifyReply) {
-  const { userId } = validateQuery(listSessionsQuerySchema, request.query)
+  const q = validateQuery(listSessionsQuerySchema, request.query)
   const decoded = request.user!
+  const userId = q.userId ?? decoded.id
   assertSelfOrSuperuser(decoded.id, userId, decoded.isSuperuser, 'Solo puedes listar tus propias sesiones')
-  const rows = await authService.listSessions(userId)
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  const access = getAuthToken(request)
+  const currentKey =
+    refreshPlain != null
+      ? hashRefreshToken(refreshPlain)
+      : access
+        ? access
+        : null
+  const rows = await authService.listSessions(userId, currentKey)
   return ok(rows)
+}
+
+export async function refreshTokens(request: FastifyRequest, reply: FastifyReply) {
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  if (!refreshPlain) throw new UnauthorizedError('Sesión no encontrada')
+  const config = getConfig()
+  const { accessToken, refreshPlain: newRefresh } = await authService.refreshAccessTokenFromCookie(refreshPlain, {
+    ipAddress: request.ip,
+    userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+  })
+  attachAuthSessionCookie(reply, accessToken, config)
+  attachRefreshSessionCookie(reply, newRefresh, config)
+  return ok({ refreshed: true })
+}
+
+export async function deleteSessionByIdHandler(
+  request: FastifyRequest<{ Params: { sessionId: string } }>,
+  reply: FastifyReply
+) {
+  const caller = request.user!
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  const access = getAuthToken(request)
+  const currentKey =
+    refreshPlain != null ? hashRefreshToken(refreshPlain) : access ? access : null
+  await authService.deleteSessionById(
+    request.params.sessionId,
+    caller.id,
+    caller.isSuperuser ?? false,
+    currentKey
+  )
+  return { success: true }
+}
+
+export async function deleteOtherSessions(request: FastifyRequest, reply: FastifyReply) {
+  const decoded = request.user!
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  const currentKey = refreshPlain != null ? hashRefreshToken(refreshPlain) : null
+  if (!currentKey) {
+    throw new BadRequestError('Se requiere la cookie de sesión para cerrar las demás sesiones')
+  }
+  await authService.terminateOthersSessions(
+    decoded.id,
+    currentKey,
+    decoded.id,
+    decoded.isSuperuser ?? false
+  )
+  return { success: true }
 }
 
 export async function deleteSession(
@@ -98,9 +345,16 @@ export async function deleteSession(
 }
 
 export async function terminateOthersSessions(request: FastifyRequest, reply: FastifyReply) {
-  const { userId, currentSessionToken } = validateBody(terminateOthersSessionsSchema, request.body)
+  const { userId, currentSessionToken: bodyCurrent } = validateBody(terminateOthersSessionsSchema, request.body)
   const caller = request.user!
-  await authService.terminateOthersSessions(userId, currentSessionToken, caller.id, caller.isSuperuser ?? false)
+  const refreshPlain = getRefreshTokenFromCookieHeader(request.headers.cookie)
+  const currentKey =
+    bodyCurrent ??
+    (refreshPlain != null ? hashRefreshToken(refreshPlain) : null)
+  if (!currentKey) {
+    throw new BadRequestError('Se requiere la sesión actual (cookie o currentSessionToken)')
+  }
+  await authService.terminateOthersSessions(userId, currentKey, caller.id, caller.isSuperuser ?? false)
   return { success: true }
 }
 
@@ -124,6 +378,16 @@ const authSuccessResponseSchema = {
   },
 } as const
 
+/** MFA verify routes — registered under stricter rate limit (see rate-limit.plugin). */
+export async function registerMfaAuthRoutes(fastify: FastifyInstance) {
+  fastify.post('/v1/auth/mfa/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
+    verifyMfaTotp(request, reply)
+  )
+  fastify.post('/v1/auth/mfa/verify-backup', { schema: authSuccessResponseSchema }, (request, reply) =>
+    verifyMfaBackup(request, reply)
+  )
+}
+
 /** Login, register, verify — own rate-limit bucket (see server.ts). */
 export async function registerPublicAuthRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: { email: string; password: string; companyId?: string } }>(
@@ -139,6 +403,9 @@ export async function registerPublicAuthRoutes(fastify: FastifyInstance) {
     { schema: authSuccessResponseSchema },
     (request, reply) => verify(request, reply)
   )
+  fastify.post('/v1/auth/refresh', { schema: authSuccessResponseSchema }, (request, reply) =>
+    refreshTokens(request, reply)
+  )
 }
 
 export async function registerProtectedAuthRoutes(fastify: FastifyInstance) {
@@ -151,11 +418,19 @@ export async function registerProtectedAuthRoutes(fastify: FastifyInstance) {
   }>('/v1/auth/sessions', { preHandler: [requireAuth] }, (request, reply) => createSession(request, reply))
   fastify.get<{ Querystring: { token?: string } }>(
     '/v1/auth/sessions/validate', (request, reply) => validateSession(request, reply))
-  fastify.get<{ Querystring: { userId: string } }>(
+  fastify.get<{ Querystring: { userId?: string } }>(
     '/v1/auth/sessions', { preHandler: [requireAuth] }, (request, reply) => listSessions(request, reply))
+  fastify.delete('/v1/auth/sessions', { preHandler: [requireAuth] }, (request, reply) =>
+    deleteOtherSessions(request, reply)
+  )
+  fastify.delete<{ Params: { sessionId: string } }>(
+    '/v1/auth/sessions/session/:sessionId',
+    { preHandler: [requireAuth] },
+    (request, reply) => deleteSessionByIdHandler(request, reply)
+  )
   fastify.delete<{ Params: { token: string } }>(
     '/v1/auth/sessions/:token', { preHandler: [requireAuth] }, (request, reply) => deleteSession(request, reply))
-  fastify.post<{ Body: { userId: string; currentSessionToken: string } }>(
+  fastify.post<{ Body: { userId: string; currentSessionToken?: string } }>(
     '/v1/auth/sessions/terminate-others', { preHandler: [requireAuth] }, (request, reply) => terminateOthersSessions(request, reply))
   fastify.post(
     '/v1/auth/sessions/cleanup-expired', { preHandler: [requireAuth] }, (request, reply) => cleanupExpiredSessions(request, reply))

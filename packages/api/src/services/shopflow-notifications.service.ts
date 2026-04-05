@@ -2,6 +2,7 @@ import { prisma, Prisma } from '../db/index.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { NotFoundError, BadRequestError, ForbiddenError } from '../common/errors/app-error.js'
 import { parsePagination } from '../common/database/index.js'
+import { sseManager } from './sse.service.js'
 
 export type CreateNotificationBody = {
   userId: string
@@ -24,8 +25,10 @@ export async function createNotification(ctx: CompanyContext, body: CreateNotifi
     data: {
       userId,
       companyId: ctx.companyId,
-      type: type as 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS' | 'SYSTEM',
-      priority: (priority === 'LOW' || priority === 'MEDIUM' || priority === 'HIGH' ? priority : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH',
+      type: type as Prisma.NotificationCreateInput['type'],
+      priority: (['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(priority ?? '')
+        ? priority
+        : 'MEDIUM') as Prisma.NotificationCreateInput['priority'],
       title,
       message,
       data: data != null ? (data as Prisma.InputJsonValue) : undefined,
@@ -34,6 +37,7 @@ export async function createNotification(ctx: CompanyContext, body: CreateNotifi
       status: 'UNREAD',
     },
   })
+  sseManager.emit(ctx.companyId, 'notification:created', { userId, id: notification.id })
   return { ...notification, data: notification.data ?? null }
 }
 
@@ -54,7 +58,7 @@ export async function listNotifications(ctx: CompanyContext, query: ListNotifica
     OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
   }
   if (query.userId) where.userId = query.userId
-  if (query.type) where.type = query.type as 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS' | 'SYSTEM'
+  if (query.type) where.type = query.type as Prisma.NotificationWhereInput['type']
   if (query.status) where.status = query.status as 'UNREAD' | 'READ'
   if (query.priority) where.priority = query.priority as 'LOW' | 'MEDIUM' | 'HIGH'
 
@@ -167,4 +171,68 @@ export async function getNotificationPreferences(ctx: CompanyContext, userId: st
     })
   }
   return prefs
+}
+
+type PerTypeChannels = { inApp?: boolean; push?: boolean; email?: boolean }
+
+function mergeNotificationPreferencesJson(
+  existing: Prisma.JsonValue | null | undefined,
+  patch: Record<string, PerTypeChannels> | undefined
+): Prisma.InputJsonValue | undefined {
+  if (!patch || Object.keys(patch).length === 0) return undefined
+  const base =
+    existing && typeof existing === 'object' && !Array.isArray(existing)
+      ? (existing as Record<string, PerTypeChannels>)
+      : {}
+  const merged: Record<string, PerTypeChannels> = { ...base }
+  for (const [key, ch] of Object.entries(patch)) {
+    merged[key] = { ...(merged[key] ?? {}), ...ch }
+  }
+  return merged as Prisma.InputJsonValue
+}
+
+export async function updateNotificationPreferences(
+  ctx: CompanyContext,
+  userId: string,
+  body: { inAppEnabled?: boolean; pushEnabled?: boolean; emailEnabled?: boolean; preferences?: Record<string, PerTypeChannels> },
+) {
+  const allowed =
+    ctx.isSuperuser ||
+    ctx.userId === userId ||
+    ctx.membershipRole === 'OWNER' ||
+    ctx.membershipRole === 'ADMIN'
+  if (!allowed) throw new ForbiddenError('No puedes editar las preferencias de este usuario')
+
+  const hasGlobals =
+    body.inAppEnabled !== undefined || body.pushEnabled !== undefined || body.emailEnabled !== undefined
+  const hasPrefs = body.preferences !== undefined && Object.keys(body.preferences).length > 0
+  if (!hasGlobals && !hasPrefs) throw new BadRequestError('No hay campos para actualizar')
+
+  const data: Prisma.NotificationPreferenceUpdateInput = {}
+  if (body.inAppEnabled !== undefined) data.inAppEnabled = body.inAppEnabled
+  if (body.pushEnabled !== undefined) data.pushEnabled = body.pushEnabled
+  if (body.emailEnabled !== undefined) data.emailEnabled = body.emailEnabled
+
+  if (hasPrefs) {
+    const existing = await prisma.notificationPreference.findUnique({
+      where: { userId },
+      select: { preferences: true },
+    })
+    const merged = mergeNotificationPreferencesJson(existing?.preferences, body.preferences)
+    if (merged !== undefined) data.preferences = merged
+  }
+
+  return prisma.notificationPreference.upsert({
+    where: { userId },
+    create: {
+      userId,
+      inAppEnabled: body.inAppEnabled ?? true,
+      pushEnabled: body.pushEnabled ?? false,
+      emailEnabled: body.emailEnabled ?? false,
+      preferences: hasPrefs
+        ? (mergeNotificationPreferencesJson(null, body.preferences) ?? Prisma.JsonNull)
+        : undefined,
+    },
+    update: data,
+  })
 }

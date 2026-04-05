@@ -35,6 +35,26 @@ export const workifyEmployeesListResponseSchema = z.object({
 })
 export type WorkifyEmployeesListResponse = z.infer<typeof workifyEmployeesListResponseSchema>
 
+export const createEmployeeBodySchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  idNumber: z.string().min(1).optional().nullable(),
+  birthDate: z.string().datetime({ offset: true }).optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  departmentId: uuid.optional().nullable(),
+  positionId: uuid.optional().nullable(),
+  userId: uuid.optional().nullable(),
+  dateJoined: z.string().datetime({ offset: true }).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
+  customSalaryAmount: z.number().positive().optional().nullable(),
+  customSalaryType: z.enum(['MONTHLY', 'BIWEEKLY', 'WEEKLY', 'DAILY', 'HOURLY']).optional().nullable(),
+  customOvertimeEligible: z.boolean().optional(),
+})
+export type CreateEmployeeBody = z.infer<typeof createEmployeeBodySchema>
+
+export const updateEmployeeBodySchema = createEmployeeBodySchema.partial()
+export type UpdateEmployeeBody = z.infer<typeof updateEmployeeBodySchema>
+
 // ----- Roles -----
 export const workifyRoleSchema = z.object({
   id: uuid,

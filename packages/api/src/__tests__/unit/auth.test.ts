@@ -1,9 +1,18 @@
+import jwt from 'jsonwebtoken'
 import { describe, it, expect, beforeAll } from 'vitest'
-import { generateToken, verifyToken, userDisplayName, type TokenPayload } from '../../core/auth.js'
+import {
+  generateToken,
+  verifyToken,
+  userDisplayName,
+  generateMfaPendingToken,
+  verifyMfaPendingToken,
+  type TokenPayload,
+} from '../../core/auth.js'
 
 beforeAll(() => {
   process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only'
   process.env.JWT_EXPIRES_IN = '1h'
+  process.env.JWT_ACCESS_EXPIRES_IN = '1h'
 })
 
 const samplePayload: TokenPayload = {
@@ -25,6 +34,8 @@ describe('generateToken / verifyToken round-trip', () => {
     expect(decoded!.email).toBe(samplePayload.email)
     expect(decoded!.role).toBe(samplePayload.role)
     expect(decoded!.isSuperuser).toBe(false)
+    expect(decoded!.jti).toBeTruthy()
+    expect(typeof decoded!.jti).toBe('string')
   })
 
   it('preserves optional companyId and membershipRole', () => {
@@ -40,13 +51,18 @@ describe('generateToken / verifyToken round-trip', () => {
     expect(decoded!.membershipRole).toBe('ADMIN')
   })
 
-  it('includes iat and exp claims', () => {
+  it('JWT payload includes iat and exp claims', () => {
     const token = generateToken(samplePayload)
-    const decoded = verifyToken(token) as TokenPayload & { iat: number; exp: number }
+    const decoded = jwt.decode(token) as { iat?: number; exp?: number } | null
+    expect(decoded?.iat).toBeTypeOf('number')
+    expect(decoded?.exp).toBeTypeOf('number')
+    expect(decoded!.exp!).toBeGreaterThan(decoded!.iat!)
+  })
 
-    expect(decoded.iat).toBeTypeOf('number')
-    expect(decoded.exp).toBeTypeOf('number')
-    expect(decoded.exp).toBeGreaterThan(decoded.iat)
+  it('rejects MFA pending tokens from verifyToken', () => {
+    const pending = generateMfaPendingToken(samplePayload.id)
+    expect(verifyToken(pending)).toBeNull()
+    expect(verifyMfaPendingToken(pending)?.userId).toBe(samplePayload.id)
   })
 })
 

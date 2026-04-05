@@ -14,6 +14,7 @@ import { Download, Trash2, HardDrive } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { getBackupList, deleteBackup, getBackupDownloadUrl, type BackupItem } from '@/lib/services/backupApiService'
+import { toast } from 'sonner'
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes'
@@ -40,7 +41,7 @@ export function BackupList() {
       await deleteBackup(filename)
       refetch()
     } catch (err) {
-      alert('Error al eliminar el respaldo: ' + String(err))
+      toast.error('Error al eliminar el respaldo: ' + String(err))
     }
   }
 

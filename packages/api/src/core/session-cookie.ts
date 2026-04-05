@@ -1,8 +1,16 @@
 import type { FastifyReply } from 'fastify'
+import type { ServerResponse } from 'http'
 import type { AppConfig } from './config.js'
+
+function appendSetCookie(reply: FastifyReply, value: string): void {
+  ;(reply.raw as ServerResponse).appendHeader('Set-Cookie', value)
+}
 
 /** HttpOnly session cookie on the API host (Plan 1 / ADR-auth-token-storage). */
 export const AUTH_SESSION_COOKIE = 'ms_session'
+
+/** Opaque refresh token (PLAN-26); paired with short-lived access JWT in ms_session. */
+export const AUTH_REFRESH_COOKIE = 'ms_refresh'
 
 /**
  * Parse JWT expiry like 7d, 24h, 3600 (seconds if plain number).
@@ -23,20 +31,22 @@ export function jwtExpiresInToMaxAgeSeconds(expiresIn: string): number {
 }
 
 export function attachAuthSessionCookie(reply: FastifyReply, token: string, config: AppConfig): void {
-  const maxAge = jwtExpiresInToMaxAgeSeconds(config.JWT_EXPIRES_IN)
-  // Cross-origin SPAs (separate app vs API port/origin) require SameSite=None + Secure.
-  // Browsers allow Secure cookies on http://localhost for local dev.
+  const maxAge = jwtExpiresInToMaxAgeSeconds(config.JWT_ACCESS_EXPIRES_IN)
+  appendSetCookie(reply, cookieSegments(AUTH_SESSION_COOKIE, token, maxAge, config))
+}
+
+function cookieSegments(name: string, value: string, maxAge: number, config: AppConfig): string {
   const insecureDev =
     process.env.AUTH_SESSION_INSECURE === '1' && config.NODE_ENV !== 'production' && !process.env.VERCEL
   const segments = [
-    `${AUTH_SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    `${name}=${encodeURIComponent(value)}`,
     'Path=/',
     'HttpOnly',
     `Max-Age=${maxAge}`,
     insecureDev ? 'SameSite=Lax' : 'SameSite=None',
   ]
   if (!insecureDev) segments.push('Secure')
-  reply.header('Set-Cookie', segments.join('; '))
+  return segments.join('; ')
 }
 
 /** Clear httpOnly session on the API host. */
@@ -45,5 +55,40 @@ export function clearAuthSessionCookie(reply: FastifyReply, config: AppConfig): 
     process.env.AUTH_SESSION_INSECURE === '1' && config.NODE_ENV !== 'production' && !process.env.VERCEL
   const base = ['Path=/', 'HttpOnly', 'Max-Age=0', insecureDev ? 'SameSite=Lax' : 'SameSite=None']
   if (!insecureDev) base.push('Secure')
-  reply.header('Set-Cookie', `${AUTH_SESSION_COOKIE}=; ${base.join('; ')}`)
+  appendSetCookie(reply, `${AUTH_SESSION_COOKIE}=; ${base.join('; ')}`)
+}
+
+export function attachRefreshSessionCookie(reply: FastifyReply, refreshPlain: string, config: AppConfig): void {
+  const maxAge = jwtExpiresInToMaxAgeSeconds(config.REFRESH_TOKEN_EXPIRES_IN)
+  appendSetCookie(reply, cookieSegments(AUTH_REFRESH_COOKIE, refreshPlain, maxAge, config))
+}
+
+export function clearRefreshSessionCookie(reply: FastifyReply, config: AppConfig): void {
+  const insecureDev =
+    process.env.AUTH_SESSION_INSECURE === '1' && config.NODE_ENV !== 'production' && !process.env.VERCEL
+  const base = ['Path=/', 'HttpOnly', 'Max-Age=0', insecureDev ? 'SameSite=Lax' : 'SameSite=None']
+  if (!insecureDev) base.push('Secure')
+  appendSetCookie(reply, `${AUTH_REFRESH_COOKIE}=; ${base.join('; ')}`)
+}
+
+export function clearAllAuthCookies(reply: FastifyReply, config: AppConfig): void {
+  clearAuthSessionCookie(reply, config)
+  clearRefreshSessionCookie(reply, config)
+}
+
+/** Read raw refresh token from httpOnly cookie (if present). */
+export function getRefreshTokenFromCookieHeader(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader) return null
+  const prefix = `${AUTH_REFRESH_COOKIE}=`
+  for (const part of cookieHeader.split(';')) {
+    const p = part.trim()
+    if (p.startsWith(prefix)) {
+      try {
+        return decodeURIComponent(p.slice(prefix.length))
+      } catch {
+        return p.slice(prefix.length)
+      }
+    }
+  }
+  return null
 }

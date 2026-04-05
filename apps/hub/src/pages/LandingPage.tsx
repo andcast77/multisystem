@@ -4,71 +4,147 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
-import { ShoppingCart, Users, Wrench, Settings } from "lucide-react";
+import { ShoppingCart, Users, Wrench, LayoutDashboard, ArrowRight } from "lucide-react";
+
+const modules = [
+  {
+    title: "ShopFlow POS",
+    description: "Punto de venta completo con gestión de inventario, caja y reportes de ventas en tiempo real.",
+    icon: <ShoppingCart className="w-6 h-6" />,
+    features: ["Gestión de productos", "Punto de venta rápido", "Reportes de ventas"],
+    href: "http://localhost:3004",
+    accentColor: "text-violet-400",
+    accentBg: "bg-violet-500/10",
+  },
+  {
+    title: "Workify",
+    description: "Gestión completa de recursos humanos, turnos, asistencia y nómina.",
+    icon: <Users className="w-6 h-6" />,
+    features: ["Gestión de turnos", "Control de asistencia", "Nómina integrada"],
+    href: "http://localhost:3003",
+    accentColor: "text-sky-400",
+    accentBg: "bg-sky-500/10",
+  },
+  {
+    title: "Tech Services",
+    description: "Órdenes de servicio técnico, gestión de activos y visitas de campo.",
+    icon: <Wrench className="w-6 h-6" />,
+    features: ["Órdenes de trabajo", "Gestión de activos", "Visitas técnicas"],
+    href: "http://localhost:3004",
+    accentColor: "text-amber-400",
+    accentBg: "bg-amber-500/10",
+  },
+  {
+    title: "Hub Central",
+    description: "Panel de administración, gestión de empresas y configuración del sistema.",
+    icon: <LayoutDashboard className="w-6 h-6" />,
+    features: ["Gestión de empresas", "Panel de control", "Configuración global"],
+    href: "/dashboard",
+    accentColor: "text-slate-400",
+    accentBg: "bg-slate-500/10",
+  },
+];
 
 export function LandingPage() {
   return (
-    <>
-      <div className="min-h-screen flex flex-col">
-        <header className="border-b-2 border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              Multisystem
-            </Link>
-            <nav>
-              <AuthActions hasToken={false} />
-            </nav>
-          </div>
-        </header>
+    <div className="min-h-screen flex flex-col bg-[#0a0a0f]">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link to="/" className="text-xl font-black text-white tracking-tight">
+            Multisystem
+          </Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm text-white/40">
+            <a href="#modulos" className="hover:text-white transition-colors duration-150">
+              Módulos
+            </a>
+            <a href="#caracteristicas" className="hover:text-white transition-colors duration-150">
+              Características
+            </a>
+          </nav>
+          <AuthActions hasToken={false} />
+        </div>
+      </header>
 
-        <main className="flex-grow">
-          <Hero hasToken={false} />
+      <main className="flex-grow">
+        {/* Hero */}
+        <Hero hasToken={false} />
 
-          <FeaturesSection />
-
-          <section className="py-20 px-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
-                  Módulos integrados
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Una plataforma, múltiples soluciones para tu negocio
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <ModuleCard
-                  title="ShopFlow POS"
-                  description="Punto de venta y gestión de inventario"
-                  icon={<ShoppingCart className="w-8 h-8 text-violet-600" />}
-                  href="http://localhost:3004"
-                />
-                <ModuleCard
-                  title="Workify"
-                  description="Gestión de recursos humanos"
-                  icon={<Users className="w-8 h-8 text-blue-600" />}
-                  href="http://localhost:3003"
-                />
-                <ModuleCard
-                  title="Tech Services"
-                  description="Órdenes de servicio técnico"
-                  icon={<Wrench className="w-8 h-8 text-amber-600" />}
-                  href="http://localhost:3004"
-                />
-                <ModuleCard
-                  title="Hub"
-                  description="Panel y empresas"
-                  icon={<Settings className="w-8 h-8 text-slate-600" />}
-                  href="/dashboard"
-                />
-              </div>
+        {/* Modules section */}
+        <section id="modulos" className="py-24 px-4 bg-[#0a0a0f] relative">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="text-xs text-indigo-400 uppercase tracking-[0.2em] font-semibold mb-4 block">
+                Plataforma modular
+              </span>
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+                Módulos integrados
+              </h2>
+              <p className="text-white/40 text-lg max-w-xl mx-auto">
+                Una plataforma, múltiples soluciones para tu negocio
+              </p>
             </div>
-          </section>
-        </main>
 
-        <Footer />
-      </div>
-    </>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {modules.map((mod) => (
+                <ModuleCard
+                  key={mod.title}
+                  title={mod.title}
+                  description={mod.description}
+                  icon={mod.icon}
+                  features={mod.features}
+                  href={mod.href}
+                  accentColor={mod.accentColor}
+                  accentBg={mod.accentBg}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section id="caracteristicas">
+          <FeaturesSection />
+        </section>
+
+        {/* Bottom CTA band */}
+        <section className="py-24 px-4 bg-[#0a0a0f] relative">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          {/* Glow */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[600px] h-[300px] bg-indigo-600/10 rounded-full blur-[100px]" />
+          </div>
+
+          <div className="relative max-w-3xl mx-auto text-center">
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight leading-tight">
+              Lleva tu negocio al{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #6366f1 100%)",
+                }}
+              >
+                siguiente nivel
+              </span>
+            </h2>
+            <p className="text-white/40 text-lg mb-10 max-w-xl mx-auto">
+              Únete a más de 500 empresas que ya gestionan sus operaciones con
+              Multisystem.
+            </p>
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-10 py-4 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 text-base"
+            >
+              Registrar empresa gratis
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
   );
 }

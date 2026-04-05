@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@multisystem/ui'
 import { HardDrive, Loader2 } from 'lucide-react'
 import { createBackup } from '@/lib/services/backupApiService'
+import { toast } from 'sonner'
 
 export function CreateBackupButton() {
   const [isCreating, setIsCreating] = useState(false)
@@ -17,9 +18,9 @@ export function CreateBackupButton() {
       setIsCreating(true)
       await createBackup()
       await queryClient.invalidateQueries({ queryKey: ['backups'] })
-      alert('Respaldo creado exitosamente')
+      toast.success('Respaldo creado exitosamente')
     } catch (err) {
-      alert('Error al crear respaldo: ' + (err instanceof Error ? err.message : String(err)))
+      toast.error('Error al crear respaldo: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsCreating(false)
     }

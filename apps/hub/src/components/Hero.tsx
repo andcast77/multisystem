@@ -1,7 +1,5 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@multisystem/ui";
-import { ArrowRight, Zap, Shield, BarChart3 } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
 
 type HeroProps = {
   hasToken: boolean;
@@ -9,64 +7,90 @@ type HeroProps = {
 
 export function Hero({ hasToken }: HeroProps) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-primary/90 text-primary-foreground py-24 px-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-foreground/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-foreground/10 rounded-full blur-3xl"></div>
-      </div>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0a0a0f] px-4">
+      {/* Animated background grid */}
+      <div
+        className="absolute inset-0 opacity-20"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(99,102,241,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.15) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+        }}
+      />
 
-      <div className="relative max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur px-4 py-2 rounded-full mb-6">
-          <Zap className="w-4 h-4" />
-          <span className="text-sm font-medium">Solución integral para tu negocio</span>
+      {/* Glow blobs */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-violet-600/15 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none" />
+
+      <div className="relative z-10 max-w-5xl mx-auto text-center">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur px-4 py-2 rounded-full mb-8 text-sm text-indigo-300 font-medium">
+          <Zap className="w-3.5 h-3.5" />
+          Plataforma empresarial integrada
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-          Gestión de negocio
-          <br />
-          <span className="bg-gradient-to-r from-primary-foreground via-primary-foreground/80 to-primary-foreground/60 bg-clip-text text-transparent">
-            todo en un lugar
+        {/* Headline */}
+        <h1 className="text-6xl md:text-8xl font-black mb-6 leading-[1.05] tracking-tight text-white">
+          Gestiona tu negocio{" "}
+          <span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage:
+                "linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #6366f1 100%)",
+            }}
+          >
+            sin límites
           </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto leading-relaxed">
-          Multisystem es la plataforma unificada que centraliza tu punto de venta, 
-          gestión de empleados y servicios técnicos. Simplifica operaciones, aumenta eficiencia 
-          y toma mejores decisiones con datos en tiempo real.
+        {/* Subheading */}
+        <p className="text-lg md:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
+          Multisystem centraliza tu punto de venta, recursos humanos y servicios
+          técnicos en una sola plataforma. Decisiones más rápidas, operaciones
+          más simples.
         </p>
 
-        <div className="flex gap-4 justify-center flex-wrap mb-12">
-          {!hasToken && (
-            <>
-              <Link to="/login" className="inline-block">
-                <Button variant="default" size="lg" className="gap-2 bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-                  Iniciar sesión
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-              <Link to="/register" className="inline-block">
-                <Button variant="outline" size="lg" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10">
-                  Registrar empresa
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
+        {/* CTAs */}
+        {!hasToken && (
+          <div className="flex items-center justify-center gap-4 flex-wrap mb-20">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-3.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
+            >
+              Registrar empresa
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold px-8 py-3.5 rounded-xl transition-all duration-200"
+            >
+              Iniciar sesión
+            </Link>
+          </div>
+        )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-6 mt-12 pt-12 border-t border-primary-foreground/20">
-          <div>
-            <div className="text-3xl font-bold">500+</div>
-            <div className="text-sm text-primary-foreground/70">Empresas activas</div>
+        {/* Stats strip */}
+        <div className="flex items-center justify-center gap-12 flex-wrap pt-8 border-t border-white/5">
+          <div className="text-center">
+            <div className="text-3xl font-black text-white mb-1">500+</div>
+            <div className="text-xs text-white/40 uppercase tracking-widest font-medium">
+              Empresas activas
+            </div>
           </div>
-          <div>
-            <div className="text-3xl font-bold">50k+</div>
-            <div className="text-sm text-primary-foreground/70">Usuarios</div>
+          <div className="w-px h-10 bg-white/10 hidden md:block" />
+          <div className="text-center">
+            <div className="text-3xl font-black text-white mb-1">50k+</div>
+            <div className="text-xs text-white/40 uppercase tracking-widest font-medium">
+              Usuarios
+            </div>
           </div>
-          <div>
-            <div className="text-3xl font-bold">99.9%</div>
-            <div className="text-sm text-primary-foreground/70">Uptime</div>
+          <div className="w-px h-10 bg-white/10 hidden md:block" />
+          <div className="text-center">
+            <div className="text-3xl font-black text-white mb-1">99.9%</div>
+            <div className="text-xs text-white/40 uppercase tracking-widest font-medium">
+              Uptime garantizado
+            </div>
           </div>
         </div>
       </div>
