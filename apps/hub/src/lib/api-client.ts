@@ -47,6 +47,12 @@ export const authApi = {
   login: (email: string, password: string, companyId?: string) =>
     client.post<ApiResponse<LoginResponse>>("/v1/auth/login", { email, password, companyId }),
 
+  verifyMfa: (tempToken: string, totpCode: string, companyId?: string) =>
+    client.post<ApiResponse<LoginResponse>>("/v1/auth/mfa/verify", { tempToken, totpCode, companyId }),
+
+  verifyMfaBackup: (tempToken: string, backupCode: string, companyId?: string) =>
+    client.post<ApiResponse<LoginResponse>>("/v1/auth/mfa/verify-backup", { tempToken, backupCode, companyId }),
+
   register: (data: {
     email: string;
     password: string;
@@ -99,6 +105,34 @@ export const accountApi = {
 
   deleteMyData: () =>
     client.delete<{ success: boolean; message?: string }>("/v1/account/my-data"),
+
+  mfaSetup: () =>
+    client.post<{ success: boolean; data?: { otpauthUrl: string; qrDataUrl: string }; error?: string }>(
+      "/v1/account/mfa/setup",
+      {}
+    ),
+
+  mfaConfirm: (totpCode: string) =>
+    client.post<{ success: boolean; data?: { backupCodes: string[] }; error?: string }>(
+      "/v1/account/mfa/confirm",
+      { totpCode }
+    ),
+
+  mfaDisable: (body: { totpCode?: string; backupCode?: string }) =>
+    client.delete<{ success: boolean; data?: { disabled: boolean }; error?: string }>("/v1/account/mfa", body),
+
+  mfaBackupCodes: () =>
+    client.get<{
+      success: boolean;
+      data?: { codes: { id: string; createdAt: string; usedAt: string | null }[] };
+      error?: string;
+    }>("/v1/account/mfa/backup-codes"),
+
+  mfaRegenerateBackup: (totpCode: string) =>
+    client.post<{ success: boolean; data?: { backupCodes: string[] }; error?: string }>(
+      "/v1/account/mfa/backup-codes/regenerate",
+      { totpCode }
+    ),
 };
 
 export type AuditLogUser = {

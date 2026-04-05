@@ -12,6 +12,9 @@ export type LoginResponse = {
   companyId?: string
   company?: CompanyRow
   companies?: CompanyRow[]
+  /** When true, password was OK but MFA is required — use tempToken with /v1/auth/mfa/verify. */
+  mfaRequired?: boolean
+  tempToken?: string
 }
 
 export type RegisterResponse = {
@@ -39,6 +42,7 @@ export type MeResponse = {
   preferredCompanyId?: string
   membershipRole?: string
   isSuperuser?: boolean
+  twoFactorEnabled?: boolean
   company?: {
     id: string
     name: string

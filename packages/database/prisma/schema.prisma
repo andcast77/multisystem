@@ -258,8 +258,23 @@ model User {
   userStores        UserStore[]
   pushSubscriptions PushSubscription[]
   sessions         Session[]
+  mfaBackupCodes   MfaBackupCode[]
 
   @@map("users")
+}
+
+/// One-time recovery codes for TOTP MFA (hashed at rest).
+model MfaBackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_backup_codes")
 }
 
 model Session {

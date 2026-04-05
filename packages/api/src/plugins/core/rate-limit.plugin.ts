@@ -32,5 +32,15 @@ export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
 
     await authController.registerPublicAuthRoutes(f)
   })
+
+  await fastify.register(async function mfaVerifyScope(f) {
+    await f.register(rateLimit, {
+      max: 5,
+      timeWindow: '15 minutes',
+      name: 'ms-auth-mfa-verify',
+    } as Parameters<typeof f.register>[1])
+
+    await authController.registerMfaAuthRoutes(f)
+  })
 }
 

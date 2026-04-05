@@ -11,6 +11,8 @@ import {
   terminateOthersSessionsSchema,
   validateSessionQuerySchema,
   listSessionsQuerySchema,
+  mfaVerifyTotpSchema,
+  mfaVerifyBackupSchema,
 } from '../../dto/auth.dto.js'
 import { ok } from '../../common/api-response.js'
 import * as authService from '../../services/auth.service.js'
@@ -19,6 +21,8 @@ import { getConfig } from '../../core/config.js'
 import { apiOkEnvelope200 } from '../../common/fastify-response-schemas.js'
 import { assertSelfOrSuperuser } from '../../policies/company-authorization.policy.js'
 import { writeAuditLog } from '../../services/audit-log.service.js'
+import { verifyMfaPendingToken } from '../../core/auth.js'
+import { UnauthorizedError } from '../../common/errors/app-error.js'
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const body = validateBody(loginBodySchema, request.body)
@@ -33,6 +37,17 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
       writeAuditLog({ companyId: body.companyId, action: 'LOGIN_FAILED', entityType: 'auth', ipAddress: ip, userAgent: ua })
     }
     throw err
+  }
+
+  if ('mfaRequired' in result && result.mfaRequired) {
+    return ok({
+      mfaRequired: true,
+      tempToken: result.tempToken,
+      user: result.user,
+      companyId: result.companyId,
+      company: result.company,
+      companies: result.companies,
+    })
   }
 
   if (result.companyId) {
@@ -50,6 +65,105 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
   const { token, ...data } = result
   attachAuthSessionCookie(reply, token, getConfig())
   return ok(data)
+}
+
+function auditMfaFailure(companyId: string | undefined, userId: string | undefined, ip: string, ua: string | null) {
+  if (!companyId || !userId) return
+  writeAuditLog({
+    companyId,
+    userId,
+    action: 'MFA_FAILED',
+    entityType: 'auth',
+    entityId: userId,
+    ipAddress: ip,
+    userAgent: ua,
+  })
+}
+
+export async function verifyMfaTotp(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(mfaVerifyTotpSchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+  const pending = verifyMfaPendingToken(body.tempToken)
+
+  try {
+    const { login } = await authService.completeMfaLogin({
+      tempToken: body.tempToken,
+      companyId: body.companyId,
+      totpCode: body.totpCode,
+    })
+    if (login.companyId) {
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'MFA_VERIFIED',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'LOGIN_SUCCESS',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+    }
+    const { token, ...data } = login
+    attachAuthSessionCookie(reply, token, getConfig())
+    return ok(data)
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      auditMfaFailure(body.companyId, pending?.userId, ip, ua)
+    }
+    throw err
+  }
+}
+
+export async function verifyMfaBackup(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(mfaVerifyBackupSchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+  const pending = verifyMfaPendingToken(body.tempToken)
+
+  try {
+    const { login } = await authService.completeMfaLogin({
+      tempToken: body.tempToken,
+      companyId: body.companyId,
+      backupCode: body.backupCode,
+    })
+    if (login.companyId) {
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'MFA_BACKUP_USED',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+      writeAuditLog({
+        companyId: login.companyId,
+        userId: login.user.id,
+        action: 'LOGIN_SUCCESS',
+        entityType: 'auth',
+        entityId: login.user.id,
+        ipAddress: ip,
+        userAgent: ua,
+      })
+    }
+    const { token, ...data } = login
+    attachAuthSessionCookie(reply, token, getConfig())
+    return ok(data)
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      auditMfaFailure(body.companyId, pending?.userId, ip, ua)
+    }
+    throw err
+  }
 }
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
@@ -160,6 +274,16 @@ const authSuccessResponseSchema = {
     200: apiOkEnvelope200,
   },
 } as const
+
+/** MFA verify routes — registered under stricter rate limit (see rate-limit.plugin). */
+export async function registerMfaAuthRoutes(fastify: FastifyInstance) {
+  fastify.post('/v1/auth/mfa/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
+    verifyMfaTotp(request, reply)
+  )
+  fastify.post('/v1/auth/mfa/verify-backup', { schema: authSuccessResponseSchema }, (request, reply) =>
+    verifyMfaBackup(request, reply)
+  )
+}
 
 /** Login, register, verify — own rate-limit bucket (see server.ts). */
 export async function registerPublicAuthRoutes(fastify: FastifyInstance) {

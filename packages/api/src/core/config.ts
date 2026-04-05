@@ -11,6 +11,8 @@ export type AppConfig = {
   JWT_EXPIRES_IN: string
   TRUST_PROXY: string
   FIELD_ENCRYPTION_KEY: string
+  /** Issuer label in authenticator apps (otpauth URI). */
+  MFA_TOTP_ISSUER: string
 }
 
 /**
@@ -39,5 +41,6 @@ export function getConfig(): AppConfig {
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
     TRUST_PROXY: process.env.TRUST_PROXY ?? '',
     FIELD_ENCRYPTION_KEY: process.env.FIELD_ENCRYPTION_KEY ?? '',
+    MFA_TOTP_ISSUER: process.env.MFA_TOTP_ISSUER ?? 'Multisystem',
   }
 }

@@ -189,6 +189,7 @@ export async function createPart(ctx: CompanyContext, workOrderId: string, body:
 
   const row = await prisma.workOrderPart.create({
     data: {
+      companyId: ctx.companyId,
       workOrderId,
       name: body.name.trim(),
       quantity: body.quantity ?? 1,

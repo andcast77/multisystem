@@ -1,5 +1,5 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
@@ -33,6 +33,13 @@ export function LoginPage() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [resendHint, setResendHint] = useState<string | null>(null);
+
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
+  const [mfaCompanyId, setMfaCompanyId] = useState<string | undefined>(undefined);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaUseBackup, setMfaUseBackup] = useState(false);
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
 
   const {
     register,
@@ -68,6 +75,16 @@ export function LoginPage() {
         return;
       }
 
+      if (res.data.mfaRequired && res.data.tempToken) {
+        setMfaStep(true);
+        setMfaTempToken(res.data.tempToken);
+        setMfaCompanyId(res.data.companyId);
+        setMfaCode("");
+        setMfaUseBackup(false);
+        setErrorMessage("");
+        return;
+      }
+
       navigate(nextPath ?? "/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Login error:", err);
@@ -80,6 +97,31 @@ export function LoginPage() {
       } else {
         setErrorMessage(err?.message || "Error al iniciar sesión. Verifica tus credenciales.");
       }
+    }
+  }
+
+  async function onSubmitMfa(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaTempToken || !mfaCode.trim()) {
+      setErrorMessage("Introduce el código.");
+      return;
+    }
+    setMfaSubmitting(true);
+    setErrorMessage("");
+    try {
+      const res = mfaUseBackup
+        ? await authApi.verifyMfaBackup(mfaTempToken, mfaCode.trim(), mfaCompanyId)
+        : await authApi.verifyMfa(mfaTempToken, mfaCode.trim(), mfaCompanyId);
+      if (!res.success || !res.data) {
+        setErrorMessage(res.error || "Código inválido.");
+        return;
+      }
+      navigate(nextPath ?? "/dashboard", { replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Código inválido.";
+      setErrorMessage(msg);
+    } finally {
+      setMfaSubmitting(false);
     }
   }
 
@@ -117,10 +159,71 @@ export function LoginPage() {
       {/* Login Form Card */}
       <Card className="border-white/60 bg-white/85 shadow-2xl backdrop-blur">
         <CardHeader>
-          <CardTitle>Iniciar sesión</CardTitle>
-          <CardDescription>Introduce tus credenciales</CardDescription>
+          <CardTitle>{mfaStep ? "Verificación en dos pasos" : "Iniciar sesión"}</CardTitle>
+          <CardDescription>
+            {mfaStep
+              ? mfaUseBackup
+                ? "Introduce un código de respaldo de un solo uso."
+                : "Introduce el código de tu app autenticadora."
+              : "Introduce tus credenciales"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {mfaStep ? (
+            <form onSubmit={onSubmitMfa} className="space-y-4">
+              {errorMessage ? (
+                <div className="p-3 rounded-lg border bg-red-50 border-red-200">
+                  <p className="text-sm text-red-700">{errorMessage}</p>
+                </div>
+              ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="mfa-code">{mfaUseBackup ? "Código de respaldo" : "Código TOTP"}</Label>
+                <Input
+                  id="mfa-code"
+                  type="text"
+                  inputMode={mfaUseBackup ? "text" : "numeric"}
+                  autoComplete="one-time-code"
+                  placeholder={mfaUseBackup ? "XXXX-XXXX-XXXX" : "000000"}
+                  value={mfaCode}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value)}
+                  className="rounded-md"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="link"
+                className="text-sm p-0 h-auto text-indigo-600"
+                onClick={() => {
+                  setMfaUseBackup(!mfaUseBackup);
+                  setMfaCode("");
+                  setErrorMessage("");
+                }}
+              >
+                {mfaUseBackup ? "Usar código de la app autenticadora" : "Usar código de respaldo"}
+              </Button>
+              <Button
+                type="submit"
+                disabled={mfaSubmitting}
+                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-medium py-2 rounded-md transition-all"
+              >
+                {mfaSubmitting ? "Verificando…" : "Continuar"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setMfaStep(false);
+                  setMfaTempToken(null);
+                  setMfaCode("");
+                  setErrorMessage("");
+                }}
+              >
+                Volver
+              </Button>
+            </form>
+          ) : null}
+          {!mfaStep ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Error Message */}
             {errorMessage && (
@@ -215,8 +318,10 @@ export function LoginPage() {
               {isSubmitting ? "Iniciando sesión…" : "Iniciar sesión"}
             </Button>
           </form>
+          ) : null}
 
           {/* Links */}
+          {!mfaStep ? (
           <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-slate-600">
               ¿No tienes cuenta?{" "}
@@ -230,6 +335,7 @@ export function LoginPage() {
               </Link>
             </p>
           </div>
+          ) : null}
         </CardContent>
       </Card>
     </AuthLayout>

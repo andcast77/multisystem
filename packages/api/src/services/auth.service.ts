@@ -1,20 +1,41 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../db/index.js'
-import { generateToken, verifyToken, type TokenPayload } from '../core/auth.js'
+import {
+  generateToken,
+  generateMfaPendingToken,
+  verifyMfaPendingToken,
+  verifyToken,
+  type TokenPayload,
+} from '../core/auth.js'
 import { getUserCompanies, selectCompanyForUser } from '../core/auth-context.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
 import type { CompanyRow } from '../core/auth-context.js'
 import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../common/errors/app-error.js'
 import { assertSelfOrSuperuser, resolveCompanyAccess } from '../policies/company-authorization.policy.js'
+import {
+  decryptTotpSecret,
+  verifyTotp,
+  verifyBackupCodeAndConsume,
+} from './mfa.service.js'
 
-export type LoginResult = {
-  user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
-  token: string
-  companyId?: string
-  company?: CompanyRow
-  companies?: CompanyRow[]
-}
+export type LoginResult =
+  | {
+      mfaRequired: true
+      tempToken: string
+      user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
+      companyId?: string
+      company?: CompanyRow
+      companies?: CompanyRow[]
+    }
+  | {
+      mfaRequired?: false
+      user: { id: string; email: string; name: string; role: string; isSuperuser: boolean }
+      token: string
+      companyId?: string
+      company?: CompanyRow
+      companies?: CompanyRow[]
+    }
 
 export type RegisterResult = {
   user: { id: string; email: string; name: string; role: string; companyId?: string }
@@ -32,6 +53,7 @@ export type MeResult = {
   preferredCompanyId?: string
   membershipRole?: string
   isSuperuser?: boolean
+  twoFactorEnabled?: boolean
   company?: { id: string; name: string; modules: { workify: boolean; shopflow: boolean; techservices: boolean } }
 }
 
@@ -50,6 +72,7 @@ export async function login(body: LoginBody): Promise<LoginResult> {
       firstName: true,
       lastName: true,
       shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
     },
   })
 
@@ -65,6 +88,31 @@ export async function login(body: LoginBody): Promise<LoginResult> {
   const selectedCompany = selected?.selectedCompany ?? null
   const selectedMembershipRole = selected?.selectedMembershipRole ?? null
 
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
+
+  if (user.twoFactorEnabled) {
+    const tempToken = generateMfaPendingToken(user.id)
+    const mfaResult: LoginResult = {
+      mfaRequired: true,
+      tempToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name,
+        role: user.role,
+        isSuperuser: user.isSuperuser ?? false,
+      },
+    }
+    if (selectedCompany) {
+      mfaResult.companyId = selectedCompany.id
+      mfaResult.company = selectedCompany
+    }
+    if (companies.length > 1 || user.isSuperuser) {
+      mfaResult.companies = companies
+    }
+    return mfaResult
+  }
+
   const tokenPayload: TokenPayload = {
     id: user.id,
     email: user.email,
@@ -76,8 +124,6 @@ export async function login(body: LoginBody): Promise<LoginResult> {
     if (selectedMembershipRole) tokenPayload.membershipRole = selectedMembershipRole
   }
   const token = generateToken(tokenPayload)
-
-  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
 
   const result: LoginResult = {
     user: {
@@ -98,6 +144,111 @@ export async function login(body: LoginBody): Promise<LoginResult> {
   }
 
   return result
+}
+
+export type MfaVerifyBody = {
+  tempToken: string
+  companyId?: string
+  totpCode?: string
+  backupCode?: string
+}
+
+export type CompleteMfaLoginResult = {
+  login: Extract<LoginResult, { token: string }>
+  mfaUsedBackup: boolean
+}
+
+/**
+ * Completes login after MFA: validates pending JWT and TOTP or backup code, returns full session (with token).
+ */
+export async function completeMfaLogin(body: MfaVerifyBody): Promise<CompleteMfaLoginResult> {
+  const pending = verifyMfaPendingToken(body.tempToken)
+  if (!pending) throw new UnauthorizedError('Sesión MFA inválida o expirada')
+
+  const totp = body.totpCode?.trim()
+  const backup = body.backupCode?.trim()
+  if (!totp && !backup) throw new BadRequestError('Código TOTP o código de respaldo requerido')
+  if (totp && backup) throw new BadRequestError('Envía solo un tipo de código')
+
+  const user = await prisma.user.findUnique({
+    where: { id: pending.userId },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      role: true,
+      isActive: true,
+      isSuperuser: true,
+      firstName: true,
+      lastName: true,
+      shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
+      twoFactorSecret: true,
+    },
+  })
+
+  if (!user) throw new UnauthorizedError('Credenciales inválidas')
+  if (!user.isActive) throw new UnauthorizedError('Usuario inactivo')
+  if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+    throw new BadRequestError('MFA no está activo para esta cuenta')
+  }
+
+  let secondFactorOk = false
+  let usedBackup = false
+
+  if (totp) {
+    try {
+      const rawSecret = decryptTotpSecret(user.twoFactorSecret)
+      secondFactorOk = verifyTotp(rawSecret, totp)
+    } catch {
+      secondFactorOk = false
+    }
+  } else if (backup) {
+    secondFactorOk = await verifyBackupCodeAndConsume(user.id, backup)
+    usedBackup = secondFactorOk
+  }
+
+  if (!secondFactorOk) throw new UnauthorizedError('Código inválido')
+
+  const companies = await getUserCompanies(user.id, user.isSuperuser ?? false)
+  const preferredCompanyId = body.companyId ?? user.shopflowPreferredCompanyId ?? undefined
+  const selected = selectCompanyForUser(companies, preferredCompanyId)
+  const selectedCompany = selected?.selectedCompany ?? null
+  const selectedMembershipRole = selected?.selectedMembershipRole ?? null
+
+  const tokenPayload: TokenPayload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    isSuperuser: user.isSuperuser ?? false,
+  }
+  if (selectedCompany) {
+    tokenPayload.companyId = selectedCompany.id
+    if (selectedMembershipRole) tokenPayload.membershipRole = selectedMembershipRole
+  }
+  const token = generateToken(tokenPayload)
+
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
+
+  const result: Extract<LoginResult, { token: string }> = {
+    user: {
+      id: user.id,
+      email: user.email,
+      name,
+      role: user.role,
+      isSuperuser: user.isSuperuser ?? false,
+    },
+    token,
+  }
+  if (selectedCompany) {
+    result.companyId = selectedCompany.id
+    result.company = selectedCompany
+  }
+  if (companies.length > 1 || user.isSuperuser) {
+    result.companies = companies
+  }
+
+  return { login: result, mfaUsedBackup: usedBackup }
 }
 
 export async function register(body: RegisterBody): Promise<RegisterResult> {
@@ -234,6 +385,7 @@ export async function me(decoded: TokenPayload): Promise<MeResult> {
       firstName: true,
       lastName: true,
       shopflowPreferredCompanyId: true,
+      twoFactorEnabled: true,
     },
   })
 
@@ -290,6 +442,7 @@ export async function me(decoded: TokenPayload): Promise<MeResult> {
     preferredCompanyId: preferredCompanyId ?? undefined,
     membershipRole: decoded.membershipRole,
     isSuperuser: decoded.isSuperuser,
+    twoFactorEnabled: user.twoFactorEnabled,
     company: company ?? undefined,
   }
 }

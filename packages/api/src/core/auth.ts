@@ -38,10 +38,51 @@ export function userDisplayName(user: {
   return user.email;
 }
 
+const MFA_PENDING_TYP = 'mfa_pending' as const
+
+export type MfaPendingVerifyResult = { userId: string }
+
+/**
+ * Short-lived JWT after password OK when MFA is required. Not accepted by `verifyToken` / `requireAuth`.
+ */
+export function generateMfaPendingToken(userId: string): string {
+  const { secret } = getJwtConfig()
+  return jwt.sign({ typ: MFA_PENDING_TYP, sub: userId }, secret, { expiresIn: '5m' })
+}
+
+export function verifyMfaPendingToken(token: string): MfaPendingVerifyResult | null {
+  try {
+    const { secret } = getJwtConfig()
+    const decoded = jwt.verify(token, secret) as jwt.JwtPayload & { typ?: string; sub?: string }
+    if (decoded.typ !== MFA_PENDING_TYP || typeof decoded.sub !== 'string' || !decoded.sub) {
+      return null
+    }
+    return { userId: decoded.sub }
+  } catch {
+    return null
+  }
+}
+
 export function verifyToken(token: string): TokenPayload | null {
   try {
     const { secret } = getJwtConfig()
-    return jwt.verify(token, secret) as TokenPayload
+    const decoded = jwt.verify(token, secret) as jwt.JwtPayload & {
+      typ?: string
+      id?: string
+      email?: string
+      role?: string
+      companyId?: string
+      isSuperuser?: boolean
+      membershipRole?: string
+    }
+    if (decoded.typ === MFA_PENDING_TYP) return null
+    const { id, email, role } = decoded
+    if (typeof id !== 'string' || typeof email !== 'string' || typeof role !== 'string') return null
+    const payload: TokenPayload = { id, email, role }
+    if (typeof decoded.companyId === 'string') payload.companyId = decoded.companyId
+    if (typeof decoded.isSuperuser === 'boolean') payload.isSuperuser = decoded.isSuperuser
+    if (typeof decoded.membershipRole === 'string') payload.membershipRole = decoded.membershipRole
+    return payload
   } catch {
     return null
   }
