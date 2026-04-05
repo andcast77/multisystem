@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Button, InputField } from '@multisystem/ui';
+import { AuthLayout, Button, InputField } from '@multisystem/ui';
 import { authApi } from '@/lib/api/client';
+
+const workifyRegisterPanel = (
+  <>
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
+      Workify
+    </div>
+    <h2 className="text-4xl font-bold text-white mb-4">Tu equipo, en orden</h2>
+    <p className="text-white/80 text-lg leading-relaxed">Registro con la misma identidad visual que Multisystem Hub.</p>
+  </>
+);
+
 
 // Función para generar token CSRF
 function generateCSRFToken(): string {
@@ -188,9 +199,8 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md sm:max-w-lg">
-        <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
+    <AuthLayout variant="brand" contentClassName="max-w-lg" panel={workifyRegisterPanel}>
+        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 sm:p-8 text-white">
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h1>
             <p className="text-sm sm:text-base text-gray-600">Registra tu empresa</p>
@@ -287,8 +297,7 @@ export default function RegisterForm() {
           <div className="mt-6 sm:mt-8 text-center">
             <p className="text-xs text-gray-500">© 2024 Workify</p>
           </div>
-        </div>
-      </div>
-    </div>
+                </div>
+      </AuthLayout>
   );
 } 

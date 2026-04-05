@@ -19,7 +19,7 @@
     "./dist/index.css"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && vite build",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "dev": "vite build --watch",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",

@@ -52,9 +52,9 @@ export function AttendanceTrendChart({ weeklyAttendance, departmentAttendance }:
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(value: number | undefined, name: string) => [
+                formatter={(value: number | undefined, name: string | undefined) => [
                   value ?? 0,
-                  name === 'present' ? 'Presente' : 'Programado',
+                  (name === 'present' ? 'Presente' : 'Programado'),
                 ]}
               />
               <Legend formatter={(v) => (v === 'present' ? 'Presente' : 'Programado')} />
@@ -73,9 +73,9 @@ export function AttendanceTrendChart({ weeklyAttendance, departmentAttendance }:
               <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={48} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(value: number | undefined, name: string) => [
+                formatter={(value: number | undefined, name: string | undefined) => [
                   value ?? 0,
-                  name === 'present' ? 'Presente' : 'Programado',
+                  (name === 'present' ? 'Presente' : 'Programado'),
                 ]}
               />
               <Legend formatter={(v) => (v === 'present' ? 'Presente' : 'Programado')} />

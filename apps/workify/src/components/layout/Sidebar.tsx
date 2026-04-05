@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserWithRelations } from '@/types';
 import { authApi, workifyApi } from '@/lib/api/client';
@@ -128,6 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_45%)] bg-gray-50 flex overflow-x-hidden">
       <SidebarComponent
+        navigation={{ Link, usePathname }}
         navGroups={navGroups}
         user={sidebarUser}
         branding={{
