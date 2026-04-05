@@ -232,6 +232,10 @@ model User {
   shopflowPreferredCompanyId String?
   /// Timestamp de aceptación explícita de la política de privacidad (GDPR Art. 7 / LFPDPPP).
   privacyAcceptedAt DateTime?
+  /// Intentos fallidos de contraseña consecutivos (PLAN-26 lockout).
+  failedLoginAttempts Int      @default(0)
+  /// Cuenta bloqueada hasta este instante (null = no bloqueada).
+  lockedUntil         DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -280,11 +284,19 @@ model MfaBackupCode {
 model Session {
   id           String    @id @default(uuid())
   userId       String
+  /// Hash SHA-256 del refresh opaco (web) o token legado (p. ej. JWT en Shopflow).
   sessionToken String    @unique
   ipAddress    String?
   userAgent    String?
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
+  /// Última actividad autenticada (actualización acotada en `requireAuth`).
+  lastSeenAt   DateTime?
+  /// Último `jti` del access JWT asociado a esta sesión (revocación / blacklist).
+  accessJti    String?
+  /// Contexto de empresa rehidratado en refresh (no sustituye validación en cada request).
+  companyId         String?
+  membershipRole    String?
 
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -833,7 +845,8 @@ model Document {
 
 model AuditLog {
   id          String   @id @default(uuid())
-  companyId   String
+  /// Null for platform-wide security events (e.g. failed login with no resolved tenant).
+  companyId   String?
   userId      String?
   action      String
   entityType  String
@@ -845,7 +858,7 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   // Relaciones
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([companyId, createdAt(sort: Desc)])

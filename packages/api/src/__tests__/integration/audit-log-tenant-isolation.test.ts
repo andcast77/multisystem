@@ -433,7 +433,8 @@ describe('PLAN-19 Audit Log Integration', () => {
       })
       expect(log).not.toBeNull()
       expect(log!.entityType).toBe('auth')
-      expect(log!.userId).toBeNull()
+      // Known user + wrong password: audit includes userId (PLAN-26 security logging).
+      expect(log!.userId).toBe(acmeOwnerId)
     })
 
     it('user create via HTTP writes USER_CREATED audit log', async () => {

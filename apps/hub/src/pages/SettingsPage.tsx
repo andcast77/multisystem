@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUser } from "@/hooks/useUser";
 import { useCompany } from "@/hooks/useCompany";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AppBreadcrumb,
   Button,
@@ -24,11 +24,11 @@ import {
   Alert,
 } from "@multisystem/ui";
 import { updateCompanySchema, companyFiscalSchema, type UpdateCompanyInput, type CompanyFiscalInput } from "@/lib/validations/company";
-import { companyApi } from "@/lib/api-client";
+import { companyApi, sessionsApi } from "@/lib/api-client";
 import { DeleteCompanyDialog } from "@/components/features/DeleteCompanyDialog";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
-const SETTINGS_TABS = ["general", "modules", "fiscal", "preferences"] as const;
+const SETTINGS_TABS = ["general", "modules", "fiscal", "preferences", "security"] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const TAB_LABELS: Record<SettingsTab, string> = {
@@ -36,6 +36,7 @@ const TAB_LABELS: Record<SettingsTab, string> = {
   modules: "Módulos",
   fiscal: "Datos fiscales",
   preferences: "Preferencias",
+  security: "Seguridad",
 };
 
 export function SettingsPage() {
@@ -104,6 +105,46 @@ export function SettingsPage() {
       setErrorMessage(error.message || "Error al actualizar los datos");
     }
   };
+
+  const sessionsQuery = useQuery({
+    queryKey: ["auth-sessions"],
+    queryFn: async () => {
+      const res = await sessionsApi.list();
+      if (!res.success || !res.data) {
+        throw new Error(res.error || "No se pudieron cargar las sesiones");
+      }
+      return res.data;
+    },
+    enabled: searchParams.get("tab") === "security",
+  });
+
+  const revokeSessionMutation = useMutation({
+    mutationFn: (sessionId: string) => sessionsApi.revoke(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth-sessions"] });
+      setErrorMessage("");
+      setSuccessMessage("Sesión cerrada");
+      setTimeout(() => setSuccessMessage(""), 4000);
+    },
+    onError: (e: unknown) => {
+      setSuccessMessage("");
+      setErrorMessage(e instanceof Error ? e.message : "Error al cerrar la sesión");
+    },
+  });
+
+  const revokeOthersMutation = useMutation({
+    mutationFn: () => sessionsApi.revokeOthers(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth-sessions"] });
+      setErrorMessage("");
+      setSuccessMessage("Se cerraron las demás sesiones");
+      setTimeout(() => setSuccessMessage(""), 4000);
+    },
+    onError: (e: unknown) => {
+      setSuccessMessage("");
+      setErrorMessage(e instanceof Error ? e.message : "Error al cerrar sesiones");
+    },
+  });
 
   const handleModulesChange = async (moduleName: string, enabled: boolean) => {
     if (!company || !isOwner) return;
@@ -188,6 +229,7 @@ export function SettingsPage() {
           <TabsTrigger value="modules">Módulos</TabsTrigger>
           <TabsTrigger value="fiscal">Datos Fiscales</TabsTrigger>
           <TabsTrigger value="preferences">Preferencias</TabsTrigger>
+          <TabsTrigger value="security">Seguridad</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -346,6 +388,75 @@ export function SettingsPage() {
                   Las preferencias avanzadas estarán disponibles próximamente
                 </AlertDescription>
               </Alert>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security — sesiones (PLAN-26) */}
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sesiones activas</CardTitle>
+              <CardDescription>
+                Dispositivos con acceso a tu cuenta. Puedes revocar sesiones que no reconozcas; el acceso se renueva
+                automáticamente mientras la sesión sea válida.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sessionsQuery.isLoading && <p className="text-slate-600">Cargando sesiones…</p>}
+              {sessionsQuery.isError && (
+                <Alert className="bg-red-50 border border-red-200">
+                  <AlertDescription className="text-red-800">
+                    {sessionsQuery.error instanceof Error
+                      ? sessionsQuery.error.message
+                      : "Error al cargar sesiones"}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {sessionsQuery.data && sessionsQuery.data.length === 0 && (
+                <p className="text-slate-600">No hay sesiones activas registradas.</p>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={revokeOthersMutation.isPending || (sessionsQuery.data?.length ?? 0) < 2}
+                  onClick={() => revokeOthersMutation.mutate()}
+                >
+                  Cerrar todas las demás sesiones
+                </Button>
+              </div>
+              <ul className="divide-y rounded-lg border border-slate-200 bg-white">
+                {sessionsQuery.data?.map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-900">
+                        {s.isCurrent ? "Esta sesión" : "Otra sesión"}
+                      </p>
+                      <p className="text-sm text-slate-600 truncate" title={s.userAgent ?? ""}>
+                        {s.deviceSummary || s.userAgent?.slice(0, 96) || "Sin información de dispositivo"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        IP: {s.ipAddress ?? "—"} · Inicio: {new Date(s.createdAt).toLocaleString()} · Última
+                        actividad:{" "}
+                        {s.lastSeenAt != null ? new Date(s.lastSeenAt).toLocaleString() : "—"}
+                      </p>
+                    </div>
+                    {!s.isCurrent && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={revokeSessionMutation.isPending}
+                        onClick={() => revokeSessionMutation.mutate(s.id)}
+                      >
+                        Cerrar
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </TabsContent>

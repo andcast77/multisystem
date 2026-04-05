@@ -36,7 +36,8 @@
     "db:reset:dev": "pnpm --filter=@multisystem/database run db:reset:dev",
     "studio": "pnpm --filter=@multisystem/database run studio",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck --continue"
+    "typecheck": "turbo run typecheck --continue",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "knip": "^5.88.0",

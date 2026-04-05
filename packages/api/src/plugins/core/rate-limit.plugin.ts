@@ -13,7 +13,12 @@ function pathOnly(url: string): string {
 
 function isAuthPublicPath(url: string): boolean {
   const p = pathOnly(url)
-  return p === '/v1/auth/login' || p === '/v1/auth/register' || p === '/v1/auth/verify'
+  return (
+    p === '/v1/auth/login' ||
+    p === '/v1/auth/register' ||
+    p === '/v1/auth/verify' ||
+    p === '/v1/auth/refresh'
+  )
 }
 
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {

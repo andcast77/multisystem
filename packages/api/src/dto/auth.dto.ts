@@ -58,10 +58,10 @@ export const createSessionSchema = z.object({
   expiresAt: z.string().optional(),
 })
 
-/** Input DTO: terminate other sessions */
+/** Input DTO: terminate other sessions — `currentSessionToken` opcional si hay cookie `ms_refresh`. */
 export const terminateOthersSessionsSchema = z.object({
   userId: z.string().uuid(),
-  currentSessionToken: z.string().min(1),
+  currentSessionToken: z.string().min(1).optional(),
 })
 
 /** Input DTO: validate session query */
@@ -69,9 +69,9 @@ export const validateSessionQuerySchema = z.object({
   token: z.string().min(1),
 })
 
-/** Input DTO: list sessions query */
+/** Input DTO: list sessions query — sin `userId` se usa el usuario autenticado. */
 export const listSessionsQuerySchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().uuid().optional(),
 })
 
 /** Response DTO: user summary */

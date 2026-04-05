@@ -8,6 +8,36 @@ export class LoyaltyRepository extends TenantScopedRepository {
     })
   }
 
+  /** One row per company (`@@unique([companyId])`) — use for reads/updates that must see the sole config. */
+  async findCompanyConfig() {
+    return this.db.loyaltyConfig.findUnique({
+      where: { companyId: this.tenantId },
+    })
+  }
+
+  async updateConfig(
+    id: string,
+    data: {
+      pointsPerDollar: number
+      redemptionRate: number
+      pointsExpireMonths: number | null
+      minPurchaseForPoints: number
+      maxPointsPerPurchase: number | null
+    },
+  ) {
+    return this.db.loyaltyConfig.update({
+      where: { id },
+      data: {
+        pointsPerDollar: data.pointsPerDollar,
+        redemptionRate: data.redemptionRate,
+        pointsExpireMonths: data.pointsExpireMonths,
+        minPurchaseForPoints: data.minPurchaseForPoints,
+        maxPointsPerPurchase: data.maxPointsPerPurchase,
+        isActive: true,
+      },
+    })
+  }
+
   async createConfig(data: {
     pointsPerDollar: number
     redemptionRate: number

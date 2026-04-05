@@ -52,6 +52,7 @@ export type MeResponse = {
 
 export type ContextResponse = {
   companyId: string
+  /** Rol de membresía en la empresa seleccionada (si aplica). */
   membershipRole?: string | null
 }
 

@@ -57,3 +57,14 @@ export class ValidationError extends AppError {
     this.name = 'ValidationError'
   }
 }
+
+export class TooManyRequestsError extends AppError {
+  constructor(
+    message = 'Too many requests',
+    public readonly retryAfterSeconds?: number,
+    code = 'TOO_MANY_REQUESTS',
+  ) {
+    super(429, message, code)
+    this.name = 'TooManyRequestsError'
+  }
+}

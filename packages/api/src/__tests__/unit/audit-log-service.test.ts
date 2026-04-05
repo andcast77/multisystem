@@ -101,6 +101,25 @@ describe('writeAuditLog — fire-and-forget', () => {
     await new Promise((r) => setTimeout(r, 10))
   })
 
+  it('persists null companyId for platform-scoped events', async () => {
+    mockCreate.mockResolvedValue({ id: 'mock-id' })
+    writeAuditLog({
+      companyId: null,
+      userId: 'user-orphan',
+      action: 'LOGIN_FAILED',
+      entityType: 'auth',
+    })
+    await flushImmediate()
+    expect(mockCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        companyId: null,
+        userId: 'user-orphan',
+        action: 'LOGIN_FAILED',
+        entityType: 'auth',
+      }),
+    })
+  })
+
   it('maps null before/after to undefined (omits from Prisma input)', async () => {
     mockCreate.mockResolvedValue({ id: 'mock-id' })
     writeAuditLog({

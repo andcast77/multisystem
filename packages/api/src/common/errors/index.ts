@@ -6,5 +6,6 @@ export {
   ForbiddenError,
   ConflictError,
   ValidationError,
+  TooManyRequestsError,
 } from './app-error.js'
 export { globalErrorHandler } from './error-handler.js'

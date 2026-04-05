@@ -10,6 +10,7 @@ export {
   getAuthHeaders,
   createPrefixedApi,
   type PrefixedApi,
+  type ApiClientOptions,
   type ApiResponse,
   type PaginatedResponse,
 } from './api-client.js'

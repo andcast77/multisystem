@@ -1,5 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify'
-import { AppError, ValidationError } from './app-error.js'
+import { AppError, TooManyRequestsError, ValidationError } from './app-error.js'
 
 /**
  * Global Fastify error handler that maps domain errors to HTTP responses.
@@ -19,11 +19,18 @@ export function globalErrorHandler(
     })
   }
 
+  if (error instanceof TooManyRequestsError && error.retryAfterSeconds != null && error.retryAfterSeconds > 0) {
+    reply.header('Retry-After', String(Math.ceil(error.retryAfterSeconds)))
+  }
+
   if (error instanceof AppError) {
     return reply.code(error.statusCode).send({
       success: false,
       error: error.message,
       code: error.code,
+      ...(error instanceof TooManyRequestsError && error.retryAfterSeconds != null
+        ? { retryAfterSeconds: Math.ceil(error.retryAfterSeconds) }
+        : {}),
     })
   }
 

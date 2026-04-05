@@ -1,7 +1,8 @@
 import { prisma, Prisma } from '../db/index.js'
 
 export type WriteAuditLogParams = {
-  companyId: string
+  /** Omit or null for platform-scoped events (no tenant). */
+  companyId?: string | null
   userId?: string | null
   action: string
   entityType: string
@@ -31,7 +32,7 @@ export function writeAuditLog(params: WriteAuditLogParams): void {
     prisma.auditLog
       .create({
         data: {
-          companyId: params.companyId,
+          companyId: params.companyId ?? null,
           userId: params.userId ?? null,
           action: params.action,
           entityType: params.entityType,

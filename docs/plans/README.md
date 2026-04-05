@@ -31,9 +31,8 @@ Planes orientados a cumplir los claims de producto del landing page. Origen: aud
 | [22 — Compliance Program](./PLAN-22-compliance-program.md) | Seguridad empresarial · Estándares internacionales | PLAN-19, PLAN-21 |
 | [23 — UX: Cero Fricción](./PLAN-23-ux-zero-friction.md) | Velocidad operativa · Interfaz cero fricción | PLAN-17 (notif. SSE) |
 | [24 — MFA / TOTP](./PLAN-24-mfa-totp.md) | Seguridad empresarial · Nivel bancario | PLAN-21, PLAN-19 |
-| [25 — Dashboard Data Completeness](./PLAN-25-dashboard-data-completeness.md) | Datos en tiempo real · Información concreta | PLAN-17 |
-
-| [26 — Auth Session Hardening](./PLAN-26-auth-session-hardening.md) | Seguridad empresarial · Nivel bancario | PLAN-19 |
+| [25 — Dashboard Data Completeness](./[completed]%20PLAN-25-dashboard-data-completeness.md) | Datos en tiempo real · Información concreta | PLAN-17 |
+| [26 — Auth Session Hardening](./[completed]%20PLAN-26-auth-session-hardening.md) | Seguridad empresarial · Nivel bancario | PLAN-19 |
 
 Orden de ejecución recomendado: `(17 + 18 + 20 + 23 + 25)` en paralelo → `(19 + 21 + 24 + 26)` → `22`.
 

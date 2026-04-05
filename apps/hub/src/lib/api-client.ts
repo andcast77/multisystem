@@ -41,7 +41,29 @@ export type CompanyUpdateResult = {
   updatedAt: string;
 };
 
-const client = new ApiClient(API_URL);
+const client = new ApiClient(API_URL, { refreshOn401: true });
+
+export type ActiveSessionRow = {
+  id: string;
+  userId: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceSummary: string | null;
+  lastSeenAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+};
+
+export const sessionsApi = {
+  list: () =>
+    client.get<{ success: boolean; data?: ActiveSessionRow[]; error?: string }>("/v1/auth/sessions"),
+
+  revoke: (sessionId: string) =>
+    client.delete<{ success: boolean; error?: string }>(`/v1/auth/sessions/session/${sessionId}`),
+
+  revokeOthers: () => client.delete<{ success: boolean; error?: string }>("/v1/auth/sessions"),
+};
 
 export const authApi = {
   login: (email: string, password: string, companyId?: string) =>
@@ -74,6 +96,9 @@ export const authApi = {
 
   logout: () =>
     client.post<{ success: boolean }>("/v1/auth/logout", {}),
+
+  refresh: () =>
+    client.post<{ success: boolean }>("/v1/auth/refresh", {}),
 
   // Email verification endpoints
   verifyEmail: (token: string) =>

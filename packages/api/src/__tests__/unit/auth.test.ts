@@ -12,6 +12,7 @@ import {
 beforeAll(() => {
   process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only'
   process.env.JWT_EXPIRES_IN = '1h'
+  process.env.JWT_ACCESS_EXPIRES_IN = '1h'
 })
 
 const samplePayload: TokenPayload = {
@@ -33,6 +34,8 @@ describe('generateToken / verifyToken round-trip', () => {
     expect(decoded!.email).toBe(samplePayload.email)
     expect(decoded!.role).toBe(samplePayload.role)
     expect(decoded!.isSuperuser).toBe(false)
+    expect(decoded!.jti).toBeTruthy()
+    expect(typeof decoded!.jti).toBe('string')
   })
 
   it('preserves optional companyId and membershipRole', () => {

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
+import { ApiError } from "@multisystem/shared";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import {
   AuthLayout,
@@ -86,16 +87,21 @@ export function LoginPage() {
       }
 
       navigate(nextPath ?? "/dashboard", { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      
-      // Check if error is due to unverified email
-      const errorData = err?.response?.data;
+
+      if (err instanceof ApiError && err.code === "ACCOUNT_LOCKED") {
+        setErrorMessage(err.message);
+        return;
+      }
+
+      // Legacy axios-style shape (if any caller still used it)
+      const errorData = (err as { response?: { data?: { verified?: boolean; error?: string } } })?.response?.data;
       if (errorData?.verified === false) {
         setNeedsVerification(true);
         setErrorMessage(errorData.error || "Debes verificar tu email antes de iniciar sesión");
       } else {
-        setErrorMessage(err?.message || "Error al iniciar sesión. Verifica tus credenciales.");
+        setErrorMessage(err instanceof Error ? err.message : "Error al iniciar sesión. Verifica tus credenciales.");
       }
     }
   }
@@ -118,8 +124,11 @@ export function LoginPage() {
       }
       navigate(nextPath ?? "/dashboard", { replace: true });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Código inválido.";
-      setErrorMessage(msg);
+      if (err instanceof ApiError && err.code === "ACCOUNT_LOCKED") {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage(err instanceof Error ? err.message : "Código inválido.");
+      }
     } finally {
       setMfaSubmitting(false);
     }

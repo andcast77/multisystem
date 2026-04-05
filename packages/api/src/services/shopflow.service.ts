@@ -260,30 +260,36 @@ export async function getLoyaltyConfig(ctx: CompanyContext) {
 
 export async function updateLoyaltyConfig(ctx: CompanyContext, body: Record<string, unknown>) {
   const repos = createRepositories(ctx.companyId)
-  const current = await repos.loyalty.findActiveConfig()
-  const cur = current
+  const existing = await repos.loyalty.findCompanyConfig()
+  const cur = existing
     ? {
-        pointsPerDollar: Number(current.pointsPerDollar),
-        redemptionRate: Number(current.redemptionRate),
-        pointsExpireMonths: current.pointsExpireMonths,
-        minPurchaseForPoints: Number(current.minPurchaseForPoints),
-        maxPointsPerPurchase: current.maxPointsPerPurchase,
+        pointsPerDollar: Number(existing.pointsPerDollar),
+        redemptionRate: Number(existing.redemptionRate),
+        pointsExpireMonths: existing.pointsExpireMonths,
+        minPurchaseForPoints: Number(existing.minPurchaseForPoints),
+        maxPointsPerPurchase: existing.maxPointsPerPurchase,
       }
     : { pointsPerDollar: 1.0, redemptionRate: 0.01, pointsExpireMonths: null as number | null, minPurchaseForPoints: 0, maxPointsPerPurchase: null as number | null }
-  const newConfig = await repos.loyalty.createConfig({
+  const next = {
     pointsPerDollar: (body.pointsPerDollar as number) ?? cur.pointsPerDollar,
     redemptionRate: (body.redemptionRate as number) ?? cur.redemptionRate,
     pointsExpireMonths: (body.pointsExpireMonths as number) ?? cur.pointsExpireMonths,
     minPurchaseForPoints: (body.minPurchaseForPoints as number) ?? cur.minPurchaseForPoints,
     maxPointsPerPurchase: (body.maxPointsPerPurchase as number) ?? cur.maxPointsPerPurchase,
-  })
-  await repos.loyalty.deactivateOtherActiveConfigs(newConfig.id)
+  }
+  let saved
+  if (existing) {
+    saved = await repos.loyalty.updateConfig(existing.id, next)
+  } else {
+    saved = await repos.loyalty.createConfig(next)
+    await repos.loyalty.deactivateOtherActiveConfigs(saved.id)
+  }
   return {
-    pointsPerDollar: num(newConfig.pointsPerDollar),
-    redemptionRate: num(newConfig.redemptionRate),
-    pointsExpireMonths: newConfig.pointsExpireMonths ?? undefined,
-    minPurchaseForPoints: num(newConfig.minPurchaseForPoints),
-    maxPointsPerPurchase: newConfig.maxPointsPerPurchase != null ? num(newConfig.maxPointsPerPurchase) : undefined,
+    pointsPerDollar: num(saved.pointsPerDollar),
+    redemptionRate: num(saved.redemptionRate),
+    pointsExpireMonths: saved.pointsExpireMonths ?? undefined,
+    minPurchaseForPoints: num(saved.minPurchaseForPoints),
+    maxPointsPerPurchase: saved.maxPointsPerPurchase != null ? num(saved.maxPointsPerPurchase) : undefined,
   }
 }
 
@@ -415,11 +421,16 @@ export async function createPushSubscription(ctx: ShopflowContext, body: { userI
 export async function deletePushSubscription(ctx: ShopflowContext, endpoint: string) {
   if (!endpoint) throw new BadRequestError('Query "endpoint" es requerido')
   const decoded = decodeURIComponent(endpoint)
-  const repos = createRepositories(ctx.companyId)
-  const existing = await repos.pushSubscriptions.findByEndpoint(decoded)
+  // `endpoint` is globally unique; tenant-scoped lookup hid other companies' rows → false 404.
+  const existing = await prisma.pushSubscription.findUnique({
+    where: { endpoint: decoded },
+    select: { userId: true },
+  })
   if (!existing) throw new NotFoundError('Suscripción no encontrada')
-  if (existing.userId !== ctx.userId) throw new ForbiddenError('Solo puedes eliminar tus propias suscripciones')
-  await repos.pushSubscriptions.deleteByEndpoint(decoded)
+  if (existing.userId !== ctx.userId) {
+    throw new ForbiddenError('Solo puedes eliminar tus propias suscripciones')
+  }
+  await prisma.pushSubscription.delete({ where: { endpoint: decoded } })
 }
 
 // --- Inventory transfers ---
