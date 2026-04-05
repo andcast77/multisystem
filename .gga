@@ -1,0 +1,21 @@
+# AI Provider (required)
+# Options: claude, gemini, codex, opencode, ollama:<model>, lmstudio[:model], github:<model>
+PROVIDER="cursor"
+
+# File patterns to review (comma-separated globs)
+FILE_PATTERNS="*.ts,*.tsx,*.js,*.jsx"
+
+# Patterns to exclude from review (comma-separated globs)
+EXCLUDE_PATTERNS="*.test.ts,*.spec.ts,*.d.ts"
+
+# File containing your coding standards
+RULES_FILE="AGENTS.md"
+
+# Fail if AI response is ambiguous (recommended for CI)
+STRICT_MODE="true"
+
+# Timeout in seconds for AI provider response
+TIMEOUT="300"
+
+# Base branch for --pr-mode (auto-detects main/master/develop if empty)
+# PR_BASE_BRANCH="main"

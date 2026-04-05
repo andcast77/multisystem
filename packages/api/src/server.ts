@@ -94,15 +94,18 @@ async function start() {
     // On Vercel we export the app for serverless; locally we listen
     if (!process.env.VERCEL) {
       const port = parseInt(config.PORT, 10)
+      // Hooks must be registered before listen(); onClose still runs when the server stops.
+      if (!isTest) {
+        fastify.addHook('onClose', async () => {
+          stopJobRunner()
+        })
+      }
       await fastify.listen({ port, host: '0.0.0.0' })
       console.log(`🚀 API server listening on port ${port}`)
       console.log(`📋 CORS origins: ${config.CORS_ORIGIN}`)
 
       if (!isTest) {
         startJobRunner()
-        fastify.addHook('onClose', async () => {
-          stopJobRunner()
-        })
       }
     }
     return fastify

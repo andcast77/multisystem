@@ -3,7 +3,7 @@ export {
   setTokenCookie,
   clearTokenCookie,
   hasApiSession,
-} from './auth.js'
+} from './auth'
 export {
   ApiClient,
   ApiError,
@@ -13,4 +13,4 @@ export {
   type ApiClientOptions,
   type ApiResponse,
   type PaginatedResponse,
-} from './api-client.js'
+} from './api-client'
