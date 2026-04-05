@@ -15,6 +15,7 @@ import {
   getPaymentMethodStats,
   getInventoryStats,
   getSalesByUser,
+  getDashboardBusinessMetrics,
 } from '@/lib/services/reportService'
 
 async function fetchSalesStats(
@@ -95,6 +96,13 @@ export function useSalesStats(period: 'today' | 'week' | 'month' = 'today', stor
   return useQuery({
     queryKey: ['reports', 'stats', period, storeId],
     queryFn: () => fetchSalesStats(period, storeId),
+  })
+}
+
+export function useDashboardBusinessMetrics(period: 'today' | 'week' | 'month', storeId?: string | null) {
+  return useQuery({
+    queryKey: ['reports', 'dashboard-metrics', period, storeId],
+    queryFn: () => getDashboardBusinessMetrics(period, storeId),
   })
 }
 

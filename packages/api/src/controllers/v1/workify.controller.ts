@@ -168,13 +168,29 @@ export async function listWorkShifts(request: FastifyRequest, reply: FastifyRepl
   }
 }
 
-export async function getDashboardStats(request: FastifyRequest, reply: FastifyReply) {
+export async function getDashboardStats(
+  request: FastifyRequest<{ Querystring: { date?: string } }>,
+  reply: FastifyReply
+) {
   try {
     const ctx = getCtx(request)
-    const stats = await workifyService.getDashboardStats(ctx)
+    const stats = await workifyService.getDashboardStats(ctx, request.query.date)
     return { success: true, ...stats }
   } catch (error) {
     return sendServerError(reply, error, request.log, 'Error al obtener estadísticas')
+  }
+}
+
+export async function getDashboardAlerts(
+  request: FastifyRequest<{ Querystring: { date?: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const ctx = getCtx(request)
+    const result = await workifyService.getDashboardAlerts(ctx, request.query.date)
+    return { success: true, ...result }
+  } catch (error) {
+    return sendServerError(reply, error, request.log, 'Error al obtener alertas')
   }
 }
 
@@ -302,6 +318,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/workify/work-shifts', { preHandler: preWorkify }, handle(listWorkShifts))
   fastify.get('/v1/workify/time-entries', { preHandler: preWorkify }, handle(listTimeEntries))
   fastify.get('/v1/workify/dashboard/stats', { preHandler: preWorkify }, handle(getDashboardStats))
+  fastify.get('/v1/workify/dashboard/alerts', { preHandler: preWorkify }, handle(getDashboardAlerts))
   fastify.get('/v1/workify/attendance/stats', { preHandler: preWorkify }, handle(getAttendanceStats))
   fastify.get('/v1/workify/employees/special-assignments', { preHandler: preWorkify }, handle(listSpecialAssignments))
 }

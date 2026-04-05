@@ -1,27 +1,33 @@
-'use client';
+'use client'
 
-import { Card } from '@multisystem/ui';
-import { DailyWorkKPIs } from '@/components/dashboard/DailyWorkKPIs';
-import { DailyAlerts } from '@/components/dashboard/DailyAlerts';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { Badge } from '@multisystem/ui';
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  TrendingUp,
-  Activity,
-  BarChart3,
-  UserCheck,
-  Loader2
-} from 'lucide-react';
+import { useEffect, useState } from 'react'
+import { Card } from '@multisystem/ui'
+import { DailyWorkKPIs } from '@/components/dashboard/DailyWorkKPIs'
+import { DailyAlerts } from '@/components/dashboard/DailyAlerts'
+import { AttendanceTrendChart } from '@/components/dashboard/AttendanceTrendChart'
+import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { useWorkifyDashboardSSE } from '@/hooks/useWorkifyDashboardSSE'
+import { workifyApi } from '@/lib/api/client'
+import { Badge } from '@multisystem/ui'
+import { Calendar, Users, Clock, TrendingUp, Activity, BarChart3, UserCheck, Loader2 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { stats, loading } = useDashboardStats();
+  const [companyId, setCompanyId] = useState<string | null>(null)
+  const { stats, loading, weeklyAttendance, departmentAttendance } = useDashboardStats()
+
+  useEffect(() => {
+    workifyApi
+      .get<{ user?: { companyId?: string } }>('/me')
+      .then((r) => setCompanyId(r.user?.companyId ?? null))
+      .catch(() => setCompanyId(null))
+  }, [])
+
+  useWorkifyDashboardSSE(companyId, () => {
+    window.dispatchEvent(new Event('workify-dashboard-refresh'))
+  })
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -29,24 +35,22 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Calendar className="h-4 w-4" />
-          <span>{new Date().toLocaleDateString('es-ES', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}</span>
+          <span>
+            {new Date().toLocaleDateString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </span>
           {stats && (
-            <Badge 
-              variant={stats.isWorkDay ? "default" : "secondary"}
-              className="ml-2"
-            >
+            <Badge variant={stats.isWorkDay ? 'default' : 'secondary'} className="ml-2">
               {stats.isWorkDay ? 'Día Laborable' : 'Día No Laborable'}
             </Badge>
           )}
         </div>
       </div>
 
-      {/* KPIs de Trabajo Diario */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Activity className="h-5 w-5 text-blue-600" />
@@ -55,7 +59,16 @@ export default function DashboardPage() {
         <DailyWorkKPIs />
       </section>
 
-      {/* Alertas Diarias */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-5 w-5 text-indigo-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Tendencias</h2>
+        </div>
+        {weeklyAttendance.length > 0 && (
+          <AttendanceTrendChart weeklyAttendance={weeklyAttendance} departmentAttendance={departmentAttendance} />
+        )}
+      </section>
+
       <section>
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-orange-600" />
@@ -64,7 +77,6 @@ export default function DashboardPage() {
         <DailyAlerts />
       </section>
 
-      {/* Resumen Rápido */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-green-600" />
@@ -79,16 +91,12 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Empleados</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  ) : (
-                    stats?.totalEmployees || '-'
-                  )}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : stats?.totalEmployees ?? '-'}
                 </p>
               </div>
             </div>
           </Card>
-          
+
           <Card className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -97,21 +105,17 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Programados Hoy</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  ) : (
-                    stats?.todayScheduled || '-'
-                  )}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : stats?.todayScheduled ?? '-'}
                 </p>
                 {stats && !loading && (
                   <p className="text-xs text-gray-500 mt-1">
-                    de {stats.todayActive} activos
+                    de {stats.todayActive} activos · {stats.todayPresent} con entrada
                   </p>
                 )}
               </div>
             </div>
           </Card>
-          
+
           <Card className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
@@ -120,20 +124,14 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Horas Registradas</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  ) : (
-                    '-'
-                  )}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : stats?.registeredHoursToday ?? '-'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Hoy
-                </p>
+                <p className="text-xs text-gray-500 mt-1">Hoy · tasa 7d: {stats?.weeklyAttendanceRate ?? 0}%</p>
               </div>
             </div>
           </Card>
         </div>
       </section>
     </div>
-  );
-} 
+  )
+}

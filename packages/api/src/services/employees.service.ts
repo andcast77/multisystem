@@ -1,4 +1,5 @@
 import { prisma, Prisma } from '../db/index.js'
+import { sseManager } from './sse.service.js'
 import type { CompanyContext } from '../core/auth-context.js'
 import { parsePagination } from '../common/database/index.js'
 import {
@@ -202,6 +203,7 @@ export async function createEmployee(
     },
   })
 
+  sseManager.emit(ctx.companyId, 'workify:dashboard:invalidate', { reason: 'employee-created' })
   return mapEmployee(e, key)
 }
 
@@ -250,5 +252,6 @@ export async function updateEmployee(
     data,
   })
 
+  sseManager.emit(ctx.companyId, 'workify:dashboard:invalidate', { reason: 'employee-updated' })
   return mapEmployee(e, key)
 }

@@ -223,6 +223,91 @@ export async function getInventory(
   }
 }
 
+export async function getDashboardBusinessMetrics(
+  ctx: ShopflowContext,
+  query: { storeId?: string; startDate?: string; endDate?: string },
+) {
+  const effectiveStoreId = await resolveEffectiveStoreIdForReport(ctx, query.storeId)
+  const whereBase: Prisma.SaleWhereInput = { companyId: ctx.companyId }
+  if (effectiveStoreId !== undefined) whereBase.storeId = effectiveStoreId
+  const dateFilter = buildDateFilter(query.startDate, query.endDate)
+  if (dateFilter) whereBase.createdAt = dateFilter
+
+  const stats = await getStats(ctx, query)
+
+  const completedSaleIds = (
+    await prisma.sale.findMany({
+      where: { ...whereBase, status: 'COMPLETED' },
+      select: { id: true },
+    })
+  ).map((s) => s.id)
+
+  let cogs = 0
+  if (completedSaleIds.length > 0) {
+    const itemsCogs = await prisma.saleItem.findMany({
+      where: { saleId: { in: completedSaleIds } },
+      include: { product: { select: { cost: true } } },
+    })
+    for (const it of itemsCogs) {
+      cogs += it.quantity * Number(it.product.cost ?? 0)
+    }
+  }
+  const grossMarginPct = stats.totalRevenue > 0 ? (stats.totalRevenue - cogs) / stats.totalRevenue : 0
+
+  const refunded = await prisma.sale.count({ where: { ...whereBase, status: 'REFUNDED' } })
+  const totalRefContext = await prisma.sale.count({
+    where: { ...whereBase, status: { in: ['COMPLETED', 'REFUNDED'] } },
+  })
+  const refundRate = totalRefContext > 0 ? refunded / totalRefContext : 0
+
+  const inv = await getInventory(ctx, { storeId: query.storeId })
+
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const pendingSum = await prisma.invoice.aggregate({
+    where: {
+      companyId: ctx.companyId,
+      status: { in: ['SENT', 'OVERDUE', 'DRAFT'] },
+    },
+    _sum: { total: true },
+  })
+  const pendingInvoicesTotal = Number(pendingSum._sum.total ?? 0)
+
+  const oldestOverdueInvoices = await prisma.invoice.findMany({
+    where: {
+      companyId: ctx.companyId,
+      status: { in: ['SENT', 'OVERDUE'] },
+      dueDate: { not: null, lt: todayStart },
+    },
+    orderBy: { dueDate: 'asc' },
+    take: 5,
+    select: {
+      id: true,
+      invoiceNumber: true,
+      total: true,
+      dueDate: true,
+      status: true,
+      customer: { select: { name: true } },
+    },
+  })
+
+  return {
+    grossMarginPct: Math.round(grossMarginPct * 1000) / 1000,
+    inventoryValue: inv.totalValue,
+    refundRate: Math.round(refundRate * 1000) / 1000,
+    pendingInvoicesTotal,
+    oldestOverdueInvoices: oldestOverdueInvoices.map((r) => ({
+      id: r.id,
+      invoiceNumber: r.invoiceNumber,
+      total: Number(r.total),
+      dueDate: r.dueDate?.toISOString() ?? null,
+      status: r.status,
+      customerName: r.customer?.name ?? null,
+    })),
+  }
+}
+
 function buildPeriodAgg(ctx: ShopflowContext, effectiveStoreId: string | undefined, start: Date, end: Date) {
   const where: Prisma.SaleWhereInput = {
     companyId: ctx.companyId,
@@ -267,7 +352,7 @@ export async function getWeek(ctx: ShopflowContext, query: { storeId?: string })
   const endOfWeek = new Date(startOfWeek)
   endOfWeek.setDate(endOfWeek.getDate() + 6)
   endOfWeek.setHours(23, 59, 59, 999)
-  return aggregatePeriod(ctx, startOfWeek === undefined ? undefined : effectiveStoreId, startOfWeek, endOfWeek)
+  return aggregatePeriod(ctx, effectiveStoreId, startOfWeek, endOfWeek)
 }
 
 export async function getMonth(ctx: ShopflowContext, query: { storeId?: string }) {

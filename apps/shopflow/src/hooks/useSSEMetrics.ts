@@ -34,11 +34,13 @@ export function useSSEMetrics(companyId: string | undefined) {
 
       es.addEventListener('sale:created', () => {
         queryClient.invalidateQueries({ queryKey: ['reports'] })
+        queryClient.invalidateQueries({ queryKey: ['reports', 'dashboard-metrics'] })
       })
 
       es.addEventListener('stock:updated', () => {
         queryClient.invalidateQueries({ queryKey: ['reports', 'inventory'] })
         queryClient.invalidateQueries({ queryKey: ['reports', 'stats'] })
+        queryClient.invalidateQueries({ queryKey: ['reports', 'dashboard-metrics'] })
       })
 
       es.onerror = () => {

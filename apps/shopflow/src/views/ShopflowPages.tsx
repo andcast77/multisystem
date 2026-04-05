@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
 import { PageFrame } from "@/views/PageFrame";
 import { StatsCards } from "@/components/features/reports/StatsCards";
+import { DashboardBusinessMetrics } from "@/components/features/reports/DashboardBusinessMetrics";
 import { DailySalesChart } from "@/components/features/reports/DailySalesChart";
 import { TopProductsTable } from "@/components/features/reports/TopProductsTable";
 import { ProductPanel } from "@/components/features/pos/ProductPanel";
@@ -52,6 +53,7 @@ export function DashboardPage() {
           <Button size="sm" variant={period === "month" ? "default" : "outline"} onClick={() => setPeriod("month")}>Mes</Button>
         </div>
         <StatsCards period={period} storeId={storeId} />
+        <DashboardBusinessMetrics period={period} storeId={storeId} />
         <DailySalesChart days={period === "today" ? 7 : period === "week" ? 30 : 90} storeId={storeId} />
         <TopProductsTable storeId={storeId} />
       </div>

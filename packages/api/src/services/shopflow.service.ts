@@ -364,6 +364,7 @@ export {
 export {
   resolveEffectiveStoreIdForReport, getStats, getDaily, getTopProducts,
   getPaymentMethods, getInventory, getToday, getWeek, getMonth, getByUser,
+  getDashboardBusinessMetrics,
 } from './shopflow-reports.service.js'
 
 // --- Notifications ---

@@ -792,6 +792,7 @@ async function main() {
   // 10. Crear horarios
   await prisma.schedule.create({
     data: {
+      companyId: company.id,
       employeeId: employee1.id,
       workShiftId: morningShift.id,
       dayOfWeek: 1, // Lunes
@@ -1654,6 +1655,7 @@ async function main() {
 
   await prisma.schedule.create({
     data: {
+      companyId: company2.id,
       employeeId: employee1Beta.id,
       workShiftId: morningShiftBeta.id,
       dayOfWeek: 1,
