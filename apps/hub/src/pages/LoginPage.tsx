@@ -16,6 +16,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@multisystem/ui";
+const brandCard =
+  "border border-white/10 bg-white/5 text-white shadow-none backdrop-blur-md ring-1 ring-white/10";
+const brandInput =
+  "rounded-md bg-white/10 border-white/20 text-white placeholder:text-white/40";
+const brandLabel = "text-white/80";
 
 function safeNextPath(raw: string | null): string | null {
   if (!raw || !raw.startsWith("/")) return null;
@@ -136,7 +141,7 @@ export function LoginPage() {
 
   const decorativePanel = (
     <>
-      <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-indigo-700 font-medium mb-6 shadow-sm">
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
         <span>✨</span>
         <span>Multisystem Hub</span>
       </div>
@@ -158,18 +163,18 @@ export function LoginPage() {
   );
 
   return (
-    <AuthLayout panel={decorativePanel}>
+    <AuthLayout variant="brand" panel={decorativePanel}>
       {/* Logo/Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Bienvenido</h1>
-        <p className="text-slate-600 mt-2">Accede a tu cuenta del Hub</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Bienvenido</h1>
+        <p className="text-white/50 mt-2">Accede a tu cuenta del Hub</p>
       </div>
 
       {/* Login Form Card */}
-      <Card className="border-white/60 bg-white/85 shadow-2xl backdrop-blur">
+      <Card className={brandCard}>
         <CardHeader>
-          <CardTitle>{mfaStep ? "Verificación en dos pasos" : "Iniciar sesión"}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">{mfaStep ? "Verificación en dos pasos" : "Iniciar sesión"}</CardTitle>
+          <CardDescription className="text-white/60">
             {mfaStep
               ? mfaUseBackup
                 ? "Introduce un código de respaldo de un solo uso."
@@ -181,12 +186,12 @@ export function LoginPage() {
           {mfaStep ? (
             <form onSubmit={onSubmitMfa} className="space-y-4">
               {errorMessage ? (
-                <div className="p-3 rounded-lg border bg-red-50 border-red-200">
-                  <p className="text-sm text-red-700">{errorMessage}</p>
+                <div className="p-3 rounded-lg border bg-red-500/10 border-red-400/30">
+                  <p className="text-sm text-red-200">{errorMessage}</p>
                 </div>
               ) : null}
               <div className="space-y-2">
-                <Label htmlFor="mfa-code">{mfaUseBackup ? "Código de respaldo" : "Código TOTP"}</Label>
+                <Label htmlFor="mfa-code" className={brandLabel}>{mfaUseBackup ? "Código de respaldo" : "Código TOTP"}</Label>
                 <Input
                   id="mfa-code"
                   type="text"
@@ -195,13 +200,13 @@ export function LoginPage() {
                   placeholder={mfaUseBackup ? "XXXX-XXXX-XXXX" : "000000"}
                   value={mfaCode}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value)}
-                  className="rounded-md"
+                  className={brandInput}
                 />
               </div>
               <Button
                 type="button"
                 variant="link"
-                className="text-sm p-0 h-auto text-indigo-600"
+                className="text-sm p-0 h-auto text-indigo-300 hover:text-indigo-200"
                 onClick={() => {
                   setMfaUseBackup(!mfaUseBackup);
                   setMfaCode("");
@@ -213,14 +218,14 @@ export function LoginPage() {
               <Button
                 type="submit"
                 disabled={mfaSubmitting}
-                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-medium py-2 rounded-md transition-all"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-xl shadow-lg shadow-indigo-500/25"
               >
                 {mfaSubmitting ? "Verificando…" : "Continuar"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10"
                 onClick={() => {
                   setMfaStep(false);
                   setMfaTempToken(null);
@@ -238,11 +243,11 @@ export function LoginPage() {
             {errorMessage && (
               <div className={`p-3 rounded-lg border ${
                 needsVerification
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-red-50 border-red-200'
+                  ? 'bg-amber-500/10 border-amber-400/30'
+                  : 'bg-red-500/10 border-red-400/30'
               }`}>
                 <p className={`text-sm ${
-                  needsVerification ? 'text-amber-700' : 'text-red-700'
+                  needsVerification ? 'text-amber-200' : 'text-red-200'
                 }`}>
                   {needsVerification
                     ? 'Tu cuenta no está verificada. Será eliminada en 7 días si no la verificas. Revisa tu email para activar tu cuenta.'
@@ -253,7 +258,7 @@ export function LoginPage() {
                     <Button
                       type="button"
                       variant="link"
-                      className="text-xs text-amber-700 hover:text-amber-800 p-0 h-auto"
+                      className="text-xs text-amber-200 hover:text-amber-100 p-0 h-auto"
                       onClick={async () => {
                         try {
                           setResendHint(null);
@@ -271,7 +276,7 @@ export function LoginPage() {
                       Reenviar email de verificación
                     </Button>
                     {resendHint ? (
-                      <p className="text-xs text-amber-800">{resendHint}</p>
+                      <p className="text-xs text-amber-100">{resendHint}</p>
                     ) : null}
                   </div>
                 )}
@@ -280,31 +285,31 @@ export function LoginPage() {
 
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className={brandLabel}>Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="tu@empresa.com"
                 {...register("email")}
-                className={`rounded-md ${errors.email ? "border-red-500" : ""}`}
+                className={`${brandInput} ${errors.email ? "border-red-400" : ""}`}
               />
               {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
+                <p className="text-sm text-red-300">{errors.email.message}</p>
               )}
             </div>
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className={brandLabel}>Contraseña</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 {...register("password")}
-                className={`rounded-md ${errors.password ? "border-red-500" : ""}`}
+                className={`${brandInput} ${errors.password ? "border-red-400" : ""}`}
               />
               {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
+                <p className="text-sm text-red-300">{errors.password.message}</p>
               )}
             </div>
 
@@ -312,7 +317,7 @@ export function LoginPage() {
             <div className="text-right">
               <Link
                 to="/forgot-password"
-                className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline"
+                className="text-sm text-indigo-300 hover:text-indigo-200 hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -322,7 +327,7 @@ export function LoginPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-medium py-2 rounded-md transition-all"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-xl shadow-lg shadow-indigo-500/25"
             >
               {isSubmitting ? "Iniciando sesión…" : "Iniciar sesión"}
             </Button>
@@ -332,15 +337,15 @@ export function LoginPage() {
           {/* Links */}
           {!mfaStep ? (
           <div className="mt-6 text-center space-y-3">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-white/50">
               ¿No tienes cuenta?{" "}
-              <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              <Link to="/register" className="text-indigo-300 hover:text-indigo-200 font-medium">
                 Registrarse
               </Link>
             </p>
-            <p className="text-xs text-slate-500">
-              <Link to="/" className="text-slate-600 hover:text-slate-700">
-                Volver al Hub
+            <p className="text-xs text-white/40">
+              <Link to="/" className="hover:text-white/60">
+                Volver al inicio
               </Link>
             </p>
           </div>

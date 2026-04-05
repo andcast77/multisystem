@@ -3,7 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
+import { AuthLayout } from "@multisystem/ui";
 import { authApi } from "@/lib/api/client";
+
+const tsPanel = (
+  <>
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
+      Tech Services
+    </div>
+    <h2 className="text-4xl font-bold text-white mb-4">Ordenes y campo</h2>
+    <p className="text-white/80 text-lg leading-relaxed">Identidad Multisystem para servicio tecnico.</p>
+  </>
+);
+
 
 type CompanyOption = {
   id: string;
@@ -140,8 +152,8 @@ export default function LoginPage() {
 
   if (mfaStep && mfaTempToken) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow p-6">
+      <AuthLayout variant="brand" panel={tsPanel}>
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
           <h1 className="text-2xl font-bold text-center mb-4">Verificacion en dos pasos</h1>
           <p className="text-slate-600 text-sm text-center mb-6">
             {mfaBackup ? "Codigo de respaldo" : "Codigo TOTP de tu app"}
@@ -189,15 +201,15 @@ export default function LoginPage() {
               Volver
             </button>
           </form>
-        </div>
-      </main>
+            </div>
+    </AuthLayout>
     );
   }
 
   if (selectingCompany && companies && companies.length > 1) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow p-6">
+      <AuthLayout variant="brand" panel={tsPanel}>
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
           <h1 className="text-2xl font-bold text-center mb-4">Selecciona empresa</h1>
           <p className="text-slate-600 text-sm text-center mb-6">
             Tienes acceso a varias empresas. Elige con cual continuar.
@@ -227,14 +239,14 @@ export default function LoginPage() {
               {loading ? "Continuando..." : "Continuar"}
             </button>
           </form>
-        </div>
-      </main>
+            </div>
+    </AuthLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow p-6">
+    <AuthLayout variant="brand" panel={tsPanel}>
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
         <h1 className="text-2xl font-bold text-center mb-4">Servicios Tecnicos</h1>
         <p className="text-slate-600 text-sm text-center mb-6">Inicia sesion para continuar.</p>
 
@@ -276,7 +288,7 @@ export default function LoginPage() {
             Volver al inicio
           </Link>
         </p>
-      </div>
-    </main>
+          </div>
+    </AuthLayout>
   );
 }

@@ -1,7 +1,7 @@
-export default function AuthLayout({
+export default function AuthRouteShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return children;
-} 
+}
