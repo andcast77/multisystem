@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@multisystem/ui";
 import { CheckCircle2, Circle } from "lucide-react";
@@ -119,7 +121,7 @@ export function OnboardingChecklist({ company, stats, shopflowUrl }: Props) {
                 ) : null}
                 {!item.done && item.to ? (
                   <Link
-                    to={item.to}
+                    href={item.to}
                     className="mt-1 inline-block text-sm font-medium text-indigo-700 hover:underline"
                   >
                     Abrir

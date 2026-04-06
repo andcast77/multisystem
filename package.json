@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@multisystem/api",
-    "dev:hub": "turbo run dev --filter=@multisystem/hub",
-    "dev:shopflow": "turbo run dev --filter=@multisystem/shopflow",
-    "dev:techservices": "turbo run dev --filter=@multisystem/techservices",
-    "dev:workify": "turbo run dev --filter=@multisystem/workify",
+    "dev:hub": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/hub",
+    "dev:shopflow": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/shopflow",
+    "dev:techservices": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/techservices",
+    "dev:workify": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/workify",
     "dev:ui": "turbo run dev --filter=@multisystem/ui",
     "build": "turbo run build",
     "build:shopflow": "turbo run build --filter=@multisystem/shopflow",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "knip": "^5.88.0",
-    "turbo": "^2.9.3",
+    "turbo": "^2.9.4",
     "typescript": "^5.9.3"
   }
 }

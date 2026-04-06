@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, type ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +30,7 @@ export function DeleteCompanyDialog({
   companyId,
   companyName,
 }: DeleteCompanyDialogProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -47,7 +49,7 @@ export function DeleteCompanyDialog({
       if (response.success) {
         // Clear token and redirect to login
         clearTokenCookie();
-        navigate("/login", { replace: true });
+        router.replace("/login");
       } else {
         setError(response.error || "Error al eliminar la empresa");
       }
