@@ -1,34 +1,56 @@
 'use client';
 
 import { useState, useTransition, useEffect, type ChangeEvent } from 'react';
-import { AuthLayout, Button, InputField } from '@multisystem/ui';
+import Link from 'next/link';
+import {
+  AuthLayout,
+  AuthBrandDecorativePanel,
+  AuthBrandWelcomeHeader,
+  AuthBrandCard,
+  AuthBrandErrorAlert,
+  AuthBrandLoginFooterLinks,
+  AuthBrandForgotPasswordRow,
+  AUTH_BRAND_INPUT_CLASS,
+  AUTH_BRAND_LABEL_CLASS,
+  AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_FORGOT_LINK_CLASS,
+  AUTH_BRAND_LINK_SUBTLE_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
+  AUTH_BRAND_HOME_LINK_CLASS,
+  Button,
+  Input,
+  Label,
+} from '@multisystem/ui';
 import { authApi } from '@/lib/api/client';
+
+function hubForgotPasswordUrl(): string {
+  const base = (process.env.NEXT_PUBLIC_HUB_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+  return `${base}/forgot-password`;
+}
+
 const workifyPanel = (
-  <>
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
-      Workify
-    </div>
-    <h2 className="text-4xl font-bold text-white mb-4">Recursos humanos</h2>
-    <p className="text-white/80 text-lg leading-relaxed">Gestión de equipos y asistencia con identidad Multisystem.</p>
-  </>
+  <AuthBrandDecorativePanel
+    badge="Workify"
+    title="Recursos humanos"
+    description="Turnos, asistencia y equipos con la misma identidad visual que el resto de Multisystem."
+    quote={<>Personas y equipos, en un solo flujo.</>}
+  />
 );
 
 type CompanyOption = { id: string; name: string; workifyEnabled?: boolean; shopflowEnabled?: boolean };
 
-// Función para generar token CSRF
 function generateCSRFToken(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// Función para sanitizar input
 function sanitizeInput(value: string): string {
   return value
     .trim()
-    .replace(/[<>]/g, '') // Remover caracteres peligrosos
-    .replace(/javascript:/gi, '') // Remover javascript: protocol
-    .replace(/data:/gi, '') // Remover data: protocol
-    .replace(/vbscript:/gi, '') // Remover vbscript: protocol
-    .substring(0, 100); // Limitar longitud
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .substring(0, 100);
 }
 
 export default function LoginForm() {
@@ -44,37 +66,31 @@ export default function LoginForm() {
   const [mfaCode, setMfaCode] = useState('');
   const [mfaBackup, setMfaBackup] = useState(false);
 
-  // Generar token CSRF al montar el componente
   useEffect(() => {
     setCsrfToken(generateCSRFToken());
   }, []);
 
-  // Validar email
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email) && email.length <= 100;
   };
 
-  // Validar contraseña
   const validatePassword = (password: string): boolean => {
     return password.length >= 6 && password.length <= 128;
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitizedEmail = sanitizeInput(e.target.value);
-    setEmail(sanitizedEmail);
+    setEmail(sanitizeInput(e.target.value));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitizedPassword = sanitizeInput(e.target.value);
-    setPassword(sanitizedPassword);
+    setPassword(sanitizeInput(e.target.value));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validaciones del lado del cliente
     if (!email.trim()) {
       setError('El email es requerido');
       return;
@@ -95,7 +111,6 @@ export default function LoginForm() {
       return;
     }
 
-    // Validar token CSRF
     if (!csrfToken) {
       setError('Error de seguridad. Recarga la página e intenta de nuevo.');
       return;
@@ -207,54 +222,68 @@ export default function LoginForm() {
   if (mfaStep && mfaTempToken) {
     return (
       <AuthLayout variant="brand" panel={workifyPanel}>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 sm:p-8 text-white">
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-bold text-gray-900 mb-2">Verificación en dos pasos</h1>
-              <p className="text-sm text-gray-600">
-                {mfaBackup ? 'Introduce un código de respaldo.' : 'Introduce el código de tu app autenticadora.'}
-              </p>
-            </div>
-            <form onSubmit={handleMfaSubmit} className="space-y-4">
-              <InputField
-                label={mfaBackup ? 'Código de respaldo' : 'Código TOTP'}
+        <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Workify" />
+        <AuthBrandCard
+          cardTitle="Verificación en dos pasos"
+          cardDescription={
+            mfaBackup
+              ? 'Introduce un código de respaldo de un solo uso.'
+              : 'Introduce el código de tu app autenticadora.'
+          }
+        >
+          <form onSubmit={handleMfaSubmit} className="space-y-4">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="mfa-code" className={AUTH_BRAND_LABEL_CLASS}>
+                {mfaBackup ? 'Código de respaldo' : 'Código TOTP'}
+              </Label>
+              <Input
+                id="mfa-code"
                 type="text"
+                inputMode={mfaBackup ? 'text' : 'numeric'}
                 value={mfaCode}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value)}
                 required
                 disabled={isLoading}
                 autoComplete="one-time-code"
+                placeholder={mfaBackup ? 'XXXX-XXXX-XXXX' : '000000'}
+                className={AUTH_BRAND_INPUT_CLASS}
               />
-              <button
-                type="button"
-                className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => {
-                  setMfaBackup(!mfaBackup);
-                  setMfaCode('');
-                }}
-              >
-                {mfaBackup ? 'Usar código TOTP' : 'Usar código de respaldo'}
-              </button>
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">{error}</div>
-              )}
-              <Button type="submit" disabled={isLoading} loading={isLoading} className="w-full">
-                Continuar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setMfaStep(false);
-                  setMfaTempToken(null);
-                  setMfaCode('');
-                  setError('');
-                }}
-              >
-                Volver
-              </Button>
-            </form>
-                  </div>
+            </div>
+            <Button
+              type="button"
+              variant="link"
+              className={AUTH_BRAND_LINK_SUBTLE_CLASS}
+              onClick={() => {
+                setMfaBackup(!mfaBackup);
+                setMfaCode('');
+                setError('');
+              }}
+            >
+              {mfaBackup ? 'Usar código de la app autenticadora' : 'Usar código de respaldo'}
+            </Button>
+            <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+              {isLoading ? 'Verificando…' : 'Continuar'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+              onClick={() => {
+                setMfaStep(false);
+                setMfaTempToken(null);
+                setMfaCode('');
+                setError('');
+              }}
+            >
+              Volver
+            </Button>
+          </form>
+        </AuthBrandCard>
       </AuthLayout>
     );
   }
@@ -262,11 +291,17 @@ export default function LoginForm() {
   if (companies && companies.length > 1) {
     return (
       <AuthLayout variant="brand" panel={workifyPanel}>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 sm:p-8 text-white">
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-bold text-gray-900 mb-2">Elige una empresa</h1>
-              <p className="text-sm text-gray-600">Tienes acceso a varias empresas. Selecciona con cuál continuar.</p>
-            </div>
+        <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Workify" />
+        <AuthBrandCard
+          cardTitle="Elige una empresa"
+          cardDescription="Tienes acceso a varias empresas. Selecciona con cuál continuar."
+        >
+          <div className="space-y-3">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
             <div className="space-y-2">
               {companies.map((c) => (
                 <button
@@ -274,44 +309,74 @@ export default function LoginForm() {
                   type="button"
                   onClick={() => handleChooseCompany(c.id)}
                   disabled={isLoading}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                  className="w-full text-left px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-colors font-medium"
                 >
-                  <span className="font-medium text-gray-900">{c.name}</span>
+                  {c.name}
                 </button>
               ))}
             </div>
-            {error && (
-              <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">{error}</div>
-            )}
-                  </div>
+          </div>
+        </AuthBrandCard>
       </AuthLayout>
     );
   }
 
   return (
     <AuthLayout variant="brand" panel={workifyPanel}>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 sm:p-8 text-white">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Iniciar Sesión</h1>
-            <p className="text-sm sm:text-base text-gray-600">Accede a tu cuenta</p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* Token CSRF oculto */}
-            <input type="hidden" name="csrfToken" value={csrfToken} />
-            
-            <InputField
-              label="Email"
+      <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Workify" />
+      <AuthBrandCard
+        cardTitle="Iniciar sesión"
+        cardDescription="Introduce tus credenciales"
+        footer={
+          <AuthBrandLoginFooterLinks
+            signUpLine={
+              <>
+                ¿No tienes cuenta?{' '}
+                <Link href="/register" className="text-indigo-300 hover:text-indigo-200 font-medium">
+                  Registrarse
+                </Link>
+              </>
+            }
+            homeLine={
+              <Link href="/" className={AUTH_BRAND_HOME_LINK_CLASS}>
+                Volver al inicio
+              </Link>
+            }
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="csrfToken" value={csrfToken} />
+
+          {error ? (
+            <AuthBrandErrorAlert variant="error">
+              <p className="text-sm text-red-200">{error}</p>
+            </AuthBrandErrorAlert>
+          ) : null}
+
+          <div className="space-y-2">
+            <Label htmlFor="login-email" className={AUTH_BRAND_LABEL_CLASS}>
+              Email
+            </Label>
+            <Input
+              id="login-email"
               type="email"
               value={email}
               onChange={handleEmailChange}
-              placeholder="tu@email.com"
+              placeholder="tu@empresa.com"
               required
               disabled={isLoading}
               maxLength={100}
               autoComplete="email"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
-            <InputField
-              label="Contraseña"
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="login-password" className={AUTH_BRAND_LABEL_CLASS}>
+              Contraseña
+            </Label>
+            <Input
+              id="login-password"
               type="password"
               value={password}
               onChange={handlePasswordChange}
@@ -320,26 +385,26 @@ export default function LoginForm() {
               disabled={isLoading}
               maxLength={128}
               autoComplete="current-password"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-md text-xs sm:text-sm">{error}</div>
-            )}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              loading={isLoading}
-              className="w-full"
-            >
-              {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
-            </Button>
-            <div className="text-center">
-              <a href="#" className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 transition-colors">¿Olvidaste tu contraseña?</a>
-            </div>
-          </form>
-          <div className="mt-6 sm:mt-8 text-center">
-            <p className="text-xs text-gray-500">© 2024 Workify</p>
           </div>
-                </div>
-      </AuthLayout>
+
+          <AuthBrandForgotPasswordRow>
+            <a
+              href={hubForgotPasswordUrl()}
+              className={AUTH_BRAND_FORGOT_LINK_CLASS}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </AuthBrandForgotPasswordRow>
+
+          <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+            {isLoading ? 'Iniciando sesión…' : 'Iniciar sesión'}
+          </Button>
+        </form>
+      </AuthBrandCard>
+    </AuthLayout>
   );
-} 
+}

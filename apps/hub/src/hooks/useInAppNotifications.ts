@@ -2,8 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getInAppNotificationMeta } from "@multisystem/ui";
 import { shopflowNotificationsApi, type InAppNotificationDto } from "@/lib/api-client";
-
-const API_URL = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || "http://localhost:3000";
+import { getHubApiBaseUrl } from "@/lib/api-origin";
 const SSE_SUPPORTED = typeof EventSource !== "undefined";
 
 function mapRows(rows: InAppNotificationDto[]) {
@@ -55,7 +54,7 @@ export function useInAppNotifications(
 
   useEffect(() => {
     if (!companyId || !userId || !active || !SSE_SUPPORTED) return;
-    const es = new EventSource(`${API_URL}/v1/events/metrics/${companyId}`, { withCredentials: true });
+    const es = new EventSource(`${getHubApiBaseUrl()}/v1/events/metrics/${companyId}`, { withCredentials: true });
     const onCreated = (ev: MessageEvent) => {
       try {
         const data = JSON.parse(ev.data) as { userId?: string };

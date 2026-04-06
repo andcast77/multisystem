@@ -6,6 +6,15 @@ import { authApi, accountApi } from "@/lib/api-client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 import {
   AuthLayout,
+  AuthBrandDecorativePanel,
+  AuthBrandWelcomeHeader,
+  AuthBrandErrorAlert,
+  AuthBrandFooterCenter,
+  AUTH_BRAND_CARD_CLASS,
+  AUTH_BRAND_INPUT_CLASS,
+  AUTH_BRAND_LABEL_CLASS,
+  AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
   Button,
   Input,
   Label,
@@ -21,11 +30,6 @@ import {
   DialogTitle,
   ScrollArea,
 } from "@multisystem/ui";
-const brandCard =
-  "border border-white/10 bg-white/5 text-white shadow-none backdrop-blur-md ring-1 ring-white/10";
-const brandInput =
-  "rounded-md bg-white/10 border-white/20 text-white placeholder:text-white/40";
-const brandLabel = "text-white/80";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -94,44 +98,32 @@ export function RegisterPage() {
   }
 
   const decorativePanel = (
-    <>
-      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
-        <span>🚀</span>
-        <span>Multisystem Hub</span>
-      </div>
-
-      <h2 className="text-4xl font-bold text-white mb-4">
-        Tu negocio listo para crecer
-      </h2>
-      <p className="text-white/80 text-lg leading-relaxed">
-        Accede a todas las herramientas que necesitas para gestionar y hacer crecer
-        tu negocio con claridad.
-      </p>
-
-      <div className="mt-8 pt-8 border-t border-white/30">
-        <p className="text-white/60 text-sm italic">
-          "Empieza rápido, crece con claridad."
-        </p>
-      </div>
-    </>
+    <AuthBrandDecorativePanel
+      badge={
+        <>
+          <span>🚀</span>
+          <span>Multisystem Hub</span>
+        </>
+      }
+      title="Tu negocio listo para crecer"
+      description="Accede a todas las herramientas que necesitas para gestionar y hacer crecer tu negocio con claridad."
+      quote={<>Empieza rápido, crece con claridad.</>}
+    />
   );
 
   return (
     <>
       <AuthLayout variant="brand" contentClassName="max-w-lg" panel={decorativePanel}>
-        {/* Logo/Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            {registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
-          </h1>
-          <p className="text-white/50 mt-2">
-            {registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"}
-          </p>
-        </div>
+        <AuthBrandWelcomeHeader
+          title={registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
+          subtitle={
+            registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"
+          }
+        />
 
             {/* Success Message or Register Form Card */}
             {registrationSuccess ? (
-              <Card className={brandCard}>
+              <Card className={AUTH_BRAND_CARD_CLASS}>
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
                     <svg className="h-8 w-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,10 +143,7 @@ export function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Button
-                      onClick={() => navigate("/login")}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/25"
-                    >
+                    <Button onClick={() => navigate("/login")} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
                       Ir al Login
                     </Button>
                     
@@ -168,7 +157,7 @@ export function RegisterPage() {
                           alert("Error al reenviar email. Intenta más tarde.");
                         }
                       }}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/25"
+                      className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
                     >
                       ¿No recibiste el email? Reenviar
                     </Button>
@@ -180,7 +169,7 @@ export function RegisterPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className={brandCard}>
+              <Card className={AUTH_BRAND_CARD_CLASS}>
                 <CardHeader>
                   <CardTitle className="text-white">Registrarse</CardTitle>
                   <CardDescription className="text-white/60">Completa los campos para crear la cuenta</CardDescription>
@@ -189,21 +178,21 @@ export function RegisterPage() {
                   <ScrollArea className="h-auto max-h-[60vh] pr-4">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                       {/* Error Message */}
-                      {errorMessage && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-400/30">
+                      {errorMessage ? (
+                        <AuthBrandErrorAlert variant="error">
                           <p className="text-sm text-red-200">{errorMessage}</p>
-                        </div>
-                      )}
+                        </AuthBrandErrorAlert>
+                      ) : null}
                     {/* Two-column layout for names on medium+ screens */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* First Name */}
                       <div className="space-y-2">
-                        <Label htmlFor="firstName" className={brandLabel}>Nombre</Label>
+                        <Label htmlFor="firstName" className={AUTH_BRAND_LABEL_CLASS}>Nombre</Label>
                         <Input
                           id="firstName"
                           placeholder="Juan"
                           {...register("firstName")}
-                          className={`${brandInput} ${errors.firstName ? "border-red-400" : ""}`}
+                          className={`${AUTH_BRAND_INPUT_CLASS} ${errors.firstName ? "border-red-400" : ""}`}
                         />
                         {errors.firstName && (
                           <p className="text-xs text-red-300">{errors.firstName.message}</p>
@@ -212,12 +201,12 @@ export function RegisterPage() {
 
                       {/* Last Name */}
                       <div className="space-y-2">
-                        <Label htmlFor="lastName" className={brandLabel}>Apellido</Label>
+                        <Label htmlFor="lastName" className={AUTH_BRAND_LABEL_CLASS}>Apellido</Label>
                         <Input
                           id="lastName"
                           placeholder="Pérez"
                           {...register("lastName")}
-                          className={`${brandInput} ${errors.lastName ? "border-red-400" : ""}`}
+                          className={`${AUTH_BRAND_INPUT_CLASS} ${errors.lastName ? "border-red-400" : ""}`}
                         />
                         {errors.lastName && (
                           <p className="text-xs text-red-300">{errors.lastName.message}</p>
@@ -227,12 +216,12 @@ export function RegisterPage() {
 
                     {/* Company Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="companyName" className={brandLabel}>Nombre de la empresa</Label>
+                      <Label htmlFor="companyName" className={AUTH_BRAND_LABEL_CLASS}>Nombre de la empresa</Label>
                       <Input
                         id="companyName"
                         placeholder="Mi Empresa S.L."
                         {...register("companyName")}
-                        className={`${brandInput} ${errors.companyName ? "border-red-400" : ""}`}
+                        className={`${AUTH_BRAND_INPUT_CLASS} ${errors.companyName ? "border-red-400" : ""}`}
                       />
                       {errors.companyName && (
                         <p className="text-sm text-red-300">{errors.companyName.message}</p>
@@ -241,13 +230,13 @@ export function RegisterPage() {
 
                     {/* Email */}
                     <div className="space-y-2">
-                      <Label htmlFor="email" className={brandLabel}>Email</Label>
+                      <Label htmlFor="email" className={AUTH_BRAND_LABEL_CLASS}>Email</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="tu@empresa.com"
                         {...register("email")}
-                        className={`${brandInput} ${errors.email ? "border-red-400" : ""}`}
+                        className={`${AUTH_BRAND_INPUT_CLASS} ${errors.email ? "border-red-400" : ""}`}
                       />
                       {errors.email && (
                         <p className="text-sm text-red-300">{errors.email.message}</p>
@@ -258,13 +247,13 @@ export function RegisterPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Password */}
                       <div className="space-y-2">
-                        <Label htmlFor="password" className={brandLabel}>Contraseña</Label>
+                        <Label htmlFor="password" className={AUTH_BRAND_LABEL_CLASS}>Contraseña</Label>
                         <Input
                           id="password"
                           type="password"
                           placeholder="••••••••"
                           {...register("password")}
-                          className={`${brandInput} ${errors.password ? "border-red-400" : ""}`}
+                          className={`${AUTH_BRAND_INPUT_CLASS} ${errors.password ? "border-red-400" : ""}`}
                         />
                         {errors.password && (
                           <p className="text-xs text-red-300">{errors.password.message}</p>
@@ -273,13 +262,13 @@ export function RegisterPage() {
 
                       {/* Confirm Password */}
                       <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className={brandLabel}>Confirmar contraseña</Label>
+                        <Label htmlFor="confirmPassword" className={AUTH_BRAND_LABEL_CLASS}>Confirmar contraseña</Label>
                         <Input
                           id="confirmPassword"
                           type="password"
                           placeholder="••••••••"
                           {...register("confirmPassword")}
-                          className={`${brandInput} ${errors.confirmPassword ? "border-red-400" : ""}`}
+                          className={`${AUTH_BRAND_INPUT_CLASS} ${errors.confirmPassword ? "border-red-400" : ""}`}
                         />
                         {errors.confirmPassword && (
                           <p className="text-xs text-red-300">{errors.confirmPassword.message}</p>
@@ -342,22 +331,21 @@ export function RegisterPage() {
                     <Button
                       type="submit"
                       disabled={isSubmitting || !termsAccepted || !privacyAccepted}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-xl shadow-lg shadow-indigo-500/25"
+                      className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
                     >
                       {isSubmitting ? "Registrando…" : "Crear cuenta"}
                     </Button>
                   </form>
                 </ScrollArea>
 
-                {/* Login Link */}
-                <div className="mt-6 text-center">
+                <AuthBrandFooterCenter>
                   <p className="text-sm text-white/50">
                     ¿Ya tienes cuenta?{" "}
                     <Link to="/login" className="text-indigo-300 hover:text-indigo-200 font-medium">
                       Inicia sesión
                     </Link>
                   </p>
-                </div>
+                </AuthBrandFooterCenter>
               </CardContent>
             </Card>
             )}

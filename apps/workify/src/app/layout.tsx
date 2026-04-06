@@ -14,9 +14,44 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/** Hub / Multisystem marketing accent (indigo-500) — not Shopflow POS blue */
+const WORKIFY_THEME = "#6366f1";
+
+const metadataBaseUrl = (() => {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (raw && /^https?:\/\//i.test(raw)) {
+    try {
+      return new URL(raw);
+    } catch {
+      /* fall through */
+    }
+  }
+  return new URL("http://localhost:3003");
+})();
+
+const defaultDescription =
+  "Workify: turnos, asistencia y personas para tu empresa. Módulo RRHH del ecosistema Multisystem.";
+
 export const metadata: Metadata = {
-  title: "Workify - Gestión de Empleados",
-  description: "Sistema de gestión de empleados y recursos humanos",
+  metadataBase: metadataBaseUrl,
+  applicationName: "Workify",
+  title: {
+    default: "Workify",
+    template: "%s · Workify",
+  },
+  description: defaultDescription,
+  openGraph: {
+    type: "website",
+    locale: "es",
+    siteName: "Workify",
+    title: "Workify",
+    description: defaultDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Workify",
+    description: defaultDescription,
+  },
 };
 
 export const viewport: Viewport = {
@@ -24,7 +59,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#3B82F6",
+  themeColor: WORKIFY_THEME,
 };
 
 export default function RootLayout({

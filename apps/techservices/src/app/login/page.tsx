@@ -3,19 +3,48 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
-import { AuthLayout } from "@multisystem/ui";
+import {
+  AuthLayout,
+  AuthBrandDecorativePanel,
+  AuthBrandWelcomeHeader,
+  AuthBrandCard,
+  AuthBrandErrorAlert,
+  AuthBrandLoginFooterLinks,
+  AuthBrandForgotPasswordRow,
+  AUTH_BRAND_INPUT_CLASS,
+  AUTH_BRAND_LABEL_CLASS,
+  AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_FORGOT_LINK_CLASS,
+  AUTH_BRAND_LINK_SUBTLE_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
+  AUTH_BRAND_HOME_LINK_CLASS,
+  AUTH_BRAND_SELECT_CLASS,
+  Button,
+  Input,
+  Label,
+} from "@multisystem/ui";
 import { authApi } from "@/lib/api/client";
 
-const tsPanel = (
-  <>
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-indigo-200 font-medium mb-6">
-      Tech Services
-    </div>
-    <h2 className="text-4xl font-bold text-white mb-4">Ordenes y campo</h2>
-    <p className="text-white/80 text-lg leading-relaxed">Identidad Multisystem para servicio tecnico.</p>
-  </>
-);
+function hubBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:3001").replace(/\/$/, "");
+}
 
+function hubForgotPasswordUrl(): string {
+  return `${hubBaseUrl()}/forgot-password`;
+}
+
+function hubRegisterUrl(): string {
+  return `${hubBaseUrl()}/register`;
+}
+
+const tsPanel = (
+  <AuthBrandDecorativePanel
+    badge="Tech Services"
+    title="Órdenes y campo"
+    description="Órdenes de trabajo, activos y cuadrillas con foco en operación de campo, no en marketing genérico."
+    quote={<>Del taller al cliente, con trazabilidad.</>}
+  />
+);
 
 type CompanyOption = {
   id: string;
@@ -48,7 +77,7 @@ export default function LoginPage() {
       const res = await authApi.post<ApiResponse<LoginResponse>>("/login", { email, password });
 
       if (!res?.success || !res.data) {
-        setError(res?.error || "Error al iniciar sesion");
+        setError(res?.error || "Error al iniciar sesión");
         return;
       }
 
@@ -87,7 +116,7 @@ export default function LoginPage() {
 
       window.location.href = "/dashboard";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error de conexion");
+      setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -112,7 +141,7 @@ export default function LoginPage() {
       }
       window.location.href = "/dashboard";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error de conexion");
+      setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -122,7 +151,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     if (!mfaTempToken || !mfaCode.trim()) {
-      setError("Introduce el codigo.");
+      setError("Introduce el código.");
       return;
     }
     setLoading(true);
@@ -139,7 +168,7 @@ export default function LoginPage() {
             companyId: mfaCompanyId,
           });
       if (!res?.success || !res.data) {
-        setError(res?.error || "Codigo invalido");
+        setError(res?.error || "Código inválido");
         return;
       }
       window.location.href = "/dashboard";
@@ -153,44 +182,57 @@ export default function LoginPage() {
   if (mfaStep && mfaTempToken) {
     return (
       <AuthLayout variant="brand" panel={tsPanel}>
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
-          <h1 className="text-2xl font-bold text-center mb-4">Verificacion en dos pasos</h1>
-          <p className="text-slate-600 text-sm text-center mb-6">
-            {mfaBackup ? "Codigo de respaldo" : "Codigo TOTP de tu app"}
-          </p>
+        <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Tech Services" />
+        <AuthBrandCard
+          cardTitle="Verificación en dos pasos"
+          cardDescription={
+            mfaBackup
+              ? "Introduce un código de respaldo de un solo uso."
+              : "Introduce el código de tu app autenticadora."
+          }
+        >
           <form onSubmit={handleMfaSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Codigo</label>
-              <input
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="ts-mfa-code" className={AUTH_BRAND_LABEL_CLASS}>
+                {mfaBackup ? "Código de respaldo" : "Código TOTP"}
+              </Label>
+              <Input
+                id="ts-mfa-code"
                 type="text"
+                inputMode={mfaBackup ? "text" : "numeric"}
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded px-3 py-2"
+                disabled={loading}
                 autoComplete="one-time-code"
+                placeholder={mfaBackup ? "XXXX-XXXX-XXXX" : "000000"}
+                className={AUTH_BRAND_INPUT_CLASS}
               />
             </div>
-            <button
+            <Button
               type="button"
-              className="text-sm text-slate-600 hover:underline"
+              variant="link"
+              className={AUTH_BRAND_LINK_SUBTLE_CLASS}
               onClick={() => {
                 setMfaBackup(!mfaBackup);
                 setMfaCode("");
+                setError(null);
               }}
             >
-              {mfaBackup ? "Usar TOTP" : "Usar codigo de respaldo"}
-            </button>
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 text-white py-2 rounded font-medium hover:bg-slate-800 disabled:opacity-50"
-            >
-              {loading ? "Verificando..." : "Continuar"}
-            </button>
-            <button
+              {mfaBackup ? "Usar código de la app autenticadora" : "Usar código de respaldo"}
+            </Button>
+            <Button type="submit" disabled={loading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+              {loading ? "Verificando…" : "Continuar"}
+            </Button>
+            <Button
               type="button"
-              className="w-full border border-slate-300 py-2 rounded"
+              variant="outline"
+              className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
               onClick={() => {
                 setMfaStep(false);
                 setMfaTempToken(null);
@@ -199,96 +241,139 @@ export default function LoginPage() {
               }}
             >
               Volver
-            </button>
+            </Button>
           </form>
-            </div>
-    </AuthLayout>
+        </AuthBrandCard>
+      </AuthLayout>
     );
   }
 
   if (selectingCompany && companies && companies.length > 1) {
     return (
       <AuthLayout variant="brand" panel={tsPanel}>
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
-          <h1 className="text-2xl font-bold text-center mb-4">Selecciona empresa</h1>
-          <p className="text-slate-600 text-sm text-center mb-6">
-            Tienes acceso a varias empresas. Elige con cual continuar.
-          </p>
+        <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Tech Services" />
+        <AuthBrandCard
+          cardTitle="Elige una empresa"
+          cardDescription="Tienes acceso a varias empresas. Elige con cuál continuar."
+        >
           <form onSubmit={handleCompanySelect} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="ts-company" className={AUTH_BRAND_LABEL_CLASS}>
+                Empresa
+              </Label>
               <select
+                id="ts-company"
                 value={selectedCompanyId}
                 onChange={(e) => setSelectedCompanyId(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded px-3 py-2"
+                disabled={loading}
+                className={AUTH_BRAND_SELECT_CLASS}
               >
                 {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="bg-slate-900 text-white">
                     {c.name}
                   </option>
                 ))}
               </select>
             </div>
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 text-white py-2 rounded font-medium hover:bg-slate-800 disabled:opacity-50"
-            >
-              {loading ? "Continuando..." : "Continuar"}
-            </button>
+            <Button type="submit" disabled={loading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+              {loading ? "Continuando…" : "Continuar"}
+            </Button>
           </form>
-            </div>
-    </AuthLayout>
+        </AuthBrandCard>
+      </AuthLayout>
     );
   }
 
   return (
     <AuthLayout variant="brand" panel={tsPanel}>
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-white">
-        <h1 className="text-2xl font-bold text-center mb-4">Servicios Tecnicos</h1>
-        <p className="text-slate-600 text-sm text-center mb-6">Inicia sesion para continuar.</p>
-
+      <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Tech Services" />
+      <AuthBrandCard
+        cardTitle="Iniciar sesión"
+        cardDescription="Introduce tus credenciales"
+        footer={
+          <AuthBrandLoginFooterLinks
+            signUpLine={
+              <>
+                ¿No tienes cuenta?{" "}
+                <a
+                  href={hubRegisterUrl()}
+                  className="text-indigo-300 hover:text-indigo-200 font-medium"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Registrarse
+                </a>
+              </>
+            }
+            homeLine={
+              <Link href="/" className={AUTH_BRAND_HOME_LINK_CLASS}>
+                Volver al inicio
+              </Link>
+            }
+          />
+        }
+      >
         <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
-            <input
+          {error ? (
+            <AuthBrandErrorAlert variant="error">
+              <p className="text-sm text-red-200">{error}</p>
+            </AuthBrandErrorAlert>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="ts-email" className={AUTH_BRAND_LABEL_CLASS}>
+              Email
+            </Label>
+            <Input
+              id="ts-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-slate-300 rounded px-3 py-2"
+              disabled={loading}
               placeholder="tu@empresa.com"
+              autoComplete="email"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contrasena *</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="ts-password" className={AUTH_BRAND_LABEL_CLASS}>
+              Contraseña
+            </Label>
+            <Input
+              id="ts-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border border-slate-300 rounded px-3 py-2"
+              disabled={loading}
               placeholder="••••••••"
+              autoComplete="current-password"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
           </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-2 rounded font-medium hover:bg-slate-800 disabled:opacity-50"
-          >
-            {loading ? "Iniciando sesion..." : "Iniciar sesion"}
-          </button>
-        </form>
 
-        <p className="text-center text-sm text-slate-500 mt-4">
-          <Link href="/" className="text-slate-700 hover:underline">
-            Volver al inicio
-          </Link>
-        </p>
-          </div>
+          <AuthBrandForgotPasswordRow>
+            <a
+              href={hubForgotPasswordUrl()}
+              className={AUTH_BRAND_FORGOT_LINK_CLASS}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </AuthBrandForgotPasswordRow>
+
+          <Button type="submit" disabled={loading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+            {loading ? "Iniciando sesión…" : "Iniciar sesión"}
+          </Button>
+        </form>
+      </AuthBrandCard>
     </AuthLayout>
   );
 }
