@@ -103,9 +103,11 @@ pnpm install
 ## Desarrollo
 
 ```bash
-# Iniciar todos los servicios (API + apps) en paralelo
+# Iniciar todos los servicios (API + apps + @multisystem/ui en watch) en paralelo
 pnpm dev
 ```
+
+`turbo run dev` ejecuta el script `dev` de cada paquete que lo define; **`@multisystem/ui`** usa `vite build --watch` para recompilar `dist/` al cambiar `packages/component-library/src`.
 
 - **API:** http://localhost:3000  
 - **Swagger:** http://localhost:3000/api/docs  
@@ -119,10 +121,11 @@ pnpm dev
 1. Levantar PostgreSQL: `docker compose up -d postgres`
 2. Tener `.env` en `packages/api/` y opcionalmente en `packages/database/` (ver Base de datos local).
 3. Migraciones: `pnpm --filter @multisystem/database migrate:deploy`
-4. Levantar API y Hub (construye antes la librería de UI):
+4. Levantar API y Hub (incluye `@multisystem/ui` en watch junto al Hub):
    ```bash
    pnpm run dev:hub
    ```
+   En otra terminal, la API: `pnpm run dev:api` si aún no está en marcha.
    - **Hub:** http://localhost:3001  
    - **API:** http://localhost:3000  
    - **Swagger:** http://localhost:3000/api/docs  

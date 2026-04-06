@@ -1,6 +1,6 @@
 # Multisystem Hub (`@multisystem/hub`)
 
-App **Vite + React 19** en **`apps/hub`**: portal multi-empresa — landing pública, autenticación contra la API compartida y **dashboard** para ver empresa, módulos contratados y enlaces a **Workify**, **Shopflow** y **Techservices**.
+App **Next.js 16 (App Router) + React 19** en **`apps/hub`**: portal multi-empresa — landing pública, autenticación contra la API compartida y **dashboard** para ver empresa, módulos contratados y enlaces a **Workify**, **Shopflow** y **Techservices**.
 
 Forma parte del **monorepo** (`pnpm` workspaces); no es un repo aislado.
 
@@ -9,29 +9,29 @@ Forma parte del **monorepo** (`pnpm` workspaces); no es un repo aislado.
 | Área | Rutas / notas |
 |------|----------------|
 | Pública | `/` landing, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` |
-| Protegidas (JWT en cookie `token`) | `/dashboard` — resumen, tarjetas de módulos habilitados, stats; `/dashboard/members` — miembros; `/dashboard/settings` — empresa y módulos (según rol) |
+| Protegidas (sesión HTTP-only en API; comprobación vía `/v1/auth/me`) | `/dashboard` — resumen, tarjetas de módulos habilitados, stats; `/dashboard/members` — miembros; `/dashboard/settings` — empresa y módulos (según rol) |
 
-La API es **`@multisystem/api`** (Fastify). En desarrollo, Vite hace **proxy** de `/v1` → la API (por defecto `http://localhost:3000`), incluyendo **WebSocket** (`ws: true`). Si `VITE_API_URL` está vacío, el cliente usa la misma origen (`/v1/...`) y evita CORS.
+La API es **`@multisystem/api`** (Fastify). En desarrollo, **Next rewrites** envían `/v1/*` → `http://127.0.0.1:3000/v1/*` (misma idea que el proxy de Vite). Si `NEXT_PUBLIC_API_URL` está vacío, el cliente usa la misma origen (`/v1/...`) y evita CORS.
 
 ## Stack
 
-- **React Router 7**, **TanStack Query**, **react-hook-form** + **Zod**
+- **Next.js 16** (App Router), **TanStack Query**, **react-hook-form** + **Zod**
 - **@multisystem/ui**, **@multisystem/contracts**, **@multisystem/shared** (reexport cookie auth en `src/lib/auth.ts`)
 
 ## Scripts (desde `apps/hub` o con filter)
 
 | Comando | Descripción |
 |---------|-------------|
-| `pnpm dev` | Vite, puerto **3001** |
-| `pnpm build` | Build estático → `dist/` |
-| `pnpm preview` | Preview del build |
-| `pnpm lint` | ESLint |
+| `pnpm dev` | Next dev **Turbopack**, puerto **3001** |
+| `pnpm build` | `next build` → `.next/` |
+| `pnpm start` | `next start` en puerto **3001** |
+| `pnpm lint` | `next lint` |
 
 ```bash
 pnpm --filter @multisystem/hub dev
 ```
 
-En la raíz del monorepo: **`pnpm run dev:hub`** (construye `@multisystem/ui` y levanta API + Hub).
+En la raíz del monorepo: **`pnpm run dev:hub`** (levanta Hub; la API suele ir en otro terminal con `pnpm run dev:api`).
 
 ## Variables de entorno
 
@@ -39,30 +39,32 @@ Crear **`.env`** en `apps/hub/` usando **`.env.example`** como plantilla:
 
 | Variable | Uso |
 |----------|-----|
-| `VITE_API_URL` | Base URL absoluta de la API si no usas el proxy. En **dev**, vacío o `http://localhost:3000` = mismo origen + proxy `/v1` (el código trata el localhost explícito como proxy). En **build** sin valor, cae a `http://localhost:3000`. |
-| `VITE_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). |
-| `VITE_WORKIFY_URL` | Workify (**`http://localhost:3003`**). |
-| `VITE_TECHSERVICES_URL` | Techservices (p. ej. `http://localhost:3004`). |
+| `NEXT_PUBLIC_API_URL` | Base URL absoluta de la API si no usas el rewrite en dev. En **dev**, vacío o `http://localhost:3000` = mismo origen + rewrite `/v1`. En **build** sin valor, cae a `http://localhost:3000`. |
+| `NEXT_PUBLIC_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). |
+| `NEXT_PUBLIC_WORKIFY_URL` | Workify (**`http://localhost:3003`**). |
+| `NEXT_PUBLIC_TECHSERVICES_URL` | Techservices (p. ej. `http://localhost:3004`). |
 
 Asegurar que **`CORS_ORIGIN`** en la API incluya `http://localhost:3001`.
 
-## Estructura (src)
+## Estructura
 
 ```
+app/                        # App Router: layout, rutas, providers
 src/
-├── App.tsx                 # Rutas React Router
-├── main.tsx
-├── pages/                  # Landing, Login, Dashboard, Members, Settings, …
-├── components/             # Layout dashboard, ModuleCard, ProtectedRoute, …
-├── hooks/                  # useUser, useCompany, useCompanyMembers, …
-├── lib/                    # api-client (tipos @multisystem/contracts), auth
-├── providers/QueryProvider.tsx
-└── app/                    # Rutas/layout Next-style (conviven con Pages; el enrutado principal es App.tsx)
+├── views/                  # Pantallas (Landing, Login, Dashboard, …)
+├── components/             # Layout dashboard, ModuleCard, …
+├── hooks/                  # useUser, useCompany, …
+├── lib/                    # api-client, auth
+└── providers/QueryProvider.tsx
+proxy.ts                    # matcher /dashboard/* (placeholder; auth en cliente; Next.js 16+)
 ```
+
+Las vistas viven en **`src/views`** (no `src/pages`) para no chocar con la convención **Pages Router** de Next.
 
 ## Despliegue
 
-- **`vercel.json`**: ejemplo con `turbo build` / `dist` — ajustar al pipeline real del monorepo (root directory, variables `VITE_*` en build).
+- **`vercel.json`**: `framework: nextjs`, `outputDirectory: .next`, `turbo build` (filtrar `@multisystem/hub` en el proyecto Vercel).
+- Variables `NEXT_PUBLIC_*` en el panel de Vercel para el build.
 
 ## Enlaces
 

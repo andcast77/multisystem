@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -27,7 +29,7 @@ export function Footer() {
               <ul className="space-y-2.5 text-sm">
                 <li>
                   <Link
-                    to="/shopflow"
+                    href="/shopflow"
                     className="text-white/40 hover:text-white transition-colors duration-150"
                   >
                     ShopFlow
@@ -35,7 +37,7 @@ export function Footer() {
                 </li>
                 <li>
                   <Link
-                    to="/workify"
+                    href="/workify"
                     className="text-white/40 hover:text-white transition-colors duration-150"
                   >
                     Workify
@@ -43,7 +45,7 @@ export function Footer() {
                 </li>
                 <li>
                   <Link
-                    to="/techservices"
+                    href="/techservices"
                     className="text-white/40 hover:text-white transition-colors duration-150"
                   >
                     Servicios Técnicos
@@ -59,7 +61,7 @@ export function Footer() {
               <ul className="space-y-2.5 text-sm">
                 <li>
                   <Link
-                    to="/login"
+                    href="/login"
                     className="text-white/40 hover:text-white transition-colors duration-150"
                   >
                     Iniciar sesión
@@ -67,7 +69,7 @@ export function Footer() {
                 </li>
                 <li>
                   <Link
-                    to="/register"
+                    href="/register"
                     className="text-white/40 hover:text-white transition-colors duration-150"
                   >
                     Registrar empresa
