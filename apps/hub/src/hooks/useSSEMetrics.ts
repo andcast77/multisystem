@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000'
+import { getHubApiBaseUrl } from '@/lib/api-origin'
 const MAX_RECONNECT_DELAY_MS = 30_000
 const MAX_RECONNECT_ATTEMPTS = 10
 const SSE_SUPPORTED = typeof EventSource !== 'undefined'
@@ -22,7 +22,7 @@ export function useSSEMetrics(companyId: string | undefined) {
     function connect() {
       if (cancelled) return
 
-      const url = `${API_URL}/v1/events/metrics/${companyId}`
+      const url = `${getHubApiBaseUrl()}/v1/events/metrics/${companyId}`
       const es = new EventSource(url, { withCredentials: true })
       esRef.current = es
 

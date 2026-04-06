@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* AuthLayout (y otros UI compartidos) viven en packages/component-library; Tailwind v4 no escanea fuera del app por defecto,
+   así que sin esto faltan utilidades como lg:flex / lg:grid-cols-* y el panel de marketing queda .hidden para siempre. */
+@source "../../../packages/component-library/src";
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -44,5 +48,62 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+/*
+ * Shopflow login/register: @multisystem/ui SCSS (.ui-card uses --card white; .ui-input uses a light surface)
+ * loads after Tailwind and was winning over AUTH_BRAND_* utilities — the screen looked like a light card on
+ * a dark bg instead of Hub-style glass. These scoped rules restore the Hub visual (and 50/50 split at lg).
+ */
+.shopflow-auth-shell .ui-card {
+  background-color: rgb(255 255 255 / 0.05);
+  border-color: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255);
+  box-shadow: none;
+}
+
+.shopflow-auth-shell .ui-card__title {
+  color: rgb(255 255 255);
+}
+
+.shopflow-auth-shell .ui-card__description {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.shopflow-auth-shell .ui-input {
+  background-color: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.2);
+  color: rgb(255 255 255);
+  box-shadow: none;
+}
+
+.shopflow-auth-shell .ui-input::placeholder {
+  color: rgb(255 255 255 / 0.4);
+}
+
+.shopflow-auth-shell .ui-input:focus-visible {
+  box-shadow:
+    0 0 0 2px rgb(10 10 15),
+    0 0 0 4px rgb(99 102 241 / 0.45);
+}
+
+.shopflow-auth-shell .ui-label {
+  color: rgb(255 255 255 / 0.8);
+}
+
+.shopflow-auth-shell .ui-btn--variant-outline {
+  background-color: rgb(255 255 255 / 0.05);
+  border-color: rgb(255 255 255 / 0.2);
+  color: rgb(255 255 255);
+}
+
+.shopflow-auth-shell .ui-btn--variant-outline:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.1);
+}
+
+@media (min-width: 1024px) {
+  .shopflow-auth-layout {
+    grid-template-columns: 1fr 1fr;
   }
 }

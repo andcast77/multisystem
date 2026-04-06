@@ -1,9 +1,28 @@
-import { useMemo, useState } from "react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@multisystem/ui";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  AuthLayout,
+  AuthBrandDecorativePanel,
+  AuthBrandWelcomeHeader,
+  AuthBrandCard,
+  AuthBrandErrorAlert,
+  AuthBrandLoginFooterLinks,
+  AuthBrandForgotPasswordRow,
+  AUTH_BRAND_INPUT_CLASS,
+  AUTH_BRAND_LABEL_CLASS,
+  AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_FORGOT_LINK_CLASS,
+  AUTH_BRAND_LINK_SUBTLE_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
+  AUTH_BRAND_HOME_LINK_CLASS,
+  Button,
+  Input,
+  Label,
+} from "@multisystem/ui";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
 import { loginSchema } from "@/lib/validations/auth";
 import { authApi } from "@/lib/api/client";
+import { getLandingUrls } from "@/lib/landingUrls";
 
 function safeNextPath(raw: string | null): string | null {
   if (!raw || !raw.startsWith("/")) return null;
@@ -11,12 +30,17 @@ function safeNextPath(raw: string | null): string | null {
   return raw;
 }
 
+function hubForgotPasswordUrl(): string {
+  const base = getLandingUrls().hub.replace(/\/$/, "");
+  return `${base}/forgot-password`;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const nextPath = useMemo(
     () => safeNextPath(searchParams.get("next")),
-    [searchParams]
+    [searchParams],
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,170 +48,253 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [mfaStep, setMfaStep] = useState(false);
   const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
-  const [mfaCompanyId, setMfaCompanyId] = useState<string | undefined>(undefined);
+  const [mfaCompanyId, setMfaCompanyId] = useState<string | undefined>(
+    undefined,
+  );
   const [mfaCode, setMfaCode] = useState("");
   const [mfaBackup, setMfaBackup] = useState(false);
 
+  const decorativePanel = (
+    <AuthBrandDecorativePanel
+      badge={
+        <>
+          <span>✨</span>
+          <span>Shopflow</span>
+        </>
+      }
+      title="Operación en tienda"
+      description={
+        <>
+          Ventas, inventario y pedidos con el mismo ritmo que tu negocio:
+          diseñado para el día a día del punto de venta, no como catálogo
+          genérico.
+        </>
+      }
+      quote={<>Caja, stock y clientes, alineados en un solo flujo.</>}
+    />
+  );
+
+  async function handleLoginSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || "Datos inválidos");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await authApi.post<ApiResponse<LoginResponse>>("/login", {
+        email,
+        password,
+      });
+      if (!res.success || !res.data) {
+        setError(res.error || "Credenciales inválidas");
+        return;
+      }
+      if (res.data.mfaRequired && res.data.tempToken) {
+        setMfaStep(true);
+        setMfaTempToken(res.data.tempToken);
+        setMfaCompanyId(res.data.companyId);
+        setMfaCode("");
+        setMfaBackup(false);
+        return;
+      }
+      navigate(nextPath ?? "/dashboard", { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo iniciar sesión",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleMfaSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!mfaTempToken || !mfaCode.trim()) {
+      setError("Introduce el código.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = mfaBackup
+        ? await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify-backup", {
+            tempToken: mfaTempToken,
+            backupCode: mfaCode.trim(),
+            companyId: mfaCompanyId,
+          })
+        : await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify", {
+            tempToken: mfaTempToken,
+            totpCode: mfaCode.trim(),
+            companyId: mfaCompanyId,
+          });
+      if (!res.success || !res.data) {
+        setError(res.error || "Código inválido");
+        return;
+      }
+      navigate(nextPath ?? "/dashboard", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo verificar");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] overflow-hidden">
-      <div className="flex items-center justify-center p-4 lg:p-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900">Bienvenido</h1>
-            <p className="mt-2 text-slate-600">Accede a tu cuenta de Shopflow</p>
-          </div>
+    <AuthLayout variant="brand" panel={decorativePanel}>
+      <AuthBrandWelcomeHeader subtitle="Accede a tu cuenta de Shopflow" />
 
-          <Card className="border-white/60 bg-white/85 shadow-2xl backdrop-blur">
-            <CardHeader>
-              <CardTitle>{mfaStep ? "Verificacion en dos pasos" : "Iniciar sesion"}</CardTitle>
-              <CardDescription>
-                {mfaStep
-                  ? "Introduce el codigo de tu app autenticadora o un codigo de respaldo."
-                  : "Ingresa el email y la contraseña de tu cuenta Multisystem para usar Shopflow."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {!mfaStep ? (
+      <AuthBrandCard
+        cardTitle={mfaStep ? "Verificación en dos pasos" : "Iniciar sesión"}
+        cardDescription={
+          mfaStep
+            ? mfaBackup
+              ? "Introduce un código de respaldo de un solo uso."
+              : "Introduce el código de tu app autenticadora."
+            : "Introduce tus credenciales"
+        }
+        footer={
+          !mfaStep ? (
+            <AuthBrandLoginFooterLinks
+              signUpLine={
                 <>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contrasena</Label>
-                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label>{mfaBackup ? "Codigo de respaldo" : "Codigo TOTP"}</Label>
-                    <Input
-                      type="text"
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value)}
-                      placeholder={mfaBackup ? "XXXX-XXXX-XXXX" : "000000"}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="text-sm p-0 h-auto"
-                    onClick={() => {
-                      setMfaBackup(!mfaBackup);
-                      setMfaCode("");
-                    }}
+                  ¿No tienes cuenta?{" "}
+                  <Link
+                    to="/register"
+                    className="text-indigo-300 hover:text-indigo-200 font-medium"
                   >
-                    {mfaBackup ? "Usar codigo TOTP" : "Usar codigo de respaldo"}
-                  </Button>
+                    Registrarse
+                  </Link>
                 </>
-              )}
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
-              <Button
-                className="w-full"
+              }
+              homeLine={
+                <Link to="/" className={AUTH_BRAND_HOME_LINK_CLASS}>
+                  Volver al inicio
+                </Link>
+              }
+            />
+          ) : undefined
+        }
+      >
+        {mfaStep ? (
+          <form onSubmit={handleMfaSubmit} className="space-y-4">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="sf-mfa-code" className={AUTH_BRAND_LABEL_CLASS}>
+                {mfaBackup ? "Código de respaldo" : "Código TOTP"}
+              </Label>
+              <Input
+                id="sf-mfa-code"
+                type="text"
+                inputMode={mfaBackup ? "text" : "numeric"}
+                value={mfaCode}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setMfaCode(e.target.value)
+                }
+                placeholder={mfaBackup ? "XXXX-XXXX-XXXX" : "000000"}
+                autoComplete="one-time-code"
                 disabled={isLoading}
-                onClick={async () => {
-                  setError(null);
-                  if (mfaStep && mfaTempToken) {
-                    const parsedCode = mfaCode.trim();
-                    if (!parsedCode) {
-                      setError("Introduce el codigo.");
-                      return;
-                    }
-                    setIsLoading(true);
-                    try {
-                      const res = mfaBackup
-                        ? await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify-backup", {
-                            tempToken: mfaTempToken,
-                            backupCode: parsedCode,
-                            companyId: mfaCompanyId,
-                          })
-                        : await authApi.post<ApiResponse<LoginResponse>>("/mfa/verify", {
-                            tempToken: mfaTempToken,
-                            totpCode: parsedCode,
-                            companyId: mfaCompanyId,
-                          });
-                      if (!res.success || !res.data) {
-                        setError(res.error || "Codigo invalido");
-                        return;
-                      }
-                      navigate(nextPath ?? "/dashboard", { replace: true });
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : "No se pudo verificar");
-                    } finally {
-                      setIsLoading(false);
-                    }
-                    return;
-                  }
-                  const parsed = loginSchema.safeParse({ email, password });
-                  if (!parsed.success) {
-                    setError(parsed.error.issues[0]?.message || "Datos invalidos");
-                    return;
-                  }
-                  setIsLoading(true);
-                  try {
-                    const res = await authApi.post<ApiResponse<LoginResponse>>("/login", { email, password });
-                    if (!res.success || !res.data) {
-                      setError(res.error || "Credenciales invalidas");
-                      return;
-                    }
-                    if (res.data.mfaRequired && res.data.tempToken) {
-                      setMfaStep(true);
-                      setMfaTempToken(res.data.tempToken);
-                      setMfaCompanyId(res.data.companyId);
-                      setMfaCode("");
-                      setMfaBackup(false);
-                      return;
-                    }
-                    navigate(nextPath ?? "/dashboard", { replace: true });
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : "No se pudo iniciar sesion");
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
+                className={AUTH_BRAND_INPUT_CLASS}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="link"
+              className={AUTH_BRAND_LINK_SUBTLE_CLASS}
+              onClick={() => {
+                setMfaBackup(!mfaBackup);
+                setMfaCode("");
+                setError(null);
+              }}
+            >
+              {mfaBackup
+                ? "Usar código de la app autenticadora"
+                : "Usar código de respaldo"}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+            >
+              {isLoading ? "Verificando…" : "Continuar"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+              onClick={() => {
+                setMfaStep(false);
+                setMfaTempToken(null);
+                setMfaCode("");
+                setError(null);
+              }}
+            >
+              Volver
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="sf-email" className={AUTH_BRAND_LABEL_CLASS}>
+                Email
+              </Label>
+              <Input
+                id="sf-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@empresa.com"
+                autoComplete="email"
+                disabled={isLoading}
+                className={AUTH_BRAND_INPUT_CLASS}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sf-password" className={AUTH_BRAND_LABEL_CLASS}>
+                Contraseña
+              </Label>
+              <Input
+                id="sf-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                disabled={isLoading}
+                className={AUTH_BRAND_INPUT_CLASS}
+              />
+            </div>
+            <AuthBrandForgotPasswordRow>
+              <a
+                href={hubForgotPasswordUrl()}
+                className={AUTH_BRAND_FORGOT_LINK_CLASS}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                {isLoading ? "Ingresando..." : mfaStep ? "Continuar" : "Entrar al dashboard"}
-              </Button>
-              {mfaStep ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setMfaStep(false);
-                    setMfaTempToken(null);
-                    setMfaCode("");
-                    setError(null);
-                  }}
-                >
-                  Volver
-                </Button>
-              ) : (
-                <>
-                  <Link to="/" className="block">
-                    <Button variant="outline" className="w-full">Volver a la landing</Button>
-                  </Link>
-                  <Link to="/register" className="block">
-                    <Button variant="outline" className="w-full">Crear cuenta</Button>
-                  </Link>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <div className="hidden lg:flex flex-col items-center justify-center relative bg-gradient-to-br from-indigo-700 via-indigo-600 to-blue-600 p-12">
-        <div className="absolute -top-40 left-20 h-[520px] w-[520px] rounded-full border border-white/30" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
-        <div className="relative z-10 text-center max-w-sm">
-          <h2 className="text-4xl font-bold text-white mb-4">Operacion centralizada</h2>
-          <p className="text-white/80 text-lg leading-relaxed">
-            Mantiene coherencia visual con Hub y acceso al modulo Shopflow.
-          </p>
-        </div>
-      </div>
-    </main>
+                ¿Olvidaste tu contraseña?
+              </a>
+            </AuthBrandForgotPasswordRow>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+            >
+              {isLoading ? "Iniciando sesión…" : "Iniciar sesión"}
+            </Button>
+          </form>
+        )}
+      </AuthBrandCard>
+    </AuthLayout>
   );
 }

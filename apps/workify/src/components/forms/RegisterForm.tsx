@@ -1,23 +1,44 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Button, InputField } from '@multisystem/ui';
+import Link from 'next/link';
+import {
+  AuthLayout,
+  AuthBrandDecorativePanel,
+  AuthBrandWelcomeHeader,
+  AuthBrandCard,
+  AuthBrandErrorAlert,
+  AuthBrandFooterCenter,
+  AUTH_BRAND_INPUT_CLASS,
+  AUTH_BRAND_LABEL_CLASS,
+  AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  Button,
+  Input,
+  Label,
+} from '@multisystem/ui';
 import { authApi } from '@/lib/api/client';
 
-// Función para generar token CSRF
+const workifyRegisterPanel = (
+  <AuthBrandDecorativePanel
+    badge="Workify"
+    title="Tu equipo, en orden"
+    description="Alta de empresa y usuarios con el mismo layout de registro que el Hub y Shopflow; solo el texto es propio de Workify."
+    quote={<>RRHH y operación, bajo la misma cuenta.</>}
+  />
+);
+
 function generateCSRFToken(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// Función para sanitizar input
 function sanitizeInput(value: string): string {
   return value
     .trim()
-    .replace(/[<>]/g, '') // Remover caracteres peligrosos
-    .replace(/javascript:/gi, '') // Remover javascript: protocol
-    .replace(/data:/gi, '') // Remover data: protocol
-    .replace(/vbscript:/gi, '') // Remover vbscript: protocol
-    .substring(0, 100); // Limitar longitud
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .substring(0, 100);
 }
 
 export default function RegisterForm() {
@@ -27,29 +48,25 @@ export default function RegisterForm() {
     confirmPassword: '',
     companyName: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
   });
   const [error, setError] = useState('');
   const [isLoading, startTransition] = useTransition();
   const [csrfToken, setCsrfToken] = useState('');
 
-  // Generar token CSRF al montar el componente
   useEffect(() => {
     setCsrfToken(generateCSRFToken());
   }, []);
 
-  // Validar email
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email) && email.length <= 100;
   };
 
-  // Validar contraseña
   const validatePassword = (password: string): boolean => {
     return password.length >= 8 && password.length <= 128;
   };
 
-  // Validar complejidad de contraseña
   const validatePasswordComplexity = (password: string): boolean => {
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
@@ -57,12 +74,10 @@ export default function RegisterForm() {
     return hasUpperCase && hasLowerCase && hasNumbers;
   };
 
-  // Validar nombre de empresa
   const validateCompanyName = (name: string): boolean => {
     return name.length >= 2 && name.length <= 100;
   };
 
-  // Validar nombres
   const validateName = (name: string): boolean => {
     return name.length >= 1 && name.length <= 50;
   };
@@ -70,10 +85,9 @@ export default function RegisterForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const sanitizedValue = sanitizeInput(value);
-    
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: sanitizedValue
+      [name]: sanitizedValue,
     }));
   };
 
@@ -81,7 +95,6 @@ export default function RegisterForm() {
     e.preventDefault();
     setError('');
 
-    // Validaciones del lado del cliente
     if (!formData.firstName.trim()) {
       setError('El nombre es requerido');
       return;
@@ -112,7 +125,6 @@ export default function RegisterForm() {
       return;
     }
 
-    // Validaciones específicas
     if (!validateName(formData.firstName)) {
       setError('El nombre debe tener entre 1 y 50 caracteres');
       return;
@@ -148,7 +160,6 @@ export default function RegisterForm() {
       return;
     }
 
-    // Validar token CSRF
     if (!csrfToken) {
       setError('Error de seguridad. Recarga la página e intenta de nuevo.');
       return;
@@ -174,34 +185,48 @@ export default function RegisterForm() {
           setError(err);
           return;
         }
-        const user = (res as { data?: { user?: unknown } })?.data?.user ?? (res as { user?: unknown }).user;
+        const user =
+          (res as { data?: { user?: unknown } })?.data?.user ?? (res as { user?: unknown }).user;
         if (!user) {
           setError('Respuesta del servidor inválida');
           return;
         }
         window.location.href = '/dashboard';
-      } catch (error) {
-        console.error('Error de registro:', error);
+      } catch (err) {
+        console.error('Error de registro:', err);
         setError('Error de conexión. Inténtalo de nuevo.');
       }
     });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md sm:max-w-lg">
-        <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h1>
-            <p className="text-sm sm:text-base text-gray-600">Registra tu empresa</p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* Token CSRF oculto */}
-            <input type="hidden" name="csrfToken" value={csrfToken} />
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputField
-                label="Nombre"
+    <AuthLayout variant="brand" contentClassName="max-w-lg" panel={workifyRegisterPanel}>
+      <AuthBrandWelcomeHeader title="Comienza ahora" subtitle="Crea tu empresa en Workify" />
+
+      <AuthBrandCard
+        cardTitle="Registrarse"
+        cardDescription="Completa los campos para crear la cuenta"
+        footer={
+          <AuthBrandFooterCenter>
+            <p className="text-sm text-white/50">
+              ¿Ya tienes cuenta?{' '}
+              <Link href="/login" className="text-indigo-300 hover:text-indigo-200 font-medium">
+                Inicia sesión
+              </Link>
+            </p>
+          </AuthBrandFooterCenter>
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="csrfToken" value={csrfToken} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="reg-firstName" className={AUTH_BRAND_LABEL_CLASS}>
+                Nombre
+              </Label>
+              <Input
+                id="reg-firstName"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
@@ -209,9 +234,15 @@ export default function RegisterForm() {
                 disabled={isLoading}
                 maxLength={50}
                 autoComplete="given-name"
+                className={AUTH_BRAND_INPUT_CLASS}
               />
-              <InputField
-                label="Apellido"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reg-lastName" className={AUTH_BRAND_LABEL_CLASS}>
+                Apellido
+              </Label>
+              <Input
+                id="reg-lastName"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
@@ -219,10 +250,17 @@ export default function RegisterForm() {
                 disabled={isLoading}
                 maxLength={50}
                 autoComplete="family-name"
+                className={AUTH_BRAND_INPUT_CLASS}
               />
             </div>
-            <InputField
-              label="Nombre de la Empresa"
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reg-company" className={AUTH_BRAND_LABEL_CLASS}>
+              Nombre de la empresa
+            </Label>
+            <Input
+              id="reg-company"
               name="companyName"
               value={formData.companyName}
               onChange={handleChange}
@@ -230,65 +268,79 @@ export default function RegisterForm() {
               disabled={isLoading}
               maxLength={100}
               autoComplete="organization"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
-            <InputField
-              label="Email"
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reg-email" className={AUTH_BRAND_LABEL_CLASS}>
+              Email
+            </Label>
+            <Input
+              id="reg-email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="tu@email.com"
+              placeholder="tu@empresa.com"
               required
               disabled={isLoading}
               maxLength={100}
               autoComplete="email"
+              className={AUTH_BRAND_INPUT_CLASS}
             />
-            <InputField
-              label="Contraseña"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-            <InputField
-              label="Confirmar Contraseña"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-md text-xs sm:text-sm">{error}</div>
-            )}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              loading={isLoading}
-              className="w-full"
-            >
-              {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </Button>
-            <div className="text-center">
-              <a href="/login" className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 transition-colors">
-                ¿Ya tienes cuenta? Inicia sesión
-              </a>
-            </div>
-          </form>
-          <div className="mt-6 sm:mt-8 text-center">
-            <p className="text-xs text-gray-500">© 2024 Workify</p>
           </div>
-        </div>
-      </div>
-    </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="reg-password" className={AUTH_BRAND_LABEL_CLASS}>
+                Contraseña
+              </Label>
+              <Input
+                id="reg-password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
+                maxLength={128}
+                autoComplete="new-password"
+                className={AUTH_BRAND_INPUT_CLASS}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reg-confirm" className={AUTH_BRAND_LABEL_CLASS}>
+                Confirmar contraseña
+              </Label>
+              <Input
+                id="reg-confirm"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
+                maxLength={128}
+                autoComplete="new-password"
+                className={AUTH_BRAND_INPUT_CLASS}
+              />
+            </div>
+          </div>
+
+          {error ? (
+            <AuthBrandErrorAlert variant="error">
+              <p className="text-sm text-red-200">{error}</p>
+            </AuthBrandErrorAlert>
+          ) : null}
+
+          <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+            {isLoading ? 'Registrando…' : 'Crear cuenta'}
+          </Button>
+        </form>
+      </AuthBrandCard>
+    </AuthLayout>
   );
-} 
+}

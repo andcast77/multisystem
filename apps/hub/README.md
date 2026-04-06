@@ -11,7 +11,7 @@ Forma parte del **monorepo** (`pnpm` workspaces); no es un repo aislado.
 | Pública | `/` landing, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` |
 | Protegidas (JWT en cookie `token`) | `/dashboard` — resumen, tarjetas de módulos habilitados, stats; `/dashboard/members` — miembros; `/dashboard/settings` — empresa y módulos (según rol) |
 
-La API es **`@multisystem/api`** (Fastify). En desarrollo, Vite hace **proxy** de `/api` → `VITE_API_URL` o `http://localhost:3000`.
+La API es **`@multisystem/api`** (Fastify). En desarrollo, Vite hace **proxy** de `/v1` → la API (por defecto `http://localhost:3000`), incluyendo **WebSocket** (`ws: true`). Si `VITE_API_URL` está vacío, el cliente usa la misma origen (`/v1/...`) y evita CORS.
 
 ## Stack
 
@@ -39,7 +39,7 @@ Crear **`.env`** en `apps/hub/` usando **`.env.example`** como plantilla:
 
 | Variable | Uso |
 |----------|-----|
-| `VITE_API_URL` | Base URL de la API (p. ej. `http://localhost:3000`). Por defecto en código: `http://localhost:3000`. |
+| `VITE_API_URL` | Base URL absoluta de la API si no usas el proxy. En **dev**, vacío o `http://localhost:3000` = mismo origen + proxy `/v1` (el código trata el localhost explícito como proxy). En **build** sin valor, cae a `http://localhost:3000`. |
 | `VITE_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). |
 | `VITE_WORKIFY_URL` | Workify (**`http://localhost:3003`**). |
 | `VITE_TECHSERVICES_URL` | Techservices (p. ej. `http://localhost:3004`). |

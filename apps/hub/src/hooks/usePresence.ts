@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000'
-const WS_URL = API_URL.replace(/^http/, 'ws')
+import { getHubWsBaseUrl } from '@/lib/api-origin'
 
 const MAX_RECONNECT_DELAY_MS = 30_000
 const MAX_RECONNECT_ATTEMPTS = 10
@@ -28,7 +27,7 @@ export function usePresence(companyId: string | undefined) {
     function connect() {
       if (cancelled) return
 
-      const url = `${WS_URL}/v1/ws/presence/${companyId}`
+      const url = `${getHubWsBaseUrl()}/v1/ws/presence/${companyId}`
       const ws = new WebSocket(url)
       wsRef.current = ws
 
@@ -77,10 +76,16 @@ export function usePresence(companyId: string | undefined) {
       }
     }
 
-    connect()
+    // Defer opening the socket so React Strict Mode's first mount/unmount cycle
+    // clears this timer before `new WebSocket` runs — avoids closing a CONNECTING
+    // socket in cleanup (browser: "closed before the connection is established").
+    const scheduleConnectId = window.setTimeout(() => {
+      if (!cancelled) connect()
+    }, 0)
 
     return () => {
       cancelled = true
+      window.clearTimeout(scheduleConnectId)
       if (timerRef.current) clearTimeout(timerRef.current)
       wsRef.current?.close()
       wsRef.current = null
