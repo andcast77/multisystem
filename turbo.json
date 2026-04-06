@@ -1,6 +1,8 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "globalEnv": [
+    "AUTH_SESSION_INSECURE",
+    "FIELD_ENCRYPTION_KEY",
     "NEXT_PUBLIC_API_URL",
     "NEXT_PUBLIC_SHOPFLOW_URL",
     "NEXT_PUBLIC_WORKIFY_URL",
@@ -26,6 +28,10 @@
         ".next/**",
         "!.next/cache/**",
         "generated/**"
+      ],
+      "env": [
+        "AUTH_SESSION_INSECURE",
+        "FIELD_ENCRYPTION_KEY"
       ]
     },
     "dev": {

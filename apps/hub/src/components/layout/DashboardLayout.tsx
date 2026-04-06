@@ -56,6 +56,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { data: user, isLoading, error } = useUser();
 
+  /** Must run every render (before any early return) — hook count must stay stable (React #310). */
+  const shopflowEnabled = user?.company?.modules?.shopflow === true;
+  const notif = useInAppNotifications(user?.id, user?.companyId, shopflowEnabled);
+
   useEffect(() => {
     if (!isLoading && (error || !user)) {
       router.replace("/login");
@@ -96,9 +100,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   // Only show company selector for superusers or users with multiple companies
   const showCompanySelector = user.isSuperuser || false; // Will be enhanced with multi-company check
-
-  const shopflowEnabled = user.company?.modules?.shopflow === true;
-  const notif = useInAppNotifications(user.id, user.companyId, shopflowEnabled);
 
   return (
     <div className="flex h-screen">

@@ -189,7 +189,10 @@ pnpm test:coverage
 1. **Root Directory**: deja **Root Directory** = `packages/api` en el proyecto de Vercel.
 2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run build:api`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
 3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
-4. Variables de entorno en Vercel: `DATABASE_URL` (pooled runtime), `JWT_SECRET` (producción), `CORS_ORIGIN` y opcionalmente `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
+4. **Variables de entorno obligatorias** en Vercel para **Production** y **Preview** (en Preview también se define `VERCEL=1`; si falta alguna, el arranque falla): `DATABASE_URL` (pooled runtime), `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `CORS_ORIGIN`. Opcional: `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
+5. **`FIELD_ENCRYPTION_KEY`**: clave simétrica en base64 de 32 bytes. Generar: `openssl rand -base64 32`. Añádela en Vercel → Settings → Environment Variables (mismos entornos que arriba). Detalle del formato y rotación: [`docs/field-level-encryption.md`](../../docs/field-level-encryption.md).
+6. **Base de datos ya cifrada**: si ya existen filas cifradas con una clave anterior, usa **esa misma** `FIELD_ENCRYPTION_KEY` en Vercel. Cambiar la clave sin re-cifrar rompe la lectura; ver `packages/api/scripts/rotate-field-key.ts` y el doc anterior.
+7. Tras crear o editar variables, **vuelve a desplegar** para que el runtime las cargue.
 
 ### Render.com
 
