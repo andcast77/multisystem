@@ -6,7 +6,7 @@ Biblioteca de componentes React compartida para las apps Multisystem. **Carpeta 
 
 Las apps **hub**, **shopflow**, **workify** y **techservices** declaran `"@multisystem/ui": "workspace:*"`. Tras clonar, `pnpm install` en la raíz enlaza el paquete local.
 
-El script raíz `pnpm run dev:hub` ejecuta antes `pnpm --filter @multisystem/ui build` para asegurar `dist/` actualizado.
+En desarrollo, `pnpm run dev:hub` (Turbo) levanta **`@multisystem/ui` en watch** (`vite build --watch`) y el Hub a la vez; no hace falta un `build` manual previo salvo CI o primera vez.
 
 ### Consumo externo (opcional)
 
@@ -47,7 +47,7 @@ También se exporta **`cn`** desde `lib/utils`.
 
 ## Temas
 
-Variables CSS y partials SCSS en `src/styles/` (`_variables.scss`, `_theme.scss`, `components/_*.scss`). El pipeline de build (`vite build` + `scripts/inject-css-import.mjs`) enlaza ese CSS al entry JS.
+Variables CSS y partials SCSS en `src/styles/` (`_variables.scss`, `_theme.scss`, `components/_*.scss`). Tras `vite build`, el plugin `inject-css-import` en `vite.config.ts` antepone `import './index.css'` a `dist/index.js` para que el CSS viaje con el entry JS.
 
 ## Estructura del paquete
 
