@@ -1,6 +1,6 @@
 {
   "buildCommand": "turbo build",
-  "outputDirectory": "dist",
+  "outputDirectory": ".next",
   "installCommand": "pnpm install",
-  "framework": null
+  "framework": "nextjs"
 }

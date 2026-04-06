@@ -14,9 +14,10 @@ Fuera del monorepo se puede instalar desde releases GitHub (p. ej. `github:…/m
 
 ## Uso
 
+Tras el build, `dist/index.js` incluye `import './index.css'` al inicio: **basta con importar componentes desde `@multisystem/ui`** para que el bundler cargue el CSS. Opcionalmente puedes seguir importando `@multisystem/ui/styles` o `@multisystem/ui/index.css` explícitamente (p. ej. orden de capas).
+
 ```tsx
 import { Button, Card, Input, Badge } from "@multisystem/ui";
-import "@multisystem/ui/styles"; // o `@multisystem/ui/index.css` (export del paquete)
 
 export function MyComponent() {
   return (
@@ -46,7 +47,7 @@ También se exporta **`cn`** desde `lib/utils`.
 
 ## Temas
 
-Variables CSS y partials SCSS en `src/styles/` (`_variables.scss`, `_theme.scss`, `components/_*.scss`). Importar una vez los estilos del paquete en el entry de la app (ver arriba).
+Variables CSS y partials SCSS en `src/styles/` (`_variables.scss`, `_theme.scss`, `components/_*.scss`). El pipeline de build (`vite build` + `scripts/inject-css-import.mjs`) enlaza ese CSS al entry JS.
 
 ## Estructura del paquete
 

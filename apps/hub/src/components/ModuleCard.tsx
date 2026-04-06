@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight, Lock } from "lucide-react";
 
 type ModuleCardProps = {
@@ -95,7 +97,7 @@ export function ModuleCard({
   }
 
   return (
-    <Link to={href} className="block h-full">
+    <Link href={href} className="block h-full">
       {content}
     </Link>
   );

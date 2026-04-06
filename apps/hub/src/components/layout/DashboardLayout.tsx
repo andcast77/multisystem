@@ -1,5 +1,8 @@
+"use client";
+
 import { useEffect, type ComponentProps } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sidebar as SidebarComponent } from "@multisystem/ui";
 import {
@@ -48,16 +51,16 @@ const navGroups: SidebarComponentProps["navGroups"] = [
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { data: user, isLoading, error } = useUser();
 
   useEffect(() => {
     if (!isLoading && (error || !user)) {
-      navigate("/login", { replace: true });
+      router.replace("/login");
     }
-  }, [user, isLoading, error, navigate]);
+  }, [user, isLoading, error, router]);
 
   const handleLogout = async () => {
     try {
@@ -67,7 +70,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
     clearTokenCookie();
     await queryClient.clear();
-    navigate("/login", { replace: true });
+    router.replace("/login");
   };
 
   if (isLoading) {
@@ -117,7 +120,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         }
         navigation={{
           Link,
-          usePathname: () => location.pathname,
+          usePathname: () => pathname,
         }}
         userProfileHref="/dashboard/account"
         onLogout={handleLogout}
