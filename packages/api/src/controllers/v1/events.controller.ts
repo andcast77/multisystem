@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { requireAuth } from '../../core/auth.js'
+import { getConfig } from '../../core/config.js'
+import { applyCorsHeadersToRawResponse, parseCorsOriginList } from '../../core/cors-reflect.js'
 import { assertCompanyAccess } from '../../policies/company-authorization.policy.js'
 import { sseManager } from '../../services/sse.service.js'
 
@@ -18,8 +20,11 @@ async function streamMetrics(
 ): Promise<void> {
   const { companyId } = request.params
   const raw = reply.raw
+  const allowedOrigins = parseCorsOriginList(getConfig().CORS_ORIGIN)
 
   reply.hijack()
+  // Hijacked responses skip @fastify/cors hooks; mirror CORS policy for EventSource (credentials).
+  applyCorsHeadersToRawResponse(raw, request.headers.origin, allowedOrigins)
   raw.setHeader('Content-Type', 'text/event-stream')
   raw.setHeader('Cache-Control', 'no-cache, no-transform')
   raw.setHeader('Connection', 'keep-alive')

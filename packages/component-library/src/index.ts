@@ -4,6 +4,7 @@ import './styles/main.scss'
 
 export * from "./components/alert";
 export * from "./components/auth-layout";
+export * from "./components/auth-brand";
 export * from "./components/alert-dialog";
 export * from "./components/badge";
 export * from "./components/breadcrumb";

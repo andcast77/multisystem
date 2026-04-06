@@ -35,6 +35,12 @@ import {
   SelectValue,
 } from '@multisystem/ui'
 import { useInAppNotifications } from '@/hooks/useInAppNotifications'
+import { Link, useLocation } from 'react-router-dom'
+
+/** Adapter for `@multisystem/ui` Sidebar (expects Next-like `usePathname`). */
+function useRouterPathname(): string {
+  return useLocation().pathname
+}
 
 // Navigation groups - Only add routes that actually exist!
 type SidebarProps = React.ComponentProps<typeof SidebarComponent>
@@ -294,6 +300,7 @@ export function Sidebar() {
         </div>
       ) : null}
       <SidebarComponent
+        navigation={{ Link, usePathname: useRouterPathname }}
         navGroups={navGroups}
         user={sidebarUser}
         branding={{

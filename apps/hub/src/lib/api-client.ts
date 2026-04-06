@@ -28,9 +28,11 @@ import type {
 
 import { ApiClient, type ApiResponse } from "@multisystem/shared";
 
+import { getHubApiBaseUrl } from "@/lib/api-origin";
+
 export type { LoginResponse, MeResponse, ContextResponse, CompaniesResponse, RegisterResponse, CompanyRow };
 
-const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:3000";
+const API_URL = getHubApiBaseUrl();
 
 export type CompanyUpdateResult = {
   id: string;
