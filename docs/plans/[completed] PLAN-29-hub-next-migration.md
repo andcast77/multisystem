@@ -1,6 +1,6 @@
 # PLAN-29 — Migrar Hub de Vite SPA a Next.js 16 (App Router)
 
-**Estado:** en ejecución.
+**Estado:** completado.
 
 ## Objetivo
 
@@ -9,7 +9,7 @@ Sustituir **Vite + React Router** en `apps/hub` por **Next.js 16 (App Router)** 
 ## Beneficios esperados
 
 - Respuestas HTTP coherentes por ruta (sin depender de rewrites SPA).
-- `middleware` para proteger `/dashboard/*` por cookie JWT.
+- `proxy.ts` (convención Next.js 16) para `/dashboard/*` como placeholder; auth efectiva en cliente vía `DashboardLayout` + `/v1/auth/me`.
 - Metadata por ruta; mejor encaje con el stack recomendado por Vercel para SSR/SSG híbrido.
 
 ## Contexto previo
@@ -37,11 +37,11 @@ Sustituir **Vite + React Router** en `apps/hub` por **Next.js 16 (App Router)** 
 ## Checklist
 
 - [x] Scaffold Next 16 en `apps/hub` y build.
-- [x] Layout raíz + `middleware` para `/dashboard/*`.
+- [x] Layout raíz + `proxy.ts` para `/dashboard/*`.
 - [x] Migrar páginas y layouts; paridad de rutas con el árbol anterior.
 - [x] Ajustar `api-client` / `api-origin` para `NEXT_PUBLIC_*`.
 - [x] Quitar artefactos Vite; lint y build del paquete Hub.
-- [ ] Prueba manual: login, `next`, dashboard, miembros, permisos dinámicos, settings, preview Vercel.
+- [x] Prueba manual: login, `next`, dashboard, miembros, permisos dinámicos, settings, preview Vercel.
 
 ## Riesgos
 
