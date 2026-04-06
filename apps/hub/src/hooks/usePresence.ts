@@ -6,6 +6,23 @@ const MAX_RECONNECT_DELAY_MS = 30_000
 const MAX_RECONNECT_ATTEMPTS = 10
 const WS_SUPPORTED = typeof WebSocket !== 'undefined'
 
+/**
+ * Fastify `@fastify/websocket` needs a long-lived Node process. Vercel Serverless cannot upgrade
+ * WebSockets for this app pattern — disable unless overridden or API is self-hosted.
+ */
+function isPresenceWsEnabled(): boolean {
+  const explicit = process.env.NEXT_PUBLIC_ENABLE_PRESENCE_WS
+  if (typeof explicit === "string" && explicit.trim() !== "") {
+    const t = explicit.trim().toLowerCase()
+    return t !== "false" && t !== "0" && t !== "no"
+  }
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").toLowerCase()
+  if (apiUrl.includes("vercel.app")) {
+    return false
+  }
+  return true
+}
+
 export interface PresenceUser {
   userId: string
   name: string
@@ -20,7 +37,7 @@ export function usePresence(companyId: string | undefined) {
   const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
-    if (!companyId || !WS_SUPPORTED) return
+    if (!companyId || !WS_SUPPORTED || !isPresenceWsEnabled()) return
 
     let cancelled = false
 

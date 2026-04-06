@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Multisystem Hub",
   description:
     "Multisystem Hub — plataforma unificada para gestión de módulos",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export const viewport: Viewport = {
