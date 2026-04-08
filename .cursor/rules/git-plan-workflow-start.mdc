@@ -8,6 +8,7 @@ alwaysApply: true
 When the user indicates they are starting/executing a plan, running a plan build/run (for example: "build plan", "build del plan", "run plan", "ejecutar plan"), or the plan moves from planning to execution:
 
 - Always initialize implementation on a new plan branch taken from `Test` (never implement directly on `Test` or reuse an old plan branch).
+- The **plan markdown** for this repo lives under **`docs/plans/`** as **`PLAN-<number>-<slug>.md`** (see `docs-plans-canonical.mdc`). **Agent rules** live under **`.cursor/rules/`** (versioned). Do not use only `.cursor/plans/` scratch files as the plan of record.
 
 1. Extract plan id/slug from the plan filename:
    - If the filename ends with `.plan.md`, use the basename without the `.plan.md` suffix

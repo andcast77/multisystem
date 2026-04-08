@@ -173,7 +173,7 @@ async function bumpSessionLastSeenThrottled(userId: string, jti: string): Promis
 
 /**
  * Bearer (API clients/tests), httpOnly session cookie (browsers), or
- * ?token= query param (SSE/WebSocket clients that cannot set headers).
+ * ?token= query param (SSE clients that cannot set headers).
  */
 export function getAuthToken(request: FastifyRequest): string | null {
   return getBearerToken(request) ?? getSessionTokenFromCookie(request) ?? getQueryParamToken(request)

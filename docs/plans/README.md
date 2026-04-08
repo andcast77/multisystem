@@ -1,5 +1,9 @@
 # Implementation plans
 
+**Canonical location:** every plan document for this repo lives **here** (`docs/plans/`), not only in IDE scratch paths. **Naming:** `PLAN-<number>-<short-slug>.md` (see [`SYNC.md`](./SYNC.md)); optional `[completed] ` / `[cancelled] ` prefix when applicable.
+
+**Cursor:** agent rules live in [`.cursor/rules/`](../.cursor/rules/) (versioned). **Plan markdown** lives **here** (`docs/plans/`); see [SYNC.md](./SYNC.md) for how the two fit together.
+
 Working copies of engineering implementation plans. Source context: [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §17–19.
 
 | Order | Plan | File |
@@ -49,6 +53,13 @@ Estos ítems deben completarse o descartarse explícitamente antes de considerar
 - Actual execution completed: `1 -> 2` (both completed, no regressions after CORS alignment).
 - Effective remaining focus: `3` (optional docs path) + `4` (done) in parallel context, `6` ongoing.
 - Product capability plans (17–22): pending execution.
+
+## Infraestructura / realtime API
+
+| Plan | Tema | File |
+|------|------|------|
+| 30 | WebSocket → SSE (presencia; Vercel) | [\[completed\] PLAN-30-ws-to-sse.md](./%5Bcompleted%5D%20PLAN-30-ws-to-sse.md) |
+| — | *(cancelado)* API en Railway | [\[cancelled\] PLAN-30-api-railway.md](./%5Bcancelled%5D%20PLAN-30-api-railway.md) |
 
 ## Syncing checklists
 

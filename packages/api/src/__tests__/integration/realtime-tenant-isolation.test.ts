@@ -1,12 +1,10 @@
 /**
- * PLAN-17: Cross-tenant isolation tests for SSE and WebSocket endpoints.
+ * PLAN-17 / PLAN-30: Cross-tenant isolation tests for SSE endpoints (metrics + presence).
  *
  * Verifies:
  *  1. Unauthenticated requests to SSE are rejected with 401.
  *  2. A user from Tenant B cannot subscribe to Tenant A's SSE stream (403).
  *  3. A user from Tenant A can connect to their own SSE stream (200).
- *  4. Unauthenticated WS upgrade is rejected with 401.
- *  5. A user from Tenant B cannot upgrade to Tenant A's presence channel (403).
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
@@ -115,13 +113,13 @@ describe('PLAN-17: Realtime endpoint cross-tenant isolation', () => {
     })
   })
 
-  // ── WebSocket presence endpoint ─────────────────────────────────────────────
+  // ── SSE presence endpoint ───────────────────────────────────────────────────
 
-  describe('GET /v1/ws/presence/:companyId (WebSocket)', () => {
+  describe('GET /v1/events/presence/:companyId (SSE)', () => {
     it('returns 401 when no token is provided', async () => {
       const res = await app.inject({
         method: 'GET',
-        url: `/v1/ws/presence/${acmeCompanyId}`,
+        url: `/v1/events/presence/${acmeCompanyId}`,
       })
       expect(res.statusCode).toBe(401)
     })
@@ -129,29 +127,47 @@ describe('PLAN-17: Realtime endpoint cross-tenant isolation', () => {
     it('returns 403 when user belongs to a different tenant', async () => {
       const res = await app.inject({
         method: 'GET',
-        url: `/v1/ws/presence/${acmeCompanyId}`,
+        url: `/v1/events/presence/${acmeCompanyId}`,
         headers: { Authorization: `Bearer ${betaOwnerToken}` },
       })
       expect(res.statusCode).toBe(403)
     })
 
-    it('allows upgrade when user belongs to the requested tenant', async () => {
-      // Verify the HTTP preHandler phase passes auth (no 401/403 rejection).
-      // Full WS message delivery is covered by unit tests on PresenceService.
-      // app.inject with WS headers exercises the auth + scope guards without
-      // requiring a real in-process WebSocket message round-trip.
+    it('opens the SSE stream when user belongs to the requested tenant', async () => {
+      const result = await Promise.race<Awaited<ReturnType<typeof app.inject>> | null>([
+        app.inject({
+          method: 'GET',
+          url: `/v1/events/presence/${acmeCompanyId}`,
+          headers: { Authorization: `Bearer ${acmeOwnerToken}` },
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 300)),
+      ])
+
+      if (result !== null) {
+        expect(result.statusCode).toBe(200)
+      }
+    }, 10_000)
+
+    it('accepts ?token= query param as auth fallback (EventSource compatibility)', async () => {
+      const result = await Promise.race<Awaited<ReturnType<typeof app.inject>> | null>([
+        app.inject({
+          method: 'GET',
+          url: `/v1/events/presence/${acmeCompanyId}?token=${acmeOwnerToken}`,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 300)),
+      ])
+
+      if (result !== null) {
+        expect(result.statusCode).toBe(200)
+      }
+    }, 10_000)
+
+    it('rejects ?token= query param for wrong tenant', async () => {
       const res = await app.inject({
         method: 'GET',
-        url: `/v1/ws/presence/${acmeCompanyId}?token=${acmeOwnerToken}`,
-        headers: {
-          upgrade: 'websocket',
-          connection: 'Upgrade',
-          'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==',
-          'sec-websocket-version': '13',
-        },
+        url: `/v1/events/presence/${acmeCompanyId}?token=${betaOwnerToken}`,
       })
-      expect(res.statusCode).not.toBe(401)
-      expect(res.statusCode).not.toBe(403)
+      expect(res.statusCode).toBe(403)
     })
   })
 })

@@ -17,6 +17,11 @@ Applies a strict workflow for plan-based work in this repository.
 - User asks for `git commit` and `git push`.
 - User asks to merge into `Test`, `master`, or another target branch.
 
+## Plan documents (repository)
+
+- **Create and edit plans only in `docs/plans/`.** Filename must be canonical: **`PLAN-<number>-<short-slug>.md`** (one integer id per plan; optional `[completed] ` / `[cancelled] ` prefix). **Details:** [`docs/plans/SYNC.md`](../../../docs/plans/SYNC.md). **Repo rules** for this also live under `.cursor/rules/` (e.g. `docs-plans-canonical.mdc`).
+- Do not treat `.cursor/plans/*.plan.md` as the source of truth; mirror content into `docs/plans/` when the plan is real work for this repo.
+
 ## Core Rules
 
 - Always ask for explicit confirmation before running `git commit`, `git push`, or `merge`.
