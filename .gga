@@ -2,20 +2,18 @@
 # https://github.com/your-org/gga
 
 # AI Provider (required)
-# Options: claude, gemini, codex, opencode, ollama:<model>, lmstudio[:model], github:<model>
+# Options: cursor, gemini, codex, claude, opencode, ollama:<model>, lmstudio[:model], github:<model>
+# Cursor: requires Cursor Agent CLI (`agent` on PATH). Optional model: cursor:composer-2
 # Examples:
-#   PROVIDER="claude"
+#   PROVIDER="cursor"
+#   PROVIDER="cursor:composer-2"
 #   PROVIDER="gemini"
 #   PROVIDER="codex"
 #   PROVIDER="opencode"
-#   PROVIDER="opencode:anthropic/claude-opus-4-5"
 #   PROVIDER="ollama:llama3.2"
-#   PROVIDER="ollama:codellama"
-#   PROVIDER="lmstudio"
-#   PROVIDER="lmstudio:qwen2.5-coder-7b-instruct"
 #   PROVIDER="github:gpt-4o"
-#   PROVIDER="github:deepseek-r1"
-PROVIDER="claude"
+# Si el hook dice "Unknown provider: cursor", tu GGA es anterior al soporte Cursor: actualiza gga (p. ej. brew upgrade) o usa temporalmente codex/gemini.
+PROVIDER="cursor"
 
 # File patterns to include in review (comma-separated)
 # Default: * (all files)
