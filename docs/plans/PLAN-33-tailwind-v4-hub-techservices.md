@@ -4,7 +4,7 @@
 
 ## Contexto
 
-[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) recomendaba **unificar en Tailwind v4**; Hub/Techservices/Shopflow/Workify quedaron alineados en el monorepo. Este plan documenta cualquier **refinamiento** residual (tokens, `@theme`, limpieza de config) sin duplicar [PLAN-32](./PLAN-32-monorepo-dependency-alignment.md).
+[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) recomendaba **unificar en Tailwind v4**; Hub/Techservices/Shopflow/Workify quedaron alineados en el monorepo. Este plan documenta cualquier **refinamiento** residual (tokens, `@theme`, limpieza de config) sin duplicar [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md).
 
 ## Objetivo
 

@@ -133,7 +133,7 @@ Implementación en rama `plan/plan-31-shopflow-next-migration-run-<timestamp>` d
 
 | Plan | Tema |
 |------|------|
-| [PLAN-32](./PLAN-32-monorepo-dependency-alignment.md) | Alineación sistemática de dependencias en todo el monorepo |
+| [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md) | Alineación sistemática de dependencias en todo el monorepo |
 | [PLAN-33](./PLAN-33-tailwind-v4-hub-techservices.md) | Tailwind 4 en Hub y Techservices |
 | [PLAN-34](./PLAN-34-pnpm-catalog.md) | Catálogo pnpm (`catalog:`) en la raíz |
 | [PLAN-35](./PLAN-35-component-library-tooling-alignment.md) | `@multisystem/ui`: tooling + bundler opcional |

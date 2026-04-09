@@ -4,7 +4,7 @@
 
 ## Contexto
 
-[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) menciona como **opcional** el uso de [pnpm catalogs](https://pnpm.io/catalogs) para reducir deriva futura entre workspaces. Este plan implementa esa capa de gobernanza **sin** sustituir la necesidad de alinear versiones en código ([PLAN-32](./PLAN-32-monorepo-dependency-alignment.md)).
+[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) menciona como **opcional** el uso de [pnpm catalogs](https://pnpm.io/catalogs) para reducir deriva futura entre workspaces. Este plan implementa esa capa de gobernanza **sin** sustituir la necesidad de alinear versiones en código ([PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md)).
 
 ## Objetivo
 
@@ -14,7 +14,7 @@
 
 ## Alcance
 
-- Solo **configuración pnpm** y referencias en manifests; los bumps de versión siguen siendo decisiones de [PLAN-32](./PLAN-32-monorepo-dependency-alignment.md).
+- Solo **configuración pnpm** y referencias en manifests; los bumps de versión siguen siendo decisiones de [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md).
 
 ## Criterios de éxito
 

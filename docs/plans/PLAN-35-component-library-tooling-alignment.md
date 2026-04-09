@@ -10,7 +10,7 @@ Este plan cubre ambas facetas de forma explícita.
 
 ## Objetivo A (obligatorio en espíritu de PLAN-31)
 
-Alinear **devDependencies** y peers relevantes de `packages/component-library` con la línea canónica del monorepo (tras o en paralelo con [PLAN-32](./PLAN-32-monorepo-dependency-alignment.md)): `typescript`, `vitest`, `vite`, `@vitejs/plugin-react`, `sass`, `@types/*`, alineación de `react` / `react-dom` como peers con las apps.
+Alinear **devDependencies** y peers relevantes de `packages/component-library` con la línea canónica del monorepo (tras o en paralelo con [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md)): `typescript`, `vitest`, `vite`, `@vitejs/plugin-react`, `sass`, `@types/*`, alineación de `react` / `react-dom` como peers con las apps.
 
 ## Objetivo B (opcional)
 
