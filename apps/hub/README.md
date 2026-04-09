@@ -40,9 +40,12 @@ Crear **`.env`** en `apps/hub/` usando **`.env.example`** como plantilla:
 | Variable | Uso |
 |----------|-----|
 | `NEXT_PUBLIC_API_URL` | Base URL absoluta de la API si no usas el rewrite en dev. En **dev**, vacío o `http://localhost:3000` = mismo origen + rewrite `/v1`. En **build** sin valor, cae a `http://localhost:3000`. |
-| `NEXT_PUBLIC_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). |
+| `NEXT_PUBLIC_HUB_URL` | URL pública del Hub (p. ej. dev **`http://localhost:3001`**). Usada en enlaces del ecosistema cuando aplica. |
+| `NEXT_PUBLIC_SHOPFLOW_URL` | Shopflow (p. ej. **`http://localhost:3002`**). Landing y dashboard. |
 | `NEXT_PUBLIC_WORKIFY_URL` | Workify (**`http://localhost:3003`**). |
 | `NEXT_PUBLIC_TECHSERVICES_URL` | Techservices (p. ej. `http://localhost:3004`). |
+
+En **Vercel u otro hosting**, define las `NEXT_PUBLIC_*` del Hub en el proyecto correspondiente **antes del build** (Preview y Production); si no, los CTAs del landing y del dashboard pueden quedar con fallback `http://localhost:…`.
 
 Asegurar que **`CORS_ORIGIN`** en la API incluya `http://localhost:3001`.
 

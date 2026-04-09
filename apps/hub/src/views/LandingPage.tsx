@@ -1,53 +1,59 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { Hero } from "@/components/Hero";
 import { ModuleCard } from "@/components/ModuleCard";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import { AuthActions } from "@/components/AuthActions";
+import { getLandingUrls } from "@/lib/landingUrls";
 import { ShoppingCart, Users, Wrench, LayoutDashboard, ArrowRight } from "lucide-react";
 
-const modules = [
-  {
-    title: "ShopFlow POS",
-    description: "Punto de venta completo con gestión de inventario, caja y reportes de ventas en tiempo real.",
-    icon: <ShoppingCart className="w-6 h-6" />,
-    features: ["Gestión de productos", "Punto de venta rápido", "Reportes de ventas"],
-    href: "http://localhost:3004",
-    accentColor: "text-violet-400",
-    accentBg: "bg-violet-500/10",
-  },
-  {
-    title: "Workify",
-    description: "Gestión completa de recursos humanos, turnos, asistencia y nómina.",
-    icon: <Users className="w-6 h-6" />,
-    features: ["Gestión de turnos", "Control de asistencia", "Nómina integrada"],
-    href: "http://localhost:3003",
-    accentColor: "text-sky-400",
-    accentBg: "bg-sky-500/10",
-  },
-  {
-    title: "Tech Services",
-    description: "Órdenes de servicio técnico, gestión de activos y visitas de campo.",
-    icon: <Wrench className="w-6 h-6" />,
-    features: ["Órdenes de trabajo", "Gestión de activos", "Visitas técnicas"],
-    href: "http://localhost:3004",
-    accentColor: "text-amber-400",
-    accentBg: "bg-amber-500/10",
-  },
-  {
-    title: "Hub Central",
-    description: "Panel de administración, gestión de empresas y configuración del sistema.",
-    icon: <LayoutDashboard className="w-6 h-6" />,
-    features: ["Gestión de empresas", "Panel de control", "Configuración global"],
-    href: "/dashboard",
-    accentColor: "text-slate-400",
-    accentBg: "bg-slate-500/10",
-  },
-];
-
 export function LandingPage() {
+  const modules = useMemo(() => {
+    const urls = getLandingUrls();
+    return [
+      {
+        title: "ShopFlow POS",
+        description:
+          "Punto de venta completo con gestión de inventario, caja y reportes de ventas en tiempo real.",
+        icon: <ShoppingCart className="w-6 h-6" />,
+        features: ["Gestión de productos", "Punto de venta rápido", "Reportes de ventas"],
+        href: urls.shopflow,
+        accentColor: "text-violet-400",
+        accentBg: "bg-violet-500/10",
+      },
+      {
+        title: "Workify",
+        description: "Gestión completa de recursos humanos, turnos, asistencia y nómina.",
+        icon: <Users className="w-6 h-6" />,
+        features: ["Gestión de turnos", "Control de asistencia", "Nómina integrada"],
+        href: urls.workify,
+        accentColor: "text-sky-400",
+        accentBg: "bg-sky-500/10",
+      },
+      {
+        title: "Tech Services",
+        description: "Órdenes de servicio técnico, gestión de activos y visitas de campo.",
+        icon: <Wrench className="w-6 h-6" />,
+        features: ["Órdenes de trabajo", "Gestión de activos", "Visitas técnicas"],
+        href: urls.techservices,
+        accentColor: "text-amber-400",
+        accentBg: "bg-amber-500/10",
+      },
+      {
+        title: "Hub Central",
+        description: "Panel de administración, gestión de empresas y configuración del sistema.",
+        icon: <LayoutDashboard className="w-6 h-6" />,
+        features: ["Gestión de empresas", "Panel de control", "Configuración global"],
+        href: "/dashboard",
+        accentColor: "text-slate-400",
+        accentBg: "bg-slate-500/10",
+      },
+    ];
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0f]">
       {/* Sticky header */}
