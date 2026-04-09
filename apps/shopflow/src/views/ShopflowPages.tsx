@@ -25,9 +25,6 @@ import { InventoryAdjustmentForm } from "@/components/features/inventory/Invento
 import { LowStockAlert } from "@/components/features/inventory/LowStockAlert";
 import { StoreConfigForm } from "@/components/features/store-config/StoreConfigForm";
 import { TicketConfigForm } from "@/components/features/settings/TicketConfigForm";
-import { CreateBackupButton } from "@/components/features/backup/CreateBackupButton";
-import { RestoreBackupDialog } from "@/components/features/backup/RestoreBackupDialog";
-import { BackupList } from "@/components/features/backup/BackupList";
 import { useStoreContextOptional } from "@/components/providers/StoreContext";
 import { useInventoryStats } from "@/hooks/useReports";
 import { useStoreConfig, useUpdateStoreConfig } from "@/hooks/useStoreConfig";
@@ -602,22 +599,6 @@ export function LoyaltyPage() {
           <Button onClick={() => update.mutate({ pointsPerDollar: Number(pointsPerDollar), redemptionRate: Number(redemptionRate) })} disabled={update.isPending}>Guardar</Button>
         </CardContent>
       </Card>
-    </PageFrame>
-  );
-}
-export function BackupPage() {
-  return (
-    <PageFrame
-      title="Copias de Seguridad"
-      breadcrumbs={[
-        { label: "Panel", href: "/dashboard" },
-        { label: "Copias de seguridad" },
-      ]}
-    >
-      <div className="space-y-4">
-        <Card><CardHeader><CardTitle>Gestion de backups</CardTitle><CardDescription>Si el backend no expone `/api/shopflow/backup/*`, esta pagina mostrara errores de API.</CardDescription></CardHeader><CardContent className="flex gap-2"><CreateBackupButton /><RestoreBackupDialog /></CardContent></Card>
-        <BackupList />
-      </div>
     </PageFrame>
   );
 }
