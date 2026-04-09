@@ -6,16 +6,10 @@
 };
 
 export function getLandingUrls(): LandingUrls {
-  const env = import.meta.env as {
-    VITE_HUB_URL?: string;
-    VITE_SHOPFLOW_URL?: string;
-    VITE_WORKIFY_URL?: string;
-    VITE_TECHSERVICES_URL?: string;
-  };
   return {
-    hub: env.VITE_HUB_URL ?? "http://localhost:3001",
-    shopflow: env.VITE_SHOPFLOW_URL ?? "http://localhost:3002",
-    workify: env.VITE_WORKIFY_URL ?? "http://localhost:3003",
-    techservices: env.VITE_TECHSERVICES_URL ?? "http://localhost:3004",
+    hub: process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:3001",
+    shopflow: process.env.NEXT_PUBLIC_SHOPFLOW_URL ?? "http://localhost:3002",
+    workify: process.env.NEXT_PUBLIC_WORKIFY_URL ?? "http://localhost:3003",
+    techservices: process.env.NEXT_PUBLIC_TECHSERVICES_URL ?? "http://localhost:3004",
   };
 }

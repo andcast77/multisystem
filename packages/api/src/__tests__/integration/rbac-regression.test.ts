@@ -127,7 +127,8 @@ describe('PLAN-18: RBAC Regression', () => {
         'content-type': 'application/json',
       },
       // Non-empty payload passes schema validation so the service assertCompanyAccess can block with 403
-      payload: { modules: [{ moduleId: '00000000-0000-0000-0000-000000000001', enabled: true }] },
+      // Valid RFC-4122 UUID (Zod 4 uuid() rejects nil / invalid variant bytes used previously)
+      payload: { modules: [{ moduleId: '550e8400-e29b-41d4-a716-446655440001', enabled: true }] },
     })
     expect(res.statusCode).toBe(403)
   })

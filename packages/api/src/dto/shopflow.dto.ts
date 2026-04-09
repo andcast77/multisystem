@@ -170,7 +170,7 @@ export const createNotificationSchema = z.object({
   priority: z.string().optional(),
   title: z.string().min(1),
   message: z.string().min(1),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   actionUrl: z.string().optional(),
   expiresAt: z.string().optional(),
 })

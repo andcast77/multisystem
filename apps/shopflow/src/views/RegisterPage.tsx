@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AuthLayout,
   AuthBrandDecorativePanel,
@@ -18,7 +21,7 @@ import { authApi } from "@/lib/api/client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 
 export function RegisterPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [form, setForm] = useState<RegisterInput>({
     firstName: "",
     lastName: "",
@@ -56,7 +59,7 @@ export function RegisterPage() {
           <AuthBrandFooterCenter>
             <p className="text-sm text-white/50">
               ¿Ya tienes cuenta?{" "}
-              <Link to="/login" className="text-indigo-300 hover:text-indigo-200 font-medium">
+              <Link href="/login" className="text-indigo-300 hover:text-indigo-200 font-medium">
                 Inicia sesión
               </Link>
             </p>
@@ -85,7 +88,7 @@ export function RegisterPage() {
                 shopflowEnabled: true,
                 workifyEnabled: false,
               });
-              navigate("/dashboard");
+              router.push("/dashboard");
             } catch (err) {
               setError(err instanceof Error ? err.message : "No se pudo registrar");
             } finally {
@@ -157,7 +160,7 @@ export function RegisterPage() {
               onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))}
             />
             Acepto los{" "}
-            <Link className="text-indigo-300 underline hover:text-indigo-200" to="/terms">
+            <Link className="text-indigo-300 underline hover:text-indigo-200" href="/terms">
               términos
             </Link>
           </label>

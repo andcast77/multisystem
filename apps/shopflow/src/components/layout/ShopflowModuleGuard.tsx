@@ -3,7 +3,7 @@
 import { useUser } from '@/hooks/useUser'
 
 const hubSettingsUrl =
-  (import.meta as { env?: { VITE_HUB_URL?: string } }).env?.VITE_HUB_URL || 'http://localhost:3001'
+  process.env.NEXT_PUBLIC_HUB_URL || "http://localhost:3001"
 
 export function ShopflowModuleGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useUser()

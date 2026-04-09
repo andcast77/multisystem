@@ -9,28 +9,29 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
+    "@hookform/resolvers": "catalog:",
     "@multisystem/contracts": "workspace:*",
     "@multisystem/shared": "workspace:*",
     "@multisystem/ui": "workspace:*",
-    "@tanstack/react-query": "^5.90.21",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.564.0",
-    "next": "16.1.6",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.71.2",
-    "tailwind-merge": "^3.4.0",
-    "zod": "^4.3.6"
+    "@tanstack/react-query": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
+    "tailwind-merge": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "autoprefixer": "^10.4.24",
-    "postcss": "^8.5.6",
-    "sass": "^1.97.3",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.3"
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "autoprefixer": "catalog:",
+    "postcss": "catalog:",
+    "sass": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   }
 }
