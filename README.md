@@ -10,7 +10,7 @@ Este proyecto usa **pnpm** + **Turborepo** para gestionar múltiples apps y paqu
 multisystem/
 ├── apps/
 │   ├── hub/              # @multisystem/hub — portal Vite (login, dashboard, módulos)
-│   ├── shopflow/         # @multisystem/shopflow — POS, inventario, reportes (Vite)
+│   ├── shopflow/         # @multisystem/shopflow — POS, inventario, reportes (Next.js)
 │   ├── workify/          # @multisystem/workify — RRHH, fichajes, reportes (Next.js)
 │   └── techservices/     # @multisystem/techservices — órdenes, activos, agenda (Next.js)
 ├── packages/
@@ -29,7 +29,7 @@ multisystem/
 | App | Puerto | Descripción |
 |-----|--------|-------------|
 | **hub** | 3001 | Portal multi-empresa: auth, dashboard, enlaces a workify/shopflow/techservices (`Vite`) |
-| **shopflow** | 3002 | POS, inventario, reportes, admin del módulo (`Vite`) |
+| **shopflow** | 3002 | POS, inventario, reportes, admin del módulo (`Next.js`) |
 | **workify** | 3003 | Empleados, turnos, fichajes, roles; API `/api/workify` (`Next.js` + Turbo) |
 | **techservices** | 3004 | Órdenes de trabajo, activos, visitas; API `/api/techservices` (`Next.js`) |
 
@@ -205,7 +205,7 @@ Asegúrate de que `packages/api/.env` tenga `CORS_ORIGIN` con esa lista (en el e
 
 Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local` de cada app si la API no está en `http://localhost:3000`.
 
-**Shopflow** (Vite): `VITE_API_URL` como variable principal en `lib/api/client.ts`, con fallback temporal a `NEXT_PUBLIC_API_URL` para compatibilidad; ver [Shopflow README](./apps/shopflow/README.md).
+**Shopflow** (Next.js): `NEXT_PUBLIC_API_URL` en `lib/api/client.ts`; ver [Shopflow README](./apps/shopflow/README.md).
 
 **Hub** (Vite): `VITE_API_URL`; `VITE_SHOPFLOW_URL` (p. ej. `http://localhost:3002`), `VITE_WORKIFY_URL`, `VITE_TECHSERVICES_URL`.
 
@@ -215,7 +215,7 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 
 - **Monorepo:** pnpm workspaces, Turborepo
 - **API:** Fastify 5, Zod, JWT, Swagger
-- **Frontend:** **Shopflow** y **Hub** con Vite + React Router; **workify** / **techservices** con Next.js; Tailwind; **@multisystem/ui**
+- **Frontend:** **Hub** con Vite + React Router; **shopflow** / **workify** / **techservices** con Next.js; Tailwind; **@multisystem/ui**
 - **BD:** Prisma (vía `@multisystem/database`)
 - **Contratos:** `@multisystem/contracts` (tipos API ↔ frontend)
 - **Front compartido:** `@multisystem/shared` (fetch + cookie token)
@@ -232,6 +232,6 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 - [Prisma schema split (plan)](./packages/database/prisma/PRISMA_SCHEMA_SPLIT.md) — notas para dividir el schema por dominio
 - [Shared - README](./packages/shared/README.md) — `@multisystem/shared`: auth por cookie, cliente API
 - [Hub - README](./apps/hub/README.md) — `@multisystem/hub`: dashboard, variables `VITE_*`, proxy `/api`
-- [Shopflow - README](./apps/shopflow/README.md) — POS, API `/api/shopflow`, puerto 3002, env API
+- [Shopflow - README](./apps/shopflow/README.md) — POS, API `/v1/shopflow`, puerto 3002, `NEXT_PUBLIC_*`
 - [Workify - README](./apps/workify/README.md) — RRHH, `/api/workify`, puerto 3003
 - [Techservices - README](./apps/techservices/README.md) — Next.js, `/api/techservices`, puerto 3004

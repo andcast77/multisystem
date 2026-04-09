@@ -4,8 +4,7 @@ import type { MeResponse } from '@multisystem/contracts'
 // API Client for ShopFlow Frontend
 // Points to unified API with module prefixes (all requests go to external API, not Next.js routes)
 
-const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
-export const API_URL = viteApiUrl || 'http://localhost:3000'
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 /** Current store ID for X-Store-Id header (set by StoreContext). */
 declare global {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   AuthLayout,
@@ -18,7 +20,8 @@ import {
   Input,
   Label,
 } from "@multisystem/ui";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ApiResponse, LoginResponse } from "@multisystem/contracts";
 import { loginSchema } from "@/lib/validations/auth";
 import { authApi } from "@/lib/api/client";
@@ -36,8 +39,8 @@ function hubForgotPasswordUrl(): string {
 }
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const nextPath = useMemo(
     () => safeNextPath(searchParams.get("next")),
     [searchParams],
@@ -100,7 +103,7 @@ export function LoginPage() {
         setMfaBackup(false);
         return;
       }
-      navigate(nextPath ?? "/dashboard", { replace: true });
+      router.replace(nextPath ?? "/dashboard");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudo iniciar sesión",
@@ -134,7 +137,7 @@ export function LoginPage() {
         setError(res.error || "Código inválido");
         return;
       }
-      navigate(nextPath ?? "/dashboard", { replace: true });
+      router.replace(nextPath ?? "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo verificar");
     } finally {
@@ -162,7 +165,7 @@ export function LoginPage() {
                 <>
                   ¿No tienes cuenta?{" "}
                   <Link
-                    to="/register"
+                    href="/register"
                     className="text-indigo-300 hover:text-indigo-200 font-medium"
                   >
                     Registrarse
@@ -170,7 +173,7 @@ export function LoginPage() {
                 </>
               }
               homeLine={
-                <Link to="/" className={AUTH_BRAND_HOME_LINK_CLASS}>
+                <Link href="/" className={AUTH_BRAND_HOME_LINK_CLASS}>
                   Volver al inicio
                 </Link>
               }

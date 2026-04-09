@@ -40,8 +40,8 @@
     "test": "turbo run test"
   },
   "devDependencies": {
-    "knip": "^5.88.0",
-    "turbo": "^2.9.4",
-    "typescript": "^5.9.3"
+    "knip": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   }
 }

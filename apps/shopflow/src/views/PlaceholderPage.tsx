@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@multisystem/ui";
 import { PageFrame } from "@/views/PageFrame";
 
