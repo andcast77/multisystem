@@ -39,22 +39,22 @@
     "seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/rate-limit": "catalog:",
     "@neondatabase/serverless": "catalog:",
     "@prisma/adapter-neon": "catalog:",
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "bcryptjs": "catalog:",
     "dotenv": "catalog:",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "catalog:",
     "pg": "catalog:",
     "ws": "catalog:"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "catalog:",
     "@types/node": "catalog:",
-    "@types/nodemailer": "^8.0.0",
-    "@types/ws": "^8.18.1",
+    "@types/nodemailer": "catalog:",
+    "@types/ws": "catalog:",
     "cross-env": "catalog:",
     "prisma": "catalog:",
     "tsx": "catalog:",

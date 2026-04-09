@@ -68,7 +68,7 @@ Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (comple
 
 | Plan | Tema | File |
 |------|------|------|
-| 32 | Alineación sistemática de dependencias (`pnpm outdated`, semver único) | [PLAN-32-monorepo-dependency-alignment.md](./PLAN-32-monorepo-dependency-alignment.md) |
+| 32 | [completed] Alineación sistemática de dependencias (`pnpm outdated`, semver único) | [\[completed\] PLAN-32-monorepo-dependency-alignment.md](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md) |
 | 33 | Refinamiento Tailwind / tokens (post–alineación monorepo) | [PLAN-33-tailwind-v4-hub-techservices.md](./PLAN-33-tailwind-v4-hub-techservices.md) |
 | 34 | Catálogo pnpm (`catalog:`) — documentación y checklist residual | [PLAN-34-pnpm-catalog.md](./PLAN-34-pnpm-catalog.md) |
 | 35 | `@multisystem/ui`: tooling + bundler opcional | [PLAN-35-component-library-tooling-alignment.md](./PLAN-35-component-library-tooling-alignment.md) |

@@ -213,7 +213,7 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 
 ## Stack tecnológico
 
-- **Monorepo:** pnpm workspaces, Turborepo
+- **Monorepo:** pnpm workspaces, Turborepo — versiones compartidas entre paquetes en [`pnpm-workspace.yaml`](./pnpm-workspace.yaml) (`catalog:` en cada `package.json` donde aplica; detalle en [PLAN-32](docs/plans/%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md))
 - **API:** Fastify 5, Zod, JWT, Swagger
 - **Frontend:** **Hub** con Vite + React Router; **shopflow** / **workify** / **techservices** con Next.js; Tailwind; **@multisystem/ui**
 - **BD:** Prisma (vía `@multisystem/database`)
