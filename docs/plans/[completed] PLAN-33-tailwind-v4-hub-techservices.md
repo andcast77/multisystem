@@ -1,6 +1,6 @@
 # PLAN-33 — Tailwind CSS 4 en Hub y Techservices
 
-**Estado:** pendiente.
+**Estado:** [completed] — implementación y checklist cerrados.
 
 ## Contexto
 
@@ -23,11 +23,11 @@ Migrar **`apps/hub`** y **`apps/techservices`** a **Tailwind 4** con el mismo en
 
 ## Checklist
 
-- [ ] Hub: dependencias `tailwindcss` / `@tailwindcss/postcss` / PostCSS alineadas a v4; build y `next dev` OK.
-- [ ] Techservices: igual.
-- [ ] Pasada visual en rutas principales (lista corta acordada con el equipo).
-- [ ] Actualizar README de cada app si mencionaba Tailwind 3.
-- [ ] `turbo run build --filter=...` para ambas apps.
+- [x] Hub: dependencias `tailwindcss` / `@tailwindcss/postcss` / PostCSS alineadas a v4; build y `next dev` OK.
+- [x] Techservices: igual.
+- [x] Pasada visual en rutas principales (lista corta acordada con el equipo).
+- [x] Actualizar README de cada app si mencionaba Tailwind 3.
+- [x] `turbo run build --filter=...` para ambas apps.
 
 ## Referencias
 
