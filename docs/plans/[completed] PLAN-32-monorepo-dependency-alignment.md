@@ -19,7 +19,7 @@ Complementa el **objetivo 2** de [PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-
 
 ## Fuera de alcance (planes dedicados)
 
-- **Tailwind 3 → 4** en Hub/Techservices → [PLAN-33](./PLAN-33-tailwind-v4-hub-techservices.md)
+- **Tailwind 3 → 4** en Hub/Techservices → [PLAN-33](./%5Bcompleted%5D%20PLAN-33-tailwind-v4-hub-techservices.md)
 - **Catálogo pnpm** → [PLAN-34](./PLAN-34-pnpm-catalog.md)
 - **Tooling de `@multisystem/ui`** (bundler) → [PLAN-35](./PLAN-35-component-library-tooling-alignment.md)
 
