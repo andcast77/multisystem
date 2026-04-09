@@ -2,6 +2,12 @@
 
 These rules keep **`docs/plans/PLAN-*.md`** accurate without duplicate checklists elsewhere.
 
+## Canonical plans (`docs/plans/`)
+
+- **All** engineering plans for this project are created under **`docs/plans/`** only.
+- **Filenames are canonical** and include the plan number: **`PLAN-<number>-<short-slug>.md`** (optional leading `[completed] ` or `[cancelled] `). Same number identifies one plan; the slug describes the topic.
+- IDE-only drafts (e.g. under `.cursor/plans/`) are **not** authoritative until the content exists as a `docs/plans/PLAN-*.md` file.
+
 ## Single source of truth
 
 - Task checkboxes live **only** in `docs/plans/PLAN-*.md`.
@@ -32,3 +38,17 @@ These rules keep **`docs/plans/PLAN-*.md`** accurate without duplicate checklist
 
 - Review open `[ ]` items against the codebase before a release.
 - When **Definition of done** for a whole plan is met, consider adding a one-line status at the top of that plan file: `**Status:** Done YYYY-MM-DD` (optional).
+
+## Git workflow for plans
+
+Use when moving from planning to implementation (same intent as any local Cursor git-plan rules):
+
+1. **Branch from `Test`.** Never implement directly on `Test` or reuse an old plan branch for a new run.
+2. **Branch name:** `plan/<slug>-run-<YYYYMMDD-HHmmss>` (local time). The `slug` comes from the plan filename: basename without `.md`, strip an optional `[completed] ` / `[cancelled] ` prefix, lowercase, normalize to URL-safe segments (e.g. `PLAN-30-ws-to-sse.md` → `plan-30-ws-to-sse`).
+3. **Commands (typical):** `git fetch --all --prune` → `git checkout Test` → `git pull origin Test` → `git checkout -b <branchName>`.
+
+## Cursor (`.cursor/`) vs `docs/plans/`
+
+- **Cursor loads agent rules from [`.cursor/rules/*.mdc`](../../.cursor/rules/)** — those files **are** part of the repo (only stray paths under `.cursor/` stay gitignored).
+- **Plan documents and checklists** stay in **`docs/plans/PLAN-*.md`**: long-form specs, PR review, history. Do **not** duplicate full plan bodies into `.cursor/`; the rules there should **point here** for naming, sync, and git workflow.
+- **Ephemeral IDE plans** (e.g. `.cursor/plans/*.plan.md`) remain local-only unless copied into `docs/plans/`.

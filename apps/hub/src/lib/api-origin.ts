@@ -23,14 +23,3 @@ export function getHubApiBaseUrl(): string {
   }
   return process.env.NODE_ENV === "development" ? "" : PROD_FALLBACK_API;
 }
-
-/** WebSocket base (same host as page when API base is empty + dev rewrite). */
-export function getHubWsBaseUrl(): string {
-  const base = getHubApiBaseUrl();
-  if (base === "") {
-    if (typeof window === "undefined") return "ws://localhost";
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${proto}//${window.location.host}`;
-  }
-  return base.replace(/^http/, "ws");
-}

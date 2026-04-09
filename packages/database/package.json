@@ -39,25 +39,25 @@
     "seed": "cross-env DB_TARGET=prod tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@fastify/rate-limit": "^10.3.0",
-    "@neondatabase/serverless": "^1.0.2",
-    "@prisma/adapter-neon": "^7.3.0",
-    "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.3.0",
-    "bcryptjs": "^3.0.2",
-    "dotenv": "^17.2.3",
-    "nodemailer": "^8.0.1",
-    "pg": "^8.13.0",
-    "ws": "^8.19.0"
+    "@fastify/rate-limit": "catalog:",
+    "@neondatabase/serverless": "catalog:",
+    "@prisma/adapter-neon": "catalog:",
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "bcryptjs": "catalog:",
+    "dotenv": "catalog:",
+    "nodemailer": "catalog:",
+    "pg": "catalog:",
+    "ws": "catalog:"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^25.2.3",
-    "@types/nodemailer": "^7.0.11",
-    "@types/ws": "^8.18.1",
-    "cross-env": "^7.0.3",
-    "prisma": "^7.3.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "@types/bcryptjs": "catalog:",
+    "@types/node": "catalog:",
+    "@types/nodemailer": "catalog:",
+    "@types/ws": "catalog:",
+    "cross-env": "catalog:",
+    "prisma": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   }
 }

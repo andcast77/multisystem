@@ -1,0 +1,64 @@
+schema: spec-driven
+
+context: |
+  Tech stack: pnpm monorepo (Turborepo), TypeScript, Next.js 16 apps, Vite apps,
+  Fastify API (@multisystem/api), Prisma (@multisystem/database), shared UI package.
+  Architecture: REST API with controller/service/repository layers; multi-tenant by companyId.
+  CI: GitHub Actions (lint, typecheck, turbo test with Postgres).
+  Style: ESLint/Prettier in select apps; root typecheck via tsc.
+
+strict_tdd: true
+
+testing:
+  strict_tdd: true
+  detected: "2026-04-08"
+  runner:
+    command: pnpm test
+    framework: Vitest (via turbo; packages vary)
+  layers:
+    unit:
+      available: true
+      tool: Vitest
+    integration:
+      available: true
+      tool: Vitest (API has unit/integration splits; Postgres in CI)
+    e2e:
+      available: false
+      tool: —
+  coverage:
+    available: true
+    command: pnpm --filter @multisystem/api run test:coverage
+    note: vitest.config uses provider v8; ensure @vitest/coverage-v8 is installed if coverage fails
+  quality:
+    linter:
+      available: true
+      command: pnpm lint
+    typecheck:
+      available: true
+      command: pnpm typecheck
+    formatter:
+      available: true
+      command: Prettier (shopflow/workify; not unified at root)
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
+  verify:
+    - Run tests if test infrastructure exists
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)

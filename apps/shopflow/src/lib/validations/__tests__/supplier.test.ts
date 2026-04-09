@@ -51,22 +51,20 @@ describe('Supplier Validations', () => {
         email: null,
         phone: null,
         address: null,
+        active: true,
       }
 
       const result = createSupplierSchema.safeParse(supplier)
       expect(result.success).toBe(true)
     })
 
-    it('should apply default value for active', () => {
+    it('should require explicit active boolean', () => {
       const supplier = {
         name: 'Test Supplier',
       }
 
       const result = createSupplierSchema.safeParse(supplier)
-      expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.data.active).toBe(true)
-      }
+      expect(result.success).toBe(false)
     })
   })
 

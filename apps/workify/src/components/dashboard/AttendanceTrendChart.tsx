@@ -27,6 +27,12 @@ interface AttendanceTrendChartProps {
   departmentAttendance: DeptPoint[]
 }
 
+function tooltipPresentScheduled(value: unknown, name: unknown): [number, string] {
+  const n = typeof value === 'number' ? value : Number(value) || 0
+  const key = typeof name === 'string' ? name : String(name)
+  return [n, key === 'present' ? 'Presente' : 'Programado']
+}
+
 export function AttendanceTrendChart({ weeklyAttendance, departmentAttendance }: AttendanceTrendChartProps) {
   const lineData = weeklyAttendance.map((r) => ({
     ...r,
@@ -51,12 +57,7 @@ export function AttendanceTrendChart({ weeklyAttendance, departmentAttendance }:
               <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-              <Tooltip
-                formatter={(value: number | undefined, name: string | undefined) => [
-                  value ?? 0,
-                  (name === 'present' ? 'Presente' : 'Programado'),
-                ]}
-              />
+              <Tooltip formatter={tooltipPresentScheduled} />
               <Legend formatter={(v) => (v === 'present' ? 'Presente' : 'Programado')} />
               <Line type="monotone" dataKey="present" stroke="#16a34a" strokeWidth={2} dot={false} name="present" />
               <Line type="monotone" dataKey="scheduled" stroke="#2563eb" strokeWidth={2} dot={false} name="scheduled" />
@@ -72,12 +73,7 @@ export function AttendanceTrendChart({ weeklyAttendance, departmentAttendance }:
               <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={48} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-              <Tooltip
-                formatter={(value: number | undefined, name: string | undefined) => [
-                  value ?? 0,
-                  (name === 'present' ? 'Presente' : 'Programado'),
-                ]}
-              />
+              <Tooltip formatter={tooltipPresentScheduled} />
               <Legend formatter={(v) => (v === 'present' ? 'Presente' : 'Programado')} />
               <Bar dataKey="present" fill="#16a34a" name="present" radius={[4, 4, 0, 0]} />
               <Bar dataKey="scheduled" fill="#93c5fd" name="scheduled" radius={[4, 4, 0, 0]} />

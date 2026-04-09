@@ -29,7 +29,7 @@ export function toErrorResponse(error: unknown): { status: number; body: ErrorEn
   }
 
   // Log unexpected errors in development
-  if ((import.meta as any).env?.DEV === true) {
+  if (process.env.NODE_ENV === "development") {
     console.error('Unexpected error:', error)
   }
 

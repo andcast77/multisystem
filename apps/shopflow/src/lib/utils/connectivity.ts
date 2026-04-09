@@ -58,7 +58,7 @@ export class ConnectivityChecker {
    */
   async checkConnectivity(): Promise<ConnectivityStatus> {
     const startTime = Date.now()
-    const isDevelopment = (import.meta as any).env?.DEV === true
+    const isDevelopment = process.env.NODE_ENV === "development"
 
     // Primero verificar navigator.onLine - si dice offline, no hacer fetch
     if (typeof window !== 'undefined' && !navigator.onLine) {
@@ -102,9 +102,8 @@ export class ConnectivityChecker {
         }
       }
     } else {
-      // En producción, hacer ping a la API real (VITE_API_URL)
-      const viteApiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined
-      const apiUrl = viteApiUrl
+      // En producción, hacer ping a la API real (NEXT_PUBLIC_API_URL)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       try {
         const url = apiUrl ? `${apiUrl.replace(/\/$/, '')}/v1/auth/me` : '/v1/auth/me'
         const response = await fetch(url, {
@@ -167,7 +166,7 @@ export class ConnectivityChecker {
    * Quick connectivity check (synchronous)
    */
   isLikelyOnline(): boolean {
-    const isDevelopment = (import.meta as any).env?.DEV === true
+    const isDevelopment = process.env.NODE_ENV === "development"
     
     // Primero verificar navigator.onLine - es la fuente más confiable
     if (typeof window !== 'undefined' && navigator.onLine === false) {

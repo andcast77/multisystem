@@ -10,7 +10,7 @@ function formatZodError(err: z.ZodError): string {
       .map(([k, v]) => (v?.[0] ? `${k}: ${v[0]}` : k))
       .join('; ')
   }
-  return err.errors.map((e) => e.message).join('; ')
+  return err.issues.map((e) => e.message).join('; ')
 }
 
 /**

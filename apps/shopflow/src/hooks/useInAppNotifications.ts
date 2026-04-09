@@ -9,7 +9,7 @@ import {
 } from '@/lib/services/notificationService'
 import type { Notification } from '@/types'
 
-const API_URL = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:3000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 const SSE_SUPPORTED = typeof EventSource !== 'undefined'
 
 function mapRows(rows: Notification[]) {

@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
 import { AppBreadcrumb } from "@multisystem/ui";
 
 export type PageFrameBreadcrumb = { label: string; href?: string };

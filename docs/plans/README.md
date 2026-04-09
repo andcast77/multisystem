@@ -1,5 +1,9 @@
 # Implementation plans
 
+**Canonical location:** every plan document for this repo lives **here** (`docs/plans/`), not only in IDE scratch paths. **Naming:** `PLAN-<number>-<short-slug>.md` (see [`SYNC.md`](./SYNC.md)); optional `[completed] ` / `[cancelled] ` prefix when applicable.
+
+**Cursor:** agent rules live in [`.cursor/rules/`](../.cursor/rules/) (versioned). **Plan markdown** lives **here** (`docs/plans/`); see [SYNC.md](./SYNC.md) for how the two fit together.
+
 Working copies of engineering implementation plans. Source context: [ENGINEERING_AUDIT_REPORT.md](../ENGINEERING_AUDIT_REPORT.md) §17–19.
 
 | Order | Plan | File |
@@ -49,6 +53,27 @@ Estos ítems deben completarse o descartarse explícitamente antes de considerar
 - Actual execution completed: `1 -> 2` (both completed, no regressions after CORS alignment).
 - Effective remaining focus: `3` (optional docs path) + `4` (done) in parallel context, `6` ongoing.
 - Product capability plans (17–22): pending execution.
+
+## Infraestructura / realtime API
+
+| Plan | Tema | File |
+|------|------|------|
+| 30 | WebSocket → SSE (presencia; Vercel) | [\[completed\] PLAN-30-ws-to-sse.md](./%5Bcompleted%5D%20PLAN-30-ws-to-sse.md) |
+| 31 | [completed] Shopflow → Next.js + sincronización de dependencias (monorepo) | [\[completed\] PLAN-31-shopflow-next-migration.md](./[completed]%20PLAN-31-shopflow-next-migration.md) |
+| — | *(cancelado)* API en Railway | [\[cancelled\] PLAN-30-api-railway.md](./%5Bcancelled%5D%20PLAN-30-api-railway.md) |
+
+## Seguimiento PLAN-31 (planes derivados)
+
+Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (completado)**, el seguimiento operativo sigue en:
+
+| Plan | Tema | File |
+|------|------|------|
+| 32 | [completed] Alineación sistemática de dependencias (`pnpm outdated`, semver único) | [\[completed\] PLAN-32-monorepo-dependency-alignment.md](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md) |
+| 33 | Refinamiento Tailwind / tokens (post–alineación monorepo) | [PLAN-33-tailwind-v4-hub-techservices.md](./PLAN-33-tailwind-v4-hub-techservices.md) |
+| 34 | Catálogo pnpm (`catalog:`) — documentación y checklist residual | [PLAN-34-pnpm-catalog.md](./PLAN-34-pnpm-catalog.md) |
+| 35 | `@multisystem/ui`: tooling + bundler opcional | [PLAN-35-component-library-tooling-alignment.md](./PLAN-35-component-library-tooling-alignment.md) |
+| 36 | Shopflow: service worker / push — verificar o documentar | [PLAN-36-shopflow-service-worker-push.md](./PLAN-36-shopflow-service-worker-push.md) |
+| 37 | Shopflow: verificación manual y smoke | [PLAN-37-shopflow-manual-qa-smoke.md](./PLAN-37-shopflow-manual-qa-smoke.md) |
 
 ## Syncing checklists
 

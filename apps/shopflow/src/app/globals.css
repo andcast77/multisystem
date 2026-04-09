@@ -2,7 +2,7 @@
 
 /* AuthLayout (y otros UI compartidos) viven en packages/component-library; Tailwind v4 no escanea fuera del app por defecto,
    así que sin esto faltan utilidades como lg:flex / lg:grid-cols-* y el panel de marketing queda .hidden para siempre. */
-@source "../../../packages/component-library/src";
+@source "../../../../packages/component-library/src";
 
 @layer base {
   :root {

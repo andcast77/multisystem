@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { useUser } from '@/hooks/useUser'
 import { useCompanyMembers, useDeleteUser } from '@/hooks/useUsers'
 import { Button } from '@multisystem/ui'
@@ -277,7 +277,7 @@ export function UserList() {
             </SelectContent>
           </Select>
         </div>
-        <Link to="/admin/users/new">
+        <Link href="/admin/users/new">
           <Button><Plus className="mr-2 h-4 w-4" />Nuevo Usuario</Button>
         </Link>
       </div>
@@ -337,7 +337,7 @@ export function UserList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Link to={`/admin/users/${user.id}`}>
+                        <Link href={`/admin/users/${user.id}`}>
                           <Button variant="ghost" size="sm" title="Editar">
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -393,7 +393,7 @@ export function UserList() {
             {search ? 'No se encontraron usuarios.' : 'Comienza agregando tu primer usuario.'}
           </p>
           {!search && (
-            <Link to="/admin/users/new" className="mt-4">
+            <Link href="/admin/users/new" className="mt-4">
               <Button><Plus className="mr-2 h-4 w-4" />Nuevo Usuario</Button>
             </Link>
           )}

@@ -18,7 +18,6 @@ import { rateLimitPlugin } from './plugins/core/rate-limit.plugin.js'
 import { schemaSanitizerPlugin } from './plugins/core/schema-sanitizer.plugin.js'
 import { securityHeadersPlugin } from './plugins/core/security-headers.plugin.js'
 import { swaggerPlugin } from './plugins/core/swagger.plugin.js'
-import { websocketPlugin } from './plugins/core/websocket.plugin.js'
 import { healthPlugin } from './plugins/health/health.plugin.js'
 import { registerV1 } from './controllers/v1/index.js'
 import { getConfig, parseTrustProxy, type AppConfig } from './core/config.js'
@@ -86,8 +85,6 @@ async function start() {
     await fastify.register(schemaSanitizerPlugin)
     await fastify.register(errorsPlugin)
     await fastify.register(swaggerPlugin, { nodeEnv: config.NODE_ENV })
-    await fastify.register(websocketPlugin)
-
     await fastify.register(healthPlugin)
     await registerV1(fastify)
 

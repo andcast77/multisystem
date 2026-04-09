@@ -35,11 +35,21 @@ import {
   SelectValue,
 } from '@multisystem/ui'
 import { useInAppNotifications } from '@/hooks/useInAppNotifications'
-import { Link, useLocation } from 'react-router-dom'
+import NextLink from 'next/link'
+import { usePathname } from 'next/navigation'
+
+/** Maps react-router `to` + Next `href` to a single `href` for `next/link`. */
+function SidebarLink({
+  to,
+  href,
+  ...rest
+}: React.ComponentProps<typeof NextLink> & { to?: string }) {
+  return <NextLink href={href ?? to ?? '/'} {...rest} />
+}
 
 /** Adapter for `@multisystem/ui` Sidebar (expects Next-like `usePathname`). */
 function useRouterPathname(): string {
-  return useLocation().pathname
+  return usePathname() || '/'
 }
 
 // Navigation groups - Only add routes that actually exist!
@@ -300,7 +310,7 @@ export function Sidebar() {
         </div>
       ) : null}
       <SidebarComponent
-        navigation={{ Link, usePathname: useRouterPathname }}
+        navigation={{ Link: SidebarLink, usePathname: useRouterPathname }}
         navGroups={navGroups}
         user={sidebarUser}
         branding={{
