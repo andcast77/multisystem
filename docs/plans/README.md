@@ -72,7 +72,7 @@ Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (comple
 | 33 | [completed] Refinamiento Tailwind / tokens (post–alineación monorepo) | [\[completed\] PLAN-33-tailwind-v4-hub-techservices.md](./%5Bcompleted%5D%20PLAN-33-tailwind-v4-hub-techservices.md) |
 | 34 | [completed] Catálogo pnpm (`catalog:`) | [\[completed\] PLAN-34-pnpm-catalog.md](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md) |
 | 35 | [completed] `@multisystem/ui`: tooling + bundler opcional | [\[completed\] PLAN-35-component-library-tooling-alignment.md](./%5Bcompleted%5D%20PLAN-35-component-library-tooling-alignment.md) |
-| 36 | Shopflow: service worker / push — verificar o documentar | [PLAN-36-shopflow-service-worker-push.md](./PLAN-36-shopflow-service-worker-push.md) |
+| 36 | [completed] Shopflow: service worker / push — verificar o documentar | [\[completed\] PLAN-36-shopflow-service-worker-push.md](./%5Bcompleted%5D%20PLAN-36-shopflow-service-worker-push.md) |
 | 37 | Shopflow: verificación manual y smoke | [PLAN-37-shopflow-manual-qa-smoke.md](./PLAN-37-shopflow-manual-qa-smoke.md) |
 
 ## Syncing checklists

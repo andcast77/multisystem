@@ -21,11 +21,16 @@ function isAuthPublicPath(url: string): boolean {
   )
 }
 
+/** Vercel Cron → GET /v1/internal/cron/* — do not count toward the global IP bucket. */
+function isInternalCronPath(url: string): boolean {
+  return pathOnly(url).startsWith('/v1/internal/cron/')
+}
+
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-    skip: (request) => isAuthPublicPath(request.url)
+    skip: (request) => isAuthPublicPath(request.url) || isInternalCronPath(request.url)
   } as Parameters<typeof fastify.register>[1])
 
   await fastify.register(async function authPublicScope(f) {

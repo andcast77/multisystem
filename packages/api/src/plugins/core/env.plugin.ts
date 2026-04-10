@@ -78,6 +78,11 @@ export const envSchema = {
     FIELD_ENCRYPTION_KEY: {
       type: 'string',
       default: ''
+    },
+    /** Shared secret for GET /v1/internal/cron/* (Vercel Cron sends Authorization: Bearer <CRON_SECRET>). */
+    CRON_SECRET: {
+      type: 'string',
+      default: ''
     }
   }
 } as const
