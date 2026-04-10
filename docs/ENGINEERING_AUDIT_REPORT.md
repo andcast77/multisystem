@@ -1,9 +1,11 @@
 # Engineering Audit & Architecture Report
 
 **Repository:** multisystem  
-**Stack:** pnpm + Turborepo · React (Vite + Next.js) · Fastify · Prisma · PostgreSQL/Neon  
+**Stack:** pnpm + Turborepo · React (Next.js en las cuatro apps) · Fastify · Prisma · PostgreSQL/Neon  
 **Audit date:** 2026-03-19 (full system re-audit update)  
 **Method:** Static review of `packages/api`, `packages/database`, `packages/shared`, `apps/*`; tooling: Knip (unused files), Madge (circular, API src).
+
+> **Supersedencia (abril 2026):** Las secciones **§2–3** y el diagrama inferior reflejan **Next.js** en **hub**, **shopflow**, **workify** y **techservices**. Cualquier descripción anterior que citaba **Vite** para Hub o Shopflow queda **obsoleta** salvo notas explícitas de contexto histórico en secciones posteriores.
 
 ---
 
@@ -22,14 +24,13 @@
 
 ### SPA + API model
 
-- **Hub** (`apps/hub`) and **Shopflow** (`apps/shopflow`): Vite + React, client-side routing.
-- **Workify** / **Techservices**: Next.js (ports 3003/3004 per README), can use App Router + client fetch to shared API.
-- **API** (`packages/api`): Fastify on port 3000 (or serverless on Vercel). All business modules (auth, companies, shopflow, workify, techservices) mount on `/api/*`.
+- **Hub** (`apps/hub`), **Shopflow** (`apps/shopflow`), **Workify** (`apps/workify`) y **Techservices** (`apps/techservices`): **Next.js** (puertos 3001–3004 en desarrollo), App Router donde aplica; datos vía API compartida (React Query / fetch con credenciales).
+- **API** (`packages/api`): Fastify en puerto 3000 en local, o **serverless en Vercel**. Los módulos de negocio se exponen bajo **`/v1/...`** (y compatibilidad `/api/*` según configuración).
 
 ### Hosting model (not IIS)
 
-- Local: Node listens `0.0.0.0`; Postgres via Docker (`docker-compose.yml`).
-- Production path implied by scripts: **Vercel** for API (`VERCEL` branch), **Neon** + optional **Upstash Redis** for module cache.
+- Local: Node escucha en desarrollo; Postgres vía Docker (`docker-compose.yml`).
+- Producción / preview objetivo: **Vercel** para la API y los frontends del monorepo; **Neon** (PostgreSQL, URL pooled en serverless); **Upstash Redis** opcional para caché de módulos.
 
 ### System boundaries
 
@@ -45,8 +46,8 @@
 ```mermaid
 flowchart LR
   subgraph clients [Clients]
-    Hub[Hub_Vite]
-    Shop[Shopflow_Vite]
+    Hub[Hub_Next]
+    Shop[Shopflow_Next]
     Work[Workify_Next]
     Tech[Techservices_Next]
   end
@@ -76,8 +77,8 @@ flowchart LR
 ```
 multisystem/
 ├── apps/
-│   ├── hub/                 # Portal: login, company switch, dashboard (Vite + React 19)
-│   ├── shopflow/            # POS / inventory module UI (Vite)
+│   ├── hub/                 # Portal: login, company switch, dashboard (Next.js + React 19)
+│   ├── shopflow/            # POS / inventory module UI (Next.js)
 │   ├── workify/             # HR module UI (Next.js)
 │   └── techservices/        # Field service UI (Next.js)
 ├── packages/
@@ -87,7 +88,7 @@ multisystem/
 │   ├── database/            # Prisma schema, migrations, generated client
 │   └── shared/              # ApiClient, cookie auth (source-only workspace dep)
 ├── docker-compose.yml       # Local PostgreSQL
-├── package.json             # turbo dev/build; vercel:build copies DB into API
+├── package.json             # turbo dev/build; api:bundle (alias vercel:build) copies DB into API for Vercel
 ├── pnpm-workspace.yaml
 ├── turbo.json
 ├── tsconfig.base.json
@@ -159,7 +160,7 @@ flowchart TB
 
 ---
 
-## 6. Frontend Audit (React / Vite / Next)
+## 6. Frontend Audit (React / Next.js)
 
 | Topic | Finding |
 |-------|---------|
@@ -172,9 +173,9 @@ flowchart TB
 **Detected issues**
 
 - **Wrapper duplication** remains across app-local API modules (same shape, different files), increasing maintenance burden.
-- **Mixed framework artifacts** in Hub/Shopflow (Vite active + Next-style trees/legacy files) increase onboarding/debug cost.
-- **Hardcoded cross-app URLs** in Hub dashboard/landing paths create environment coupling and incorrect module routing risk.
-- **Env convention drift** (`VITE_*` and `NEXT_PUBLIC_*` mixed) creates build/runtime ambiguity.
+- **Residual legacy paths** (archivos o rutas heredadas de migraciones previas) pueden confundir si no están documentadas en el README de cada app.
+- **Hardcoded cross-app URLs** in Hub dashboard/landing paths create environment coupling and incorrect module routing risk unless **`NEXT_PUBLIC_*`** URLs are set per environment in Vercel.
+- **Env discipline** across four Next apps still requires consistent **`NEXT_PUBLIC_*`** alignment in Production and Preview builds.
 
 ---
 
@@ -435,7 +436,7 @@ When new files or folders are provided:
 - **API client foundation:** consistent adoption of `@multisystem/shared` wrappers across Hub, Shopflow, Workify, and Techservices.
 - **Auth/logout behavior:** inconsistent implementation details remain (manual cookie clearing patterns vs shared helper usage).
 - **Direct fetch bypasses:** selected features (uploads, printing, exports) bypass shared API wrapper standards, fragmenting retries/error handling contracts.
-- **Environment contract drift:** mixed `VITE_*` and `NEXT_PUBLIC_*` usage in frontend apps increases integration mistakes and build ambiguity.
+- **Environment contract drift:** `NEXT_PUBLIC_*` must stay aligned across Preview/Production in Vercel for all four Next apps; stale docs or examples that still mention `VITE_*` increase mistakes.
 - **Documentation drift:** multiple app READMEs still describe `token` cookie even though runtime moved to `ms_session`.
 
 ### 21.3 Architecture Integrity
@@ -449,7 +450,7 @@ When new files or folders are provided:
 
 - **Dependency direction:** controllers mostly delegate correctly; services often depend on persistence details directly (`prisma.*`), bypassing repository interfaces.
 - **Layer leakage:** selected services return transport-shaped payloads (`success/data`), coupling domain logic to HTTP response conventions.
-- **Boundary ambiguity:** frontend apps contain mixed framework artifacts (active Vite with residual Next-oriented structures).
+- **Boundary ambiguity:** some apps still carry legacy file trees or parallel structures from earlier stacks, which can obscure canonical entrypoints.
 
 ### 21.5 SOLID (Global)
 
@@ -460,7 +461,7 @@ When new files or folders are provided:
 
 ### 21.6 Systemic Risks
 
-- **Monorepo operational complexity:** mixed frontend frameworks and env conventions increase integration/testing overhead.
+- **Monorepo operational complexity:** four Next.js apps plus shared packages increase integration/testing overhead when env and docs drift.
 - **Shared package bottlenecks:** one API package and one DB schema drive all domains, making coordinated changes expensive.
 - **Deployment coupling:** single API service ties release cadence and rollback risk across independent business modules.
 - **Versioning/change management risk:** internal `workspace:*` usage is efficient, but change provenance and docs synchronization remain fragile.
@@ -500,7 +501,7 @@ When new files or folders are provided:
 
 ### Near-term (architecture consistency)
 
-4. Standardize frontend env contract per framework (`VITE_*` for Vite, `NEXT_PUBLIC_*` for Next) and remove mixed-mode fallbacks.
+4. Standardize the **`NEXT_PUBLIC_*`** contract across hub, shopflow, workify, and techservices (Vercel + local) and remove any leftover `VITE_*` references from docs or examples.
 5. Consolidate repeated auth/logout and thin API wrapper patterns into shared utilities.
 6. Start service-to-repository migration for highest-risk domains (users + shopflow sales/config/report paths).
 

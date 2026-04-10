@@ -2,6 +2,8 @@
 
 API compartida **Fastify 5** para Multisystem: JWT, multi-empresa (contexto de compañía/miembro) y rutas agrupadas por módulo (**shopflow**, **workify**, **techservices**). Acceso a datos con **@multisystem/database** (Prisma).
 
+**Producción / preview:** el camino oficial es **Vercel** (esta API) + **Neon** (PostgreSQL). Otros hosts (p. ej. Render) y **`.env.render.example`** se documentan como **legado**; no sustituyen esa historia de despliegue.
+
 ## 📄 Swagger / OpenAPI
 
 - **No producción:** **`/v1/docs`**.
@@ -145,9 +147,9 @@ JWT_EXPIRES_IN=7d
 # DATABASE_API_URL=
 ```
 
-### Variables para Render
+### Variables para Render (legado)
 
-Ver **`.env.render.example`** en este paquete para un ejemplo orientado a Render.
+Si aún despliegas fuera de Vercel, ver **`.env.render.example`** en este paquete. El despliegue objetivo del monorepo es **Vercel + Neon** (sección *Despliegue* abajo).
 
 ## 🌐 Áreas de endpoints (detalle en Swagger)
 
@@ -201,16 +203,16 @@ pnpm test:coverage
 ### Vercel (monorepo, Root Directory = `packages/api`)
 
 1. **Root Directory**: deja **Root Directory** = `packages/api` en el proyecto de Vercel.
-2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run build:api`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
-3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
+2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run api:bundle`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
+3. El `vercel.json` de `packages/api` define **`buildCommand`** → **`pnpm run api:bundle`** (el script histórico `vercel:build` en la raíz es un alias del mismo pipeline), la función `api/index.ts`, los rewrites y los crons.
 4. **Variables de entorno obligatorias** en Vercel para **Production** y **Preview** (en Preview también se define `VERCEL=1`; si falta alguna, el arranque falla): `DATABASE_URL` (pooled runtime), `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `CORS_ORIGIN`. Opcional: `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Para que los **jobs programados** (y por tanto **Web Push** desde cron) corran en serverless: **`CRON_SECRET`** (mismo valor que usa Vercel Cron en `Authorization: Bearer …`; ver sección *Jobs programados* arriba). Sin `CRON_SECRET`, las rutas `/v1/internal/cron/*` responderán 401.
 5. **`FIELD_ENCRYPTION_KEY`**: clave simétrica en base64 de 32 bytes. Generar: `openssl rand -base64 32`. Añádela en Vercel → Settings → Environment Variables (mismos entornos que arriba). Detalle del formato y rotación: [`docs/field-level-encryption.md`](../../docs/field-level-encryption.md).
 6. **Base de datos ya cifrada**: si ya existen filas cifradas con una clave anterior, usa **esa misma** `FIELD_ENCRYPTION_KEY` en Vercel. Cambiar la clave sin re-cifrar rompe la lectura; ver `packages/api/scripts/rotate-field-key.ts` y el doc anterior.
 7. Tras crear o editar variables, **vuelve a desplegar** para que el runtime las cargue.
 
-### Render.com
+### Render.com (legado / no objetivo)
 
-Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace (p. ej. `pnpm install` y build del paquete API). **Health check:** `GET /health`. Variables mínimas: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV` y `CORS_ORIGIN` (ver `.env.render.example`).
+Alternativa PaaS documentada solo por compatibilidad. Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace. **Health check:** `GET /health`. Variables mínimas: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV` y `CORS_ORIGIN` (ver `.env.render.example`).
 
 ## 📝 Notas
 
