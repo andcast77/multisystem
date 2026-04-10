@@ -224,6 +224,7 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 
 ## Documentación adicional
 
+- [Planes de implementación (índice)](./docs/plans/README.md) — `PLAN-*` en `docs/plans/` (p. ej. [PLAN-38 — Vercel + Neon](./docs/plans/%5Bcompleted%5D%20PLAN-38-vercel-neon-alignment.md))
 - [API - README](./packages/api/README.md) — Estructura del paquete, Swagger, variables de entorno (incl. Redis opcional para caché de módulos), despliegue
 - [Component library - README](./packages/component-library/README.md) — `@multisystem/ui`: imports, estilos, build, lista de componentes
 - [Contracts - README](./packages/contracts/README.md) — `@multisystem/contracts`: tipos auth/empresa/API, build `tsc`

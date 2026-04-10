@@ -60,6 +60,7 @@ Estos ítems deben completarse o descartarse explícitamente antes de considerar
 |------|------|------|
 | 30 | WebSocket → SSE (presencia; Vercel) | [\[completed\] PLAN-30-ws-to-sse.md](./%5Bcompleted%5D%20PLAN-30-ws-to-sse.md) |
 | 31 | [completed] Shopflow → Next.js + sincronización de dependencias (monorepo) | [\[completed\] PLAN-31-shopflow-next-migration.md](./[completed]%20PLAN-31-shopflow-next-migration.md) |
+| 38 | [completed] Alineación Vercel + Neon (docs + `api:bundle`) | [\[completed\] PLAN-38-vercel-neon-alignment.md](./[completed]%20PLAN-38-vercel-neon-alignment.md) |
 | — | *(cancelado)* API en Railway | [\[cancelled\] PLAN-30-api-railway.md](./%5Bcancelled%5D%20PLAN-30-api-railway.md) |
 
 ## Seguimiento PLAN-31 (planes derivados)
@@ -74,7 +75,6 @@ Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (comple
 | 35 | `@multisystem/ui`: tooling + bundler opcional | [PLAN-35-component-library-tooling-alignment.md](./PLAN-35-component-library-tooling-alignment.md) |
 | 36 | Shopflow: service worker / push — verificar o documentar | [PLAN-36-shopflow-service-worker-push.md](./PLAN-36-shopflow-service-worker-push.md) |
 | 37 | Shopflow: verificación manual y smoke | [PLAN-37-shopflow-manual-qa-smoke.md](./PLAN-37-shopflow-manual-qa-smoke.md) |
-| 38 | [completed] Alineación Vercel + Neon (docs + `api:bundle`) | [\[completed\] PLAN-38-vercel-neon-alignment.md](./[completed]%20PLAN-38-vercel-neon-alignment.md) |
 
 ## Syncing checklists
 
