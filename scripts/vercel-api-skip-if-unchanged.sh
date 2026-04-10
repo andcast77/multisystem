@@ -16,7 +16,7 @@ if [ -z "${VERCEL_GIT_PREVIOUS_SHA:-}" ]; then
   exit 1
 fi
 
-# Solo estos paths alimentan el deploy de la API (vercel:build + workspace).
+# Solo estos paths alimentan el deploy de la API (api:bundle + workspace).
 git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA}" "${VERCEL_GIT_COMMIT_SHA:-HEAD}" -- \
   packages/api \
   packages/database \

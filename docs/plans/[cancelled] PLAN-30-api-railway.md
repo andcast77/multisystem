@@ -15,7 +15,7 @@ No hay “subir carpeta”: **GitHub + comandos**.
 3. **Root directory del servicio:** dejá la **raíz del repo** (donde está el `package.json` principal y `pnpm-lock.yaml`). **No** pongas solo `packages/api`.
 4. En **Settings** del servicio (nombres pueden variar un poco en la UI):
    - **Install** (si lo separan): `pnpm install`  
-   - **Build command:** el script de **build de la API en monorepo** en la raíz. Hoy en [package.json](../../package.json) se llama por error histórico `vercel:build`, pero **no construye “con Vercel”**: es solo `pnpm` + `turbo` + copia de `packages/database` al layout que espera la API. **No tenés que usar la plataforma Vercel** para Railway. En la implementación del plan conviene añadir un alias neutro, p. ej. `pnpm run railway:build`, que ejecute **el mismo** comando que `vercel:build`, y usar ese nombre en Railway para no confundir.
+   - **Build command:** el script de **build de la API en monorepo** en la raíz. El pipeline canónico es **`pnpm run api:bundle`** ([`package.json`](../../package.json)); `vercel:build` es un alias del mismo comando. **No construye “con Vercel” por sí solo**: es `pnpm` + `turbo` + copia de `packages/database` al layout que espera la API. **No tenés que usar la plataforma Vercel** para Railway. En la implementación del plan conviene añadir un alias neutro, p. ej. `pnpm run railway:build`, que ejecute **el mismo** comando que `api:bundle`, y usar ese nombre en Railway para no confundir.
    - **Start command:**  
      `pnpm migrate:deploy && pnpm --filter @multisystem/api start`  
      (`migrate:deploy` aplica migraciones Prisma; si escalás varias instancias, conviene migraciones en un paso aparte y arrancar solo la API.)

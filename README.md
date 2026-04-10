@@ -9,7 +9,7 @@ Este proyecto usa **pnpm** + **Turborepo** para gestionar múltiples apps y paqu
 ```
 multisystem/
 ├── apps/
-│   ├── hub/              # @multisystem/hub — portal Vite (login, dashboard, módulos)
+│   ├── hub/              # @multisystem/hub — portal Next.js (login, dashboard, módulos)
 │   ├── shopflow/         # @multisystem/shopflow — POS, inventario, reportes (Next.js)
 │   ├── workify/          # @multisystem/workify — RRHH, fichajes, reportes (Next.js)
 │   └── techservices/     # @multisystem/techservices — órdenes, activos, agenda (Next.js)
@@ -28,7 +28,7 @@ multisystem/
 
 | App | Puerto | Descripción |
 |-----|--------|-------------|
-| **hub** | 3001 | Portal multi-empresa: auth, dashboard, enlaces a workify/shopflow/techservices (`Vite`) |
+| **hub** | 3001 | Portal multi-empresa: auth, dashboard, enlaces a workify/shopflow/techservices (`Next.js`) |
 | **shopflow** | 3002 | POS, inventario, reportes, admin del módulo (`Next.js`) |
 | **workify** | 3003 | Empleados, turnos, fichajes, roles; API `/api/workify` (`Next.js` + Turbo) |
 | **techservices** | 3004 | Órdenes de trabajo, activos, visitas; API `/api/techservices` (`Next.js`) |
@@ -198,16 +198,15 @@ Asegúrate de que `packages/api/.env` tenga `CORS_ORIGIN` con esa lista (en el e
 
 - Añadir la app a la tabla de “Apps” con su puerto.
 - Incluir `http://localhost:<puerto>` en la lista de “CORS (desarrollo)” y en `CORS_ORIGIN` de `packages/api/.env`.
-- Añadir/actualizar el `env.example` de la app con base URL de API según stack:
-  - Vite: `VITE_API_URL`
-  - Next.js: `NEXT_PUBLIC_API_URL`
+- Añadir/actualizar el `env.example` de la app con base URL de API:
+  - Todas las apps frontend usan **Next.js** y variables **`NEXT_PUBLIC_*`** (ver `.env.example` de cada app).
 - Verificar si el módulo requiere headers adicionales (ejemplo: `X-Store-Id` en rutas de Shopflow).
 
 Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local` de cada app si la API no está en `http://localhost:3000`.
 
 **Shopflow** (Next.js): `NEXT_PUBLIC_API_URL` en `lib/api/client.ts`; ver [Shopflow README](./apps/shopflow/README.md).
 
-**Hub** (Vite): `VITE_API_URL`; `VITE_SHOPFLOW_URL` (p. ej. `http://localhost:3002`), `VITE_WORKIFY_URL`, `VITE_TECHSERVICES_URL`.
+**Hub** (Next.js): `NEXT_PUBLIC_API_URL`; `NEXT_PUBLIC_SHOPFLOW_URL`, `NEXT_PUBLIC_WORKIFY_URL`, `NEXT_PUBLIC_TECHSERVICES_URL`, `NEXT_PUBLIC_HUB_URL` (ver [Hub README](./apps/hub/README.md)).
 
 ---
 
@@ -215,7 +214,7 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 
 - **Monorepo:** pnpm workspaces, Turborepo — versiones compartidas entre paquetes en [`pnpm-workspace.yaml`](./pnpm-workspace.yaml) (`catalog:` en cada `package.json` donde aplica; detalle en [PLAN-32](docs/plans/%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md))
 - **API:** Fastify 5, Zod, JWT, Swagger
-- **Frontend:** **Hub** con Vite + React Router; **shopflow** / **workify** / **techservices** con Next.js; Tailwind; **@multisystem/ui**
+- **Frontend:** **Hub**, **shopflow**, **workify** y **techservices** con **Next.js** (App Router donde aplica); Tailwind; **@multisystem/ui** (librería construida con Vite en watch durante `pnpm dev`)
 - **BD:** Prisma (vía `@multisystem/database`)
 - **Contratos:** `@multisystem/contracts` (tipos API ↔ frontend)
 - **Front compartido:** `@multisystem/shared` (fetch + cookie token)
@@ -231,7 +230,7 @@ Para **techservices** / **workify** (Next): `NEXT_PUBLIC_API_URL` en `.env.local
 - [Database - README](./packages/database/README.md) — Prisma, migraciones, seed, variables `DATABASE_URL` / `DIRECT_URL`, cliente
 - [Prisma schema split (plan)](./packages/database/prisma/PRISMA_SCHEMA_SPLIT.md) — notas para dividir el schema por dominio
 - [Shared - README](./packages/shared/README.md) — `@multisystem/shared`: auth por cookie, cliente API
-- [Hub - README](./apps/hub/README.md) — `@multisystem/hub`: dashboard, variables `VITE_*`, proxy `/api`
+- [Hub - README](./apps/hub/README.md) — `@multisystem/hub`: dashboard, variables `NEXT_PUBLIC_*`, rewrites `/v1` → API
 - [Shopflow - README](./apps/shopflow/README.md) — POS, API `/v1/shopflow`, puerto 3002, `NEXT_PUBLIC_*`
 - [Workify - README](./apps/workify/README.md) — RRHH, `/api/workify`, puerto 3003
 - [Techservices - README](./apps/techservices/README.md) — Next.js, `/api/techservices`, puerto 3004

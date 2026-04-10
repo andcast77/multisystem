@@ -74,6 +74,7 @@ Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (comple
 | 35 | `@multisystem/ui`: tooling + bundler opcional | [PLAN-35-component-library-tooling-alignment.md](./PLAN-35-component-library-tooling-alignment.md) |
 | 36 | Shopflow: service worker / push — verificar o documentar | [PLAN-36-shopflow-service-worker-push.md](./PLAN-36-shopflow-service-worker-push.md) |
 | 37 | Shopflow: verificación manual y smoke | [PLAN-37-shopflow-manual-qa-smoke.md](./PLAN-37-shopflow-manual-qa-smoke.md) |
+| 38 | [completed] Alineación Vercel + Neon (docs + `api:bundle`) | [\[completed\] PLAN-38-vercel-neon-alignment.md](./[completed]%20PLAN-38-vercel-neon-alignment.md) |
 
 ## Syncing checklists
 

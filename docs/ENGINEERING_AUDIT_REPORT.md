@@ -1,7 +1,7 @@
 # Engineering Audit & Architecture Report
 
 **Repository:** multisystem  
-**Stack:** pnpm + Turborepo · React (Vite + Next.js) · Fastify · Prisma · PostgreSQL/Neon  
+**Stack:** pnpm + Turborepo · React (Next.js apps + Vite-built `@multisystem/ui`) · Fastify · Prisma · PostgreSQL/Neon  
 **Audit date:** 2026-03-19 (full system re-audit update)  
 **Method:** Static review of `packages/api`, `packages/database`, `packages/shared`, `apps/*`; tooling: Knip (unused files), Madge (circular, API src).
 
@@ -20,16 +20,17 @@
 
 ## 2. Architecture Overview
 
-### SPA + API model
+### Web apps + API model
 
-- **Hub** (`apps/hub`) and **Shopflow** (`apps/shopflow`): Vite + React, client-side routing.
-- **Workify** / **Techservices**: Next.js (ports 3003/3004 per README), can use App Router + client fetch to shared API.
-- **API** (`packages/api`): Fastify on port 3000 (or serverless on Vercel). All business modules (auth, companies, shopflow, workify, techservices) mount on `/api/*`.
+- **Hub** (`apps/hub`), **Shopflow** (`apps/shopflow`), **Workify** (`apps/workify`), **Techservices** (`apps/techservices`): **Next.js** (ports 3001–3004 per root [README](../README.md)), client fetch to shared API (`NEXT_PUBLIC_*` env vars).
+- **API** (`packages/api`): Fastify on port 3000 locally, or **serverless on Vercel** in production. All business modules (auth, companies, shopflow, workify, techservices) mount on `/api/*` (and `/v1/*` for versioned routes).
+
+> **Supersedes (2026-04):** §2–3 previously described Hub/Shopflow as Vite; the codebase migrated to Next.js. Shared UI **`@multisystem/ui`** remains Vite-built (`packages/component-library`).
 
 ### Hosting model (not IIS)
 
 - Local: Node listens `0.0.0.0`; Postgres via Docker (`docker-compose.yml`).
-- Production path implied by scripts: **Vercel** for API (`VERCEL` branch), **Neon** + optional **Upstash Redis** for module cache.
+- Production: **Vercel** for API and all Next.js frontends; **Neon** (PostgreSQL) for runtime DB; optional **Upstash Redis** for module cache. **CI** uses ephemeral Postgres in GitHub Actions (not production hosting).
 
 ### System boundaries
 
@@ -45,8 +46,8 @@
 ```mermaid
 flowchart LR
   subgraph clients [Clients]
-    Hub[Hub_Vite]
-    Shop[Shopflow_Vite]
+    Hub[Hub_Next]
+    Shop[Shopflow_Next]
     Work[Workify_Next]
     Tech[Techservices_Next]
   end
@@ -76,8 +77,8 @@ flowchart LR
 ```
 multisystem/
 ├── apps/
-│   ├── hub/                 # Portal: login, company switch, dashboard (Vite + React 19)
-│   ├── shopflow/            # POS / inventory module UI (Vite)
+│   ├── hub/                 # Portal: login, company switch, dashboard (Next.js)
+│   ├── shopflow/            # POS / inventory module UI (Next.js)
 │   ├── workify/             # HR module UI (Next.js)
 │   └── techservices/        # Field service UI (Next.js)
 ├── packages/
@@ -87,7 +88,7 @@ multisystem/
 │   ├── database/            # Prisma schema, migrations, generated client
 │   └── shared/              # ApiClient, cookie auth (source-only workspace dep)
 ├── docker-compose.yml       # Local PostgreSQL
-├── package.json             # turbo dev/build; vercel:build copies DB into API
+├── package.json             # turbo dev/build; api:bundle (alias of vercel:build) copies DB into API
 ├── pnpm-workspace.yaml
 ├── turbo.json
 ├── tsconfig.base.json
