@@ -116,7 +116,7 @@ Actualizar `turbo.json` (`globalEnv`): retirar `VITE_*` obsoletos cuando no se u
 - [x] `VITE_*` → `NEXT_PUBLIC_*`; `.env.example`; `turbo.json`.
 - [x] Eliminar artefactos Vite de la app; Vitest con `vitest.config.ts` (alias `@/`); `public/sw.js` sin cambio.
 - [x] Actualizar `apps/shopflow/README.md` y referencias en README raíz.
-- [x] Verificación manual operativa (auth, POS, impresión, notificaciones): **checklist y registro en [PLAN-37](./PLAN-37-shopflow-manual-qa-smoke.md)** (cierre de calidad fuera del alcance de implementación PLAN-31).
+- [x] Verificación manual operativa (auth, POS, impresión, notificaciones): **checklist y registro en [PLAN-37](./%5Bcompleted%5D%20PLAN-37-shopflow-manual-qa-smoke.md)** (cierre de calidad fuera del alcance de implementación PLAN-31).
 - [x] Build: `shopflow` + `api` + dependencias (`contracts`, `database`, `@multisystem/ui`) vía turbo.
 
 ## Riesgos
@@ -138,7 +138,7 @@ Implementación en rama `plan/plan-31-shopflow-next-migration-run-<timestamp>` d
 | [PLAN-34](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md) | Catálogo pnpm (`catalog:`) en la raíz |
 | [PLAN-35](./%5Bcompleted%5D%20PLAN-35-component-library-tooling-alignment.md) | `@multisystem/ui`: tooling + bundler opcional |
 | [PLAN-36](./%5Bcompleted%5D%20PLAN-36-shopflow-service-worker-push.md) | Shopflow: SW / push — verificar o documentar |
-| [PLAN-37](./PLAN-37-shopflow-manual-qa-smoke.md) | Shopflow: verificación manual y smoke |
+| [PLAN-37](./%5Bcompleted%5D%20PLAN-37-shopflow-manual-qa-smoke.md) | Shopflow: verificación manual y smoke |
 
 ## Referencias
 
