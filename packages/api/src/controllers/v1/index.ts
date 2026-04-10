@@ -11,12 +11,14 @@ import * as techservices from './techservices.controller.js'
 import * as events from './events.controller.js'
 import * as auditLog from './audit-log.controller.js'
 import * as jobs from './jobs.controller.js'
+import * as internalCron from './internal-cron.controller.js'
 
 /**
  * Registers all v1 HTTP routes except public auth (login/register/verify),
  * which stay under the stricter rate-limit scope in `rate-limit.plugin.ts`.
  */
 export async function registerV1(fastify: FastifyInstance) {
+  await internalCron.registerRoutes(fastify)
   await auth.registerProtectedAuthRoutes(fastify)
   await users.registerRoutes(fastify)
   await account.registerRoutes(fastify)

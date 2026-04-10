@@ -88,7 +88,9 @@ async function start() {
     await fastify.register(healthPlugin)
     await registerV1(fastify)
 
-    // On Vercel we export the app for serverless; locally we listen
+    // On Vercel we export the app for serverless (no in-process cron). Scheduled jobs run via
+    // Vercel Cron → GET /v1/internal/cron/* with Authorization: Bearer CRON_SECRET (see vercel.json).
+    // Locally or on a long-lived Node host, node-cron runs the same jobs in-process.
     if (!process.env.VERCEL) {
       const port = parseInt(config.PORT, 10)
       // Hooks must be registered before listen(); onClose still runs when the server stops.

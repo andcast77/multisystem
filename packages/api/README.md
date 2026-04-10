@@ -163,6 +163,20 @@ Ver **`.env.render.example`** en este paquete para un ejemplo orientado a Render
 
 Muchas rutas exigen **sesión (cookie) o Bearer JWT** y contexto de compañía. Listado y esquemas: **`/v1/docs`** (si está habilitado).
 
+| Rutas internas | Uso |
+|----------------|-----|
+| `GET /v1/internal/cron/*` | Solo **Vercel Cron** (o operadores con `Authorization: Bearer CRON_SECRET`). Ejecutan los mismos jobs que `src/jobs/runner.ts`. No uses estas URLs desde el navegador. |
+
+## ⏰ Jobs programados: Node largo vs Vercel serverless
+
+- **`pnpm start` / Docker / Render:** `startJobRunner()` registra **node-cron** en `src/jobs/runner.ts` (mismas ventanas horarias que antes).
+- **Vercel (funciones serverless):** no hay proceso persistente; **`vercel.json`** define **`crons`** que hacen **GET** a `/v1/internal/cron/...`. Debes definir **`CRON_SECRET`** en el proyecto Vercel; la plataforma envía **`Authorization: Bearer <CRON_SECRET>`** en esas peticiones ([Cron Jobs](https://vercel.com/docs/cron-jobs)).
+- Los horarios en `vercel.json` están en **UTC**. Ajusta si necesitas hora local fija en otra zona.
+- **`functions.api/index.ts.maxDuration`**: 60s — si un job supera el límite en tenants muy grandes, sube el plan o trocea el trabajo.
+- Prueba manual: `curl -H "Authorization: Bearer $CRON_SECRET" "https://<tu-api>/v1/internal/cron/backup"`
+
+Los jobs que envían **Web Push** (p. ej. facturas, stock bajo) dependen de que estos cron se ejecuten en Vercel **y** de **VAPID** en la API.
+
 ## 🧪 Testing
 
 ```bash
@@ -189,7 +203,7 @@ pnpm test:coverage
 1. **Root Directory**: deja **Root Directory** = `packages/api` en el proyecto de Vercel.
 2. **Incluir el paquete database**: en el proyecto Vercel → **Settings** → **General** → **Root Directory** → activa **"Include source files outside of the Root Directory"**. Así el build que se ejecuta desde la raíz del repo (`cd ../.. && pnpm run build:api`) puede incluir `packages/database` en el despliegue y se evita el error `Cannot find module '.../packages/database/dist/generated/prisma/client'`.
 3. El `vercel.json` de `packages/api` ya define la función `api/index.ts`, el build y los rewrites.
-4. **Variables de entorno obligatorias** en Vercel para **Production** y **Preview** (en Preview también se define `VERCEL=1`; si falta alguna, el arranque falla): `DATABASE_URL` (pooled runtime), `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `CORS_ORIGIN`. Opcional: `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
+4. **Variables de entorno obligatorias** en Vercel para **Production** y **Preview** (en Preview también se define `VERCEL=1`; si falta alguna, el arranque falla): `DATABASE_URL` (pooled runtime), `JWT_SECRET`, `FIELD_ENCRYPTION_KEY`, `CORS_ORIGIN`. Opcional: `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Para que los **jobs programados** (y por tanto **Web Push** desde cron) corran en serverless: **`CRON_SECRET`** (mismo valor que usa Vercel Cron en `Authorization: Bearer …`; ver sección *Jobs programados* arriba). Sin `CRON_SECRET`, las rutas `/v1/internal/cron/*` responderán 401.
 5. **`FIELD_ENCRYPTION_KEY`**: clave simétrica en base64 de 32 bytes. Generar: `openssl rand -base64 32`. Añádela en Vercel → Settings → Environment Variables (mismos entornos que arriba). Detalle del formato y rotación: [`docs/field-level-encryption.md`](../../docs/field-level-encryption.md).
 6. **Base de datos ya cifrada**: si ya existen filas cifradas con una clave anterior, usa **esa misma** `FIELD_ENCRYPTION_KEY` en Vercel. Cambiar la clave sin re-cifrar rompe la lectura; ver `packages/api/scripts/rotate-field-key.ts` y el doc anterior.
 7. Tras crear o editar variables, **vuelve a desplegar** para que el runtime las cargue.

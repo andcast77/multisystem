@@ -16,7 +16,7 @@ Ejecutar una **lista de comprobación** acordada contra Shopflow en **Next** (pu
 - **Navegación:** sidebar, rutas protegidas, 404 / enlaces rotos obvios.
 - **POS:** flujo corto de venta (o el que el negocio defina como smoke).
 - **Impresión:** ticket/recibo (react-to-print / plantillas) en al menos un caso feliz.
-- **Notificaciones:** coherente con [PLAN-36](./PLAN-36-shopflow-service-worker-push.md) si se prueba push; si no, marcar N/A con motivo.
+- **Notificaciones:** coherente con [PLAN-36](./%5Bcompleted%5D%20PLAN-36-shopflow-service-worker-push.md) si se prueba push; si no, marcar N/A con motivo.
 
 ## Criterios de cierre
 
@@ -39,4 +39,4 @@ _(Rellenar durante la verificación.)_
 ## Referencias
 
 - [apps/shopflow/README.md](../../apps/shopflow/README.md)
-- [PLAN-36](./PLAN-36-shopflow-service-worker-push.md) para push/SW.
+- [PLAN-36](./%5Bcompleted%5D%20PLAN-36-shopflow-service-worker-push.md) para push/SW.
