@@ -1,5 +1,7 @@
 # PLAN-38 — Alineación 100% Vercel + BD Neon
 
+**Estado:** completado (2026-04-10) — **implementación en repositorio** entregada (commit en rama de plan). El checklist **operativo** (consola Vercel / Neon / migración contra prod) es **runbook** para el equipo; los ítems siguen listados para ejecución manual y no forman parte del merge de código de este plan.
+
 **Objetivo:** Una sola historia de despliegue para **producción/preview**: **API + frontends en Vercel**, **PostgreSQL en Neon**; desarrollo local sigue con Docker Postgres y Prisma con adaptador `pg` cuando `DATABASE_URL` apunta a localhost (sin cambiar el modelo híbrido de `@multisystem/database`).
 
 **CI:** GitHub Actions usa Postgres en contenedor para tests — no es hosting de prod; no debe confundirse con Neon.
