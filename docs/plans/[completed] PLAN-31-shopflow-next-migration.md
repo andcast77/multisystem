@@ -63,7 +63,7 @@ flowchart LR
 
 **Tailwind:** apps en **v4** alineadas vía monorepo (`pnpm-workspace.yaml` catálogo + PostCSS `@tailwindcss/postcss`).
 
-**Mecánica:** [pnpm `catalog:`](https://pnpm.io/catalogs) centralizado en `pnpm-workspace.yaml` (ver también [PLAN-34](./PLAN-34-pnpm-catalog.md)).
+**Mecánica:** [pnpm `catalog:`](https://pnpm.io/catalogs) centralizado en `pnpm-workspace.yaml` (ver también [PLAN-34](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md)).
 
 ## Alcance
 
@@ -135,7 +135,7 @@ Implementación en rama `plan/plan-31-shopflow-next-migration-run-<timestamp>` d
 |------|------|
 | [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md) | Alineación sistemática de dependencias en todo el monorepo |
 | [PLAN-33](./%5Bcompleted%5D%20PLAN-33-tailwind-v4-hub-techservices.md) | Tailwind 4 en Hub y Techservices |
-| [PLAN-34](./PLAN-34-pnpm-catalog.md) | Catálogo pnpm (`catalog:`) en la raíz |
+| [PLAN-34](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md) | Catálogo pnpm (`catalog:`) en la raíz |
 | [PLAN-35](./PLAN-35-component-library-tooling-alignment.md) | `@multisystem/ui`: tooling + bundler opcional |
 | [PLAN-36](./PLAN-36-shopflow-service-worker-push.md) | Shopflow: SW / push — verificar o documentar |
 | [PLAN-37](./PLAN-37-shopflow-manual-qa-smoke.md) | Shopflow: verificación manual y smoke |

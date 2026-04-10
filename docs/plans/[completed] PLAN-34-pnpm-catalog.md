@@ -1,6 +1,6 @@
 # PLAN-34 — Catálogo pnpm (`catalog:`) en la raíz del monorepo
 
-**Estado:** pendiente.
+**Estado:** completado (2026-04-09).
 
 ## Contexto
 
@@ -23,10 +23,10 @@
 
 ## Checklist
 
-- [ ] Versión de **pnpm** del repo verificada (soporte de catalogs según documentación).
-- [ ] `catalog:` definido en raíz con lista inicial acordada.
-- [ ] Migración de workspaces objetivo + prueba de install/build.
-- [ ] Documentación breve para contribuidores.
+- [x] Versión de **pnpm** del repo verificada (soporte de catalogs según documentación).
+- [x] `catalog:` definido en raíz con lista inicial acordada (`pnpm-workspace.yaml`).
+- [x] Migración de workspaces objetivo + prueba de install/build.
+- [x] Documentación breve para contribuidores ([README](../../README.md), [SYNC.md](./SYNC.md#pnpm-workspace-catalog)).
 
 ## Referencias
 
