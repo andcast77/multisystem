@@ -1,6 +1,6 @@
 # PLAN-37 — Shopflow (Next): verificación manual y smoke post–PLAN-31
 
-**Estado:** cerrado (2026-04-09) — smoke técnico y build local; ítems sin UI en navegador marcados **N/A** con motivo (ver Hallazgos).
+**Estado:** completado (2026-04-09) — smoke técnico y build local; ítems sin UI en navegador marcados **N/A** con motivo (ver Hallazgos).
 
 ## Contexto
 
