@@ -21,7 +21,7 @@ Complementa el **objetivo 2** de [PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-
 
 - **Tailwind 3 → 4** en Hub/Techservices → [PLAN-33](./%5Bcompleted%5D%20PLAN-33-tailwind-v4-hub-techservices.md)
 - **Catálogo pnpm** → [PLAN-34](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md)
-- **Tooling de `@multisystem/ui`** (bundler) → [PLAN-35](./PLAN-35-component-library-tooling-alignment.md)
+- **Tooling de `@multisystem/ui`** (bundler) → [PLAN-35](./%5Bcompleted%5D%20PLAN-35-component-library-tooling-alignment.md)
 
 ## Mecánica sugerida
 
