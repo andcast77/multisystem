@@ -15,6 +15,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "catalog:",
     "@hookform/resolvers": "catalog:",
     "@multisystem/contracts": "workspace:*",
     "@multisystem/shared": "workspace:*",

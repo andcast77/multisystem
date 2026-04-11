@@ -14,6 +14,7 @@ export function globalErrorHandler(
     return reply.code(error.statusCode).send({
       success: false,
       error: error.message,
+      message: error.message,
       code: error.code,
       details: error.details,
     })
@@ -27,6 +28,7 @@ export function globalErrorHandler(
     return reply.code(error.statusCode).send({
       success: false,
       error: error.message,
+      message: error.message,
       code: error.code,
       ...(error instanceof TooManyRequestsError && error.retryAfterSeconds != null
         ? { retryAfterSeconds: Math.ceil(error.retryAfterSeconds) }
@@ -39,6 +41,7 @@ export function globalErrorHandler(
     return reply.code(400).send({
       success: false,
       error: 'Validation failed',
+      message: 'Validation failed',
       code: 'VALIDATION_ERROR',
       details: error.validation,
     })
@@ -46,10 +49,11 @@ export function globalErrorHandler(
 
   // Unexpected errors
   request.log.error(error)
+  const fallback =
+    process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
   return reply.code(500).send({
     success: false,
-    error: process.env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : error.message,
+    error: fallback,
+    message: fallback,
   })
 }

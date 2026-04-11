@@ -51,10 +51,19 @@ export class ApiClient {
       let retryAfterSeconds: number | undefined
       try {
         const errorData = (await response.json()) as Record<string, unknown>
-        if (typeof errorData.error === 'string') errorMessage = errorData.error
-        else if (typeof errorData.message === 'string') errorMessage = errorData.message
+        const errStr = typeof errorData.error === 'string' ? errorData.error : ''
+        const msgStr = typeof errorData.message === 'string' ? errorData.message : ''
         if (typeof errorData.code === 'string') code = errorData.code
         if (typeof errorData.retryAfterSeconds === 'number') retryAfterSeconds = errorData.retryAfterSeconds
+        // Prefer `message` when `code` is set — some stacks put the HTTP reason in `error`
+        // (e.g. "Service Unavailable") and the real text in `message`.
+        if (code && msgStr) {
+          errorMessage = msgStr
+        } else if (errStr) {
+          errorMessage = errStr
+        } else if (msgStr) {
+          errorMessage = msgStr
+        }
       } catch {
         // Response body is not JSON
       }

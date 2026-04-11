@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ApiError } from "@multisystem/shared";
 import { authApi, accountApi } from "@/lib/api-client";
+import { shouldCallMeForLoggedInCheck } from "@/lib/auth-session-probe";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
+import { RegistrationTurnstile } from "@/components/auth/RegistrationTurnstile";
 import {
   AuthLayout,
   AuthBrandDecorativePanel,
@@ -34,6 +37,8 @@ import {
   ScrollArea,
 } from "@multisystem/ui";
 
+type RegisterStep = "form" | "otp";
+
 export function RegisterPage() {
   const router = useRouter();
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -41,6 +46,13 @@ export function RegisterPage() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registrationEmail, setRegistrationEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [step, setStep] = useState<RegisterStep>("form");
+  const [pendingRegistration, setPendingRegistration] = useState<RegisterInput | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
+  const [isConfirmingRegistration, setIsConfirmingRegistration] = useState(false);
 
   const {
     register,
@@ -55,10 +67,10 @@ export function RegisterPage() {
   const privacyAccepted = watch("privacyAccepted");
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkAuth = async () => {
       try {
-        await authApi.me();
+        if (!(await shouldCallMeForLoggedInCheck())) return;
+        await authApi.meGuestProbe();
         router.replace("/dashboard");
       } catch {
         // Not logged in, stay on register page
@@ -68,15 +80,65 @@ export function RegisterPage() {
     checkAuth();
   }, [router]);
 
-  async function onSubmit(data: RegisterInput) {
+  const sendOtpWithCaptcha = handleSubmit(async (data: RegisterInput) => {
+    setErrorMessage("");
+    if (!captchaToken?.trim()) {
+      setErrorMessage("Completa la verificación anti-robots (captcha) antes de continuar.");
+      return;
+    }
     try {
-      setErrorMessage("");
+      await authApi.sendRegistrationOtp({
+        email: data.email.trim().toLowerCase(),
+        captchaToken,
+      });
+      setPendingRegistration(data);
+      setStep("otp");
+      setOtpCode("");
+      setCaptchaToken(null);
+      setResendCaptcha(null);
+      setTurnstileResetKey((k) => k + 1);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "No se pudo enviar el código.";
+      setErrorMessage(msg);
+    }
+  });
+
+  async function confirmOtpAndRegister() {
+    if (!pendingRegistration) {
+      setErrorMessage("Sesión de registro incompleta. Vuelve al paso anterior.");
+      return;
+    }
+    const normalized = pendingRegistration.email.trim().toLowerCase();
+    const code = otpCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setErrorMessage("Introduce el código de 6 dígitos que enviamos a tu email.");
+      return;
+    }
+    setErrorMessage("");
+    setIsConfirmingRegistration(true);
+    try {
+      const verifyRes = await authApi.verifyRegistrationOtp({
+        email: normalized,
+        code,
+      });
+      if (!verifyRes.success || !verifyRes.data?.registrationTicket) {
+        setErrorMessage(verifyRes.error || "Código incorrecto o expirado.");
+        return;
+      }
+      const ticket = verifyRes.data.registrationTicket;
+
       const res = await authApi.register({
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        companyName: data.companyName,
+        email: pendingRegistration.email,
+        password: pendingRegistration.password,
+        firstName: pendingRegistration.firstName,
+        lastName: pendingRegistration.lastName,
+        companyName: pendingRegistration.companyName,
+        registrationTicket: ticket,
       });
 
       if (!res.success) {
@@ -84,19 +146,49 @@ export function RegisterPage() {
         return;
       }
 
-      // Record explicit privacy policy acceptance (GDPR Art. 7 / LFPDPPP)
-      // The session cookie is set by the register endpoint so this call is authenticated.
       try {
         await accountApi.acceptPrivacy();
       } catch {
-        // Non-blocking: registration succeeded; privacy timestamp can be back-filled via support.
+        // Non-blocking
       }
 
-      setRegistrationEmail(data.email);
+      setRegistrationEmail(pendingRegistration.email);
       setRegistrationSuccess(true);
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      setErrorMessage(err?.response?.data?.error || err?.message || "Error al registrar");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Error al verificar o registrar.";
+      setErrorMessage(msg);
+    } finally {
+      setIsConfirmingRegistration(false);
+    }
+  }
+
+  async function resendOtp() {
+    if (!pendingRegistration) return;
+    if (!resendCaptcha?.trim()) {
+      setErrorMessage("Completa el captcha para reenviar el código.");
+      return;
+    }
+    setErrorMessage("");
+    try {
+      await authApi.sendRegistrationOtp({
+        email: pendingRegistration.email.trim().toLowerCase(),
+        captchaToken: resendCaptcha,
+      });
+      setResendCaptcha(null);
+      setTurnstileResetKey((k) => k + 1);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "No se pudo reenviar el código.";
+      setErrorMessage(msg);
     }
   }
 
@@ -120,7 +212,11 @@ export function RegisterPage() {
         <AuthBrandWelcomeHeader
           title={registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
           subtitle={
-            registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"
+            registrationSuccess
+              ? "Verifica tu email para continuar"
+              : step === "otp"
+                ? "Revisa tu bandeja e introduce el código"
+                : "Crea tu empresa en el Hub"
           }
         />
 
@@ -174,18 +270,96 @@ export function RegisterPage() {
             ) : (
               <Card className={AUTH_BRAND_CARD_CLASS}>
                 <CardHeader>
-                  <CardTitle className="text-white">Registrarse</CardTitle>
-                  <CardDescription className="text-white/60">Completa los campos para crear la cuenta</CardDescription>
+                  <CardTitle className="text-white">
+                    {step === "otp" ? "Verifica tu email" : "Registrarse"}
+                  </CardTitle>
+                  <CardDescription className="text-white/60">
+                    {step === "otp"
+                      ? "Introduce el código de 6 dígitos que enviamos a tu correo."
+                      : "Completa los campos; luego te enviaremos un código de verificación."}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-auto max-h-[60vh] pr-4">
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {step === "otp" ? (
+                    <div className="space-y-4">
+                        {errorMessage ? (
+                          <AuthBrandErrorAlert variant="error">
+                            <p className="text-sm text-red-200">{errorMessage}</p>
+                          </AuthBrandErrorAlert>
+                        ) : null}
+                        <p className="text-sm text-white/70">
+                          Código enviado a{" "}
+                          <strong className="text-white">{pendingRegistration?.email}</strong>
+                        </p>
+                        <div className="space-y-2">
+                          <Label htmlFor="otp-code" className={AUTH_BRAND_LABEL_CLASS}>
+                            Código de verificación
+                          </Label>
+                          <Input
+                            id="otp-code"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            placeholder="000000"
+                            value={otpCode}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                            }
+                            className={AUTH_BRAND_INPUT_CLASS}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => void confirmOtpAndRegister()}
+                          disabled={isConfirmingRegistration}
+                          className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+                        >
+                          {isConfirmingRegistration ? "Verificando…" : "Verificar y crear cuenta"}
+                        </Button>
+                        <div className="space-y-3 pt-3">
+                          <p className="text-center text-xs text-white/45">
+                            ¿No recibiste el código?
+                          </p>
+                          <RegistrationTurnstile
+                            key={`resend-${turnstileResetKey}`}
+                            onToken={setResendCaptcha}
+                            variant="compact"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!resendCaptcha?.trim()}
+                            onClick={() => void resendOtp()}
+                            className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+                          >
+                            Reenviar código
+                          </Button>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="text-white/60 hover:text-white"
+                          onClick={() => {
+                            setStep("form");
+                            setPendingRegistration(null);
+                            setOtpCode("");
+                            setErrorMessage("");
+                            setCaptchaToken(null);
+                            setTurnstileResetKey((k) => k + 1);
+                          }}
+                        >
+                          Volver y editar datos
+                        </Button>
+                      </div>
+                  ) : (
+                    <form onSubmit={sendOtpWithCaptcha} className="flex flex-col gap-2">
                       {/* Error Message */}
                       {errorMessage ? (
                         <AuthBrandErrorAlert variant="error">
                           <p className="text-sm text-red-200">{errorMessage}</p>
                         </AuthBrandErrorAlert>
                       ) : null}
+                    <div className="space-y-2.5">
                     {/* Two-column layout for names on medium+ screens */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* First Name */}
@@ -329,17 +503,27 @@ export function RegisterPage() {
                         <p className="text-sm text-red-300">{errors.privacyAccepted.message}</p>
                       )}
                     </div>
+                    </div>
 
-                    {/* Submit Button */}
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || !termsAccepted || !privacyAccepted}
-                      className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
-                    >
-                      {isSubmitting ? "Registrando…" : "Crear cuenta"}
-                    </Button>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="sr-only">
+                        Verificación antispam antes de enviar el código de verificación.
+                      </span>
+                      <RegistrationTurnstile
+                        key={turnstileResetKey}
+                        onToken={setCaptchaToken}
+                        variant="compact"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || !termsAccepted || !privacyAccepted}
+                        className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+                      >
+                        {isSubmitting ? "Enviando código…" : "Enviar código de verificación"}
+                      </Button>
+                    </div>
                   </form>
-                </ScrollArea>
+                  )}
 
                 <AuthBrandFooterCenter>
                   <p className="text-sm text-white/50">

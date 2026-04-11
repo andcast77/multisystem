@@ -1,95 +1,108 @@
 # Skill Registry
 
-**Delegator use only.** Any agent that launches sub-agents reads this registry to resolve compact rules, then injects them directly into sub-agent prompts. Sub-agents do NOT read this registry or individual SKILL.md files.
+**Delegator use only.** Any agent that launches sub-agents reads this registry to resolve compact rules, then injects them directly into sub-agent prompts. Sub-agents do not read this registry or individual `SKILL.md` files unless the orchestrator falls back to the registry path.
 
-See `_shared/skill-resolver.md` for the full resolution protocol (if present in your tooling).
+See `C:\Users\Andre\.cursor\skills\_shared\skill-resolver.md` (if present) for the full resolution protocol.
 
 ## User Skills
 
+Scanned: `D:\Projects\multisystem\.cursor\skills\` (project) and `C:\Users\Andre\.cursor\skills\` (user). Project-level skills override duplicates. `sdd-*`, `_shared`, and `skill-registry` are omitted from this table; SDD skills are documented below.
+
 | Trigger | Skill | Path |
 |---------|-------|------|
-| creating GitHub issue, bug, feature | issue-creation | `C:\Users\Andre\.cursor\skills\issue-creation\SKILL.md` |
-| creating PR, opening PR, preparing for review | branch-pr | `C:\Users\Andre\.cursor\skills\branch-pr\SKILL.md` |
-| create new skill, add agent instructions | skill-creator | `C:\Users\Andre\.cursor\skills\skill-creator\SKILL.md` |
-| Go tests, teatest, Bubbletea | go-testing | `C:\Users\Andre\.cursor\skills\go-testing\SKILL.md` |
-| judgment day, dual review, juzgar | judgment-day | `C:\Users\Andre\.cursor\skills\judgment-day\SKILL.md` |
-| REST endpoints, controllers, services | api-architecture | `D:\Projects\multisystem\.cursor\skills\api-architecture\SKILL.md` |
-| logging, health, readiness, request tracing | api-observability-baseline | `D:\Projects\multisystem\.cursor\skills\api-observability-baseline\SKILL.md` |
-| JWT, RBAC, tenant access | auth-jwt-roles | `D:\Projects\multisystem\.cursor\skills\auth-jwt-roles\SKILL.md` |
-| tenant isolation, companyId scoping | multi-tenant-architecture | `D:\Projects\multisystem\.cursor\skills\multi-tenant-architecture\SKILL.md` |
-| Prisma schema, queries, migrations | prisma-database-expert | `D:\Projects\multisystem\.cursor\skills\prisma-database-expert\SKILL.md` |
-| plan branches, commit, merge Test/master | git-plan-workflow | `D:\Projects\multisystem\.cursor\skills\git-plan-workflow\SKILL.md` |
-| where to save project skills | local-skills-location | `D:\Projects\multisystem\.cursor\skills\local-skills-location\SKILL.md` |
+| creating or modifying REST endpoints, controllers, services, validation, or database access patterns | api-architecture | `D:\Projects\multisystem\.cursor\skills\api-architecture\SKILL.md` |
+| changing request handling, logging, error mapping, health/readiness checks, or runtime diagnostics in the API | api-observability-baseline | `D:\Projects\multisystem\.cursor\skills\api-observability-baseline\SKILL.md` |
+| implementing login/register, protecting routes, JWT payloads, roles and permissions, or validating resource access in a tenant-scoped API | auth-jwt-roles | `D:\Projects\multisystem\.cursor\skills\auth-jwt-roles\SKILL.md` |
+| user asks to start or finish a plan, create plan branches, run commit/push after plan completion, or request merges to Test/master | git-plan-workflow | `D:\Projects\multisystem\.cursor\skills\git-plan-workflow\SKILL.md` |
+| creating, editing, or locating skills for multisystem, or when the user asks where to save a local skill | local-skills-location | `D:\Projects\multisystem\.cursor\skills\local-skills-location\SKILL.md` |
+| writing queries, company-scoped APIs, authz, schemas, or any code that could leak data across tenants | multi-tenant-architecture | `D:\Projects\multisystem\.cursor\skills\multi-tenant-architecture\SKILL.md` |
+| editing Prisma schema, designing relationships, writing Prisma queries, or reviewing DB performance | prisma-database-expert | `D:\Projects\multisystem\.cursor\skills\prisma-database-expert\SKILL.md` |
+| creating a GitHub issue, reporting a bug, or requesting a feature | issue-creation | `C:\Users\Andre\.cursor\skills\issue-creation\SKILL.md` |
+| creating a pull request, opening a PR, or preparing changes for review | branch-pr | `C:\Users\Andre\.cursor\skills\branch-pr\SKILL.md` |
+| user asks to create a new skill, add agent instructions, or document patterns for AI | skill-creator | `C:\Users\Andre\.cursor\skills\skill-creator\SKILL.md` |
+| writing Go tests, using teatest, or adding test coverage | go-testing | `C:\Users\Andre\.cursor\skills\go-testing\SKILL.md` |
+| judgment day, judgment-day, review adversarial, dual review, doble review, juzgar, que lo juzguen | judgment-day | `C:\Users\Andre\.cursor\skills\judgment-day\SKILL.md` |
+
+## SDD workflow skills (not in main table)
+
+Spec-Driven Development phase skills from Gentle AI live under **`C:\Users\Andre\.cursor\skills\`**: `sdd-init`, `sdd-explore`, `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`, `sdd-apply`, `sdd-verify`, `sdd-archive`, `sdd-onboard`. Shared phase text: **`C:\Users\Andre\.cursor\skills\_shared\`**. Repository artifacts: `openspec/` (see `openspec/config.yaml`).
 
 ## Compact Rules
 
 Pre-digested rules per skill. Delegators copy matching blocks into sub-agent prompts as `## Project Standards (auto-resolved)`.
 
-### issue-creation
-- Use a repo issue template; blank issues disabled where enforced by upstream workflow
-- Link duplicates search before filing
-- Questions belong in Discussions, not issues, when the upstream project uses that split
-
-### branch-pr
-- PRs should link an approved issue when the target repo enforces issue-first workflow
-- Branch naming: `type/description` with types like feat, fix, chore (lowercase, no spaces)
-- PR body must include linked issue line and one type label when required by template
-
-### skill-creator
-- Put `SKILL.md` with YAML frontmatter (`name`, `description` + Trigger) at skill root
-- Prefer `assets/` for templates/schemas; `references/` for pointers to existing docs
-- Naming: `technology`, `project-component`, or `action-target` patterns
-
-### go-testing
-- Prefer table-driven tests with `t.Run` per case
-- For Bubbletea: test `Model.Update` transitions; use teatest for interactive flows
-- Golden files: update with intent; fail on unexpected drift
-
-### judgment-day
-- Resolve skills from this registry first; inject identical `Project Standards` into both judges
-- Run two blind judges in parallel; synthesize Confirmed / Suspect / Contradiction
-- Classify warnings as real vs theoretical; fix CRITICALs and real WARNINGs before re-judge
-
 ### api-architecture
-- Controller: validate DTOs, call services/policy only, no business logic
-- Service: business rules only; no HTTP envelopes (`success`/`data` transport shape)
-- Repository: DB only; tenant filters on all tenant-owned queries
-- Responses: `{ success, data, message, code? }`; map errors to HTTP without leaking internals
+- Layer as Controller (HTTP/DTO) → Policy/Authorization → Service (business rules, no transport envelopes) → Repository (DB only; tenant filters on tenant-owned data).
+- Policy: authn/authz and scope; deny by default; no DB writes or response shaping in policy.
+- Success/error envelope: `success`, `data`, `message`, optional `code`; map HTTP status codes; never leak stacks/SQL/internal errors.
+- No nullable/global tenant fallbacks for tenant-owned resources.
+- Source: `.cursor/rules/api-architecture.mdc`; precedence: `.cursor/rules/architecture-governance.mdc`.
 
 ### api-observability-baseline
-- Every request gets `requestId`; propagate to logs and error context
-- Structured logs: `requestId`, route/module, status, duration; never secrets or full PII
-- Readiness checks must validate DB (and other critical deps), not only process up
+- Every request: `requestId` (or equivalent); propagate correlation IDs; include request ID in structured errors/logs.
+- Structured logs: key-value fields; include route/module, status/result, duration; never log secrets/tokens/passwords/sensitive PII.
+- Health + readiness; readiness checks real dependencies (e.g. DB), not only process up.
+- Preserve machine-readable error codes; triage-friendly server-side context only.
+- Source: `.cursor/rules/api-observability-baseline.mdc`.
 
 ### auth-jwt-roles
-- JWT from env secret; payload includes user id, company scope, roles; no passwords in token
-- Enforce authz at policy/guard before service logic; pair role checks with company scope
-- 401 unauthenticated; 403 authenticated but forbidden; hash passwords (bcrypt/Argon2)
-
-### multi-tenant-architecture
-- Every tenant-owned query includes company/tenant key in `WHERE`
-- Prove membership before acting; never rely on resource id alone
-- No null/global tenant fallback paths for tenant-owned data
-
-### prisma-database-expert
-- Normalize; explicit relations and join tables for M2M; index tenant + FK + filter columns
-- Use `select`/`include` deliberately; paginate lists; avoid N+1
-- Review migration SQL; `prisma validate` before risky deploys
+- JWT signed with env secret; payload: stable user id, tenant/company scope, roles; expiration/refresh as designed; never secrets/passwords/full PII in JWT.
+- RBAC at policy/guard (preferred) or service for sensitive ops; validate role + tenant scope before business logic; `/api/users*` needs strong policy, not auth-only.
+- Passwords: hash (bcrypt/Argon2); never store plaintext.
+- Multi-tenant: membership + matching company/tenant on resource; never access another tenant by ID alone.
+- Errors: 401 unauthenticated, 403 authenticated but forbidden.
 
 ### git-plan-workflow
-- New plan work: branch `plan/<slug>-run-<YYYYMMDD-HHmmss>` from `Test`, unique per run
-- Confirm before `git commit`, `git push`, merge
-- Plan close: checkboxes in `docs/plans/`, `[completed]` rename when required, then commit with confirmation
+- Canonical plans only in `docs/plans/` as `PLAN-<n>-<slug>.md`; not `.cursor/plans/` scratch as source of truth.
+- New plan work: branch `plan/<slug>-run-<YYYYMMDD-HHmmss>` from `Test` (fetch/pull first); never implement on `Test`; never reuse an old plan branch.
+- Commit/push/merge only after explicit user confirmation; no destructive git ops; do not change git config.
+- On close: checklist complete, rename plan to `[completed] ...` in `docs/plans/` when done.
 
 ### local-skills-location
-- Project skills: `.cursor/skills/<name>/SKILL.md` in repo root
-- Personal skills: `%USERPROFILE%\.cursor\skills\`; do not edit `.cursor\skills-cursor\` internals
+- Project skills: `.cursor/skills/<name>/SKILL.md` at repo root; personal: `%USERPROFILE%\.cursor\skills\`.
+- Do not author skills under `%USERPROFILE%\.cursor\skills-cursor\` (Cursor internal).
+
+### multi-tenant-architecture
+- Scope all tenant-owned data by tenant key (here: `companyId`) in models, queries, and mutations; no cross-tenant access by ID alone.
+- Resolve tenant context before reads/writes; validate user belongs to tenant and resource belongs to tenant.
+- Enforce at policy and repository/query boundaries; high-risk domains need cross-boundary regression tests.
+- Indexes on tenant key + common filters; ask if boundaries unclear.
+- Source: `.cursor/rules/multi-tenant-architecture.mdc`.
+
+### prisma-database-expert
+- Normalize; explicit relations and M2M join tables; minimize nulls; indexes on scope + FKs + filter/sort columns.
+- Queries: intentional `select`/`include`; avoid N+1; paginate lists; tenant/company filters on tenant-owned data; prefer repositories for high-risk domains.
+- Migrations: review SQL; `prisma validate`; test risky changes outside prod first.
+- Schema root: `packages/database/prisma/`; see `packages/database/prisma/PRISMA_SCHEMA_SPLIT.md` when splitting files.
+- Source: `.cursor/rules/prisma-database-expert.mdc`.
+
+### issue-creation
+- Follow Agent Teams Lite issue-first workflow: clear title, repro steps for bugs, acceptance criteria for features; link to enforcement system conventions in the skill when applicable.
+
+### branch-pr
+- Follow Agent Teams Lite PR workflow: associate with issue where required; describe changes, testing, and risk; use templates/checklists from the skill when present.
+
+### skill-creator
+- New skills: Agent Skills spec layout (`SKILL.md` frontmatter); triggers in description; focused instructions; avoid bloated examples.
+
+### go-testing
+- Go tests and Bubbletea/teatest patterns for Gentleman.Dots; not the primary stack for multisystem (TypeScript/Vitest here) unless editing Go code.
+
+### judgment-day
+- Dual blind review protocol: two judges, synthesize, fix, re-judge; max two iterations then escalate; use only when user invokes the trigger phrases.
 
 ## Project Conventions
 
 | File | Path | Notes |
 |------|------|-------|
-| AGENTS.md | `D:\Projects\multisystem\AGENTS.md` | Present (empty); optional agent instructions |
-| Cursor rules | `.cursor/rules/*.mdc` | Workspace rules (may be gitignored locally) |
+| AGENTS.md | `D:\Projects\multisystem\AGENTS.md` | Index — where rules, SDD, skills, and plans live |
+| Cursor rules (auto-loaded) | `D:\Projects\multisystem\.cursor\rules\*.mdc` | Versioned; includes architecture, auth, multi-tenant, Prisma, API, SDD, git plan workflow, etc. |
+| Frontend / UI rule (example) | `D:\Projects\multisystem\.cursor\rules\frontend-design-system.mdc` | Referenced from AGENTS.md for UI/Tailwind/`@multisystem/ui` |
+| SDD rule | `D:\Projects\multisystem\.cursor\rules\spec-driven-development-sdd.mdc` | SDD flow; pairs with `openspec/` |
+| OpenSpec | `D:\Projects\multisystem\openspec\` | SDD artifacts and `config.yaml` |
+| OpenSpec config | `D:\Projects\multisystem\openspec\config.yaml` | strict_tdd, testing cache, phase rules |
+| Project skills | `D:\Projects\multisystem\.cursor\skills\` | Repo-local agent skills |
+| Plans | `D:\Projects\multisystem\docs\plans\` | Canonical `PLAN-*` markdown and checklists |
+| Plans sync | `D:\Projects\multisystem\docs\plans\SYNC.md` | Conventions and numbering |
 
-Read the convention files listed above for project-specific patterns and rules.
+Read the convention files above for full detail. Scratch plans under `.cursor/plans/` are not canonical per AGENTS.md.

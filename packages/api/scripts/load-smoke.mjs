@@ -1,29 +1,27 @@
 /**
- * Smoke load against GET /health using autocannon (Fastify recommends k6 or autocannon for capacity planning).
+ * Smoke load contra GET /health (autocannon).
  * @see https://fastify.dev/docs/latest/Guides/Recommendations/
  *
- * Env:
- *   LOAD_TEST_URL   — base or full URL (default http://127.0.0.1:$PORT)
- *   LOAD_TEST_CONNECTIONS — concurrent connections (default 10)
- *   LOAD_TEST_DURATION    — seconds (default 5)
- *
- * Sizing (from Fastify doc, rule of thumb): ~2 vCPU per instance for lowest latency; 1 vCPU can maximize
- * throughput per core. Validate on real CPU (bare metal vs vCPU vs serverless).
+ * Uso:
+ *   node scripts/load-smoke.mjs [urlBase] [conexiones] [segundos]
+ * Por defecto: http://127.0.0.1:$PORT/health, 10 conexiones, 5s ($PORT de entorno o 3000).
  */
 
 import autocannon, { printResult } from 'autocannon'
 
+const argv = process.argv.slice(2)
+const port = process.env.PORT?.trim() || '3000'
+
 function resolveUrl() {
-  const raw = process.env.LOAD_TEST_URL?.trim()
-  const port = process.env.PORT?.trim() || '3000'
+  const raw = argv[0]?.trim()
   if (!raw) return `http://127.0.0.1:${port}/health`
   const base = raw.replace(/\/$/, '')
   if (base.endsWith('/health')) return base
   return `${base}/health`
 }
 
-const connections = Math.max(1, Number.parseInt(process.env.LOAD_TEST_CONNECTIONS ?? '10', 10) || 10)
-const duration = Math.max(1, Number.parseInt(process.env.LOAD_TEST_DURATION ?? '5', 10) || 5)
+const connections = Math.max(1, Number.parseInt(argv[1] ?? '10', 10) || 10)
+const duration = Math.max(1, Number.parseInt(argv[2] ?? '5', 10) || 5)
 const url = resolveUrl()
 
 const result = await autocannon({

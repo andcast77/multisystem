@@ -190,7 +190,7 @@ Crear `.env` en `packages/api/` o en la raíz:
 | `DATABASE_URL` | URL de conexión PostgreSQL | (requerido) |
 | `CORS_ORIGIN` | Orígenes CORS separados por coma | hub **3001**, shopflow **3002**, workify **3003**, techservices **3004** |
 | `JWT_SECRET` | Clave para firmar tokens | (requerido en prod) |
-| `JWT_EXPIRES_IN` | Expiración del token | 7d |
+| `JWT_ACCESS_EXPIRES_IN` | TTL del access JWT (p. ej. `15m`) | `15m` |
 | `NODE_ENV` | Entorno | development |
 
 #### CORS (desarrollo)

@@ -3,6 +3,7 @@ import path from 'path'
 
 export default defineConfig({
   test: {
+    setupFiles: ['./src/__tests__/vitest-setup-env.ts'],
     globals: true,
     environment: 'node',
     // Integration tests share a single database; run files sequentially to avoid

@@ -13,9 +13,15 @@ import {
   listSessionsQuerySchema,
   mfaVerifyTotpSchema,
   mfaVerifyBackupSchema,
+  registerOtpSendBodySchema,
+  registerOtpVerifyBodySchema,
+  verifyEmailQuerySchema,
+  resendVerificationBodySchema,
 } from '../../dto/auth.dto.js'
 import { ok } from '../../common/api-response.js'
 import * as authService from '../../services/auth.service.js'
+import * as registrationOtpService from '../../services/registration-otp.service.js'
+import * as emailVerificationService from '../../services/email-verification.service.js'
 import {
   attachAuthSessionCookie,
   clearAllAuthCookies,
@@ -233,6 +239,34 @@ export async function verify(request: FastifyRequest, reply: FastifyReply) {
   return ok(result)
 }
 
+export async function registerOtpSend(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(registerOtpSendBodySchema, request.body)
+  await registrationOtpService.sendRegistrationOtp({
+    email: body.email,
+    captchaToken: body.captchaToken,
+    remoteip: request.ip,
+  })
+  return ok({ sent: true })
+}
+
+export async function registerOtpVerify(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(registerOtpVerifyBodySchema, request.body)
+  const { registrationTicket } = await registrationOtpService.verifyRegistrationOtp(body)
+  return ok({ registrationTicket })
+}
+
+export async function verifyEmailGet(request: FastifyRequest, reply: FastifyReply) {
+  const q = validateQuery(verifyEmailQuerySchema, request.query)
+  const result = await emailVerificationService.verifyEmailWithToken(q.token)
+  return ok(result)
+}
+
+export async function resendVerificationPost(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(resendVerificationBodySchema, request.body)
+  const result = await emailVerificationService.resendVerificationEmail(body.email)
+  return ok(result)
+}
+
 export async function listCompanies(request: FastifyRequest, reply: FastifyReply) {
   const decoded = request.user!
   const companies = await authService.getCompanies(decoded.id, decoded.isSuperuser ?? false)
@@ -378,6 +412,16 @@ const authSuccessResponseSchema = {
   },
 } as const
 
+/** OTP pre-registro empresa — bucket dedicado (see rate-limit.plugin). */
+export async function registerRegisterOtpRoutes(fastify: FastifyInstance) {
+  fastify.post('/v1/auth/register/otp/send', { schema: authSuccessResponseSchema }, (request, reply) =>
+    registerOtpSend(request, reply)
+  )
+  fastify.post('/v1/auth/register/otp/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
+    registerOtpVerify(request, reply)
+  )
+}
+
 /** MFA verify routes — registered under stricter rate limit (see rate-limit.plugin). */
 export async function registerMfaAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/v1/auth/mfa/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
@@ -405,6 +449,12 @@ export async function registerPublicAuthRoutes(fastify: FastifyInstance) {
   )
   fastify.post('/v1/auth/refresh', { schema: authSuccessResponseSchema }, (request, reply) =>
     refreshTokens(request, reply)
+  )
+  fastify.get('/v1/auth/verify-email', { schema: authSuccessResponseSchema }, (request, reply) =>
+    verifyEmailGet(request, reply)
+  )
+  fastify.post('/v1/auth/resend-verification', { schema: authSuccessResponseSchema }, (request, reply) =>
+    resendVerificationPost(request, reply)
   )
 }
 
