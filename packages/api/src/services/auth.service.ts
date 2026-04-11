@@ -15,6 +15,7 @@ import { blacklistJti, blacklistJtis, isJtiBlacklisted } from '../core/jwt-black
 import { getUserCompanies, selectCompanyForUser } from '../core/auth-context.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
 import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
+import { verifyAndConsumeRegistrationTicket } from './registration-ticket.service.js'
 import type { CompanyRow } from '../core/auth-context.js'
 import {
   UnauthorizedError,
@@ -366,7 +367,7 @@ export async function completeMfaLogin(body: MfaVerifyBody): Promise<CompleteMfa
 
 export async function register(body: RegisterBody): Promise<RegisterResult> {
   const {
-    email,
+    email: rawEmail,
     password,
     firstName = '',
     lastName = '',
@@ -375,6 +376,7 @@ export async function register(body: RegisterBody): Promise<RegisterResult> {
     shopflowEnabled = false,
     technicalServicesEnabled = false,
   } = body
+  const email = rawEmail.trim().toLowerCase()
 
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (existing) throw new BadRequestError('Ya existe un usuario con este email')
@@ -382,6 +384,16 @@ export async function register(body: RegisterBody): Promise<RegisterResult> {
   const hashedPassword = await bcrypt.hash(password, 10)
 
   if (companyName && companyName.trim()) {
+    const cfg = getConfig()
+    const ticket = body.registrationTicket
+    if (!ticket?.trim()) {
+      throw new BadRequestError(
+        'Se requiere verificación por email antes de registrar la empresa.',
+        'REGISTRATION_TICKET_REQUIRED',
+      )
+    }
+    await verifyAndConsumeRegistrationTicket(cfg, email, ticket)
+
     const modulesMap = await findModulesByKeys(['workify', 'shopflow', 'techservices'])
     const workifyMod = modulesMap.get('workify')
     const shopflowMod = modulesMap.get('shopflow')
@@ -397,6 +409,7 @@ export async function register(body: RegisterBody): Promise<RegisterResult> {
           role: 'USER',
           isActive: true,
           isSuperuser: false,
+          emailVerified: true,
         },
       })
 

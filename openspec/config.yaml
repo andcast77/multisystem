@@ -11,7 +11,7 @@ strict_tdd: true
 
 testing:
   strict_tdd: true
-  detected: "2026-04-08"
+  detected: "2026-04-10"
   runner:
     command: pnpm test
     framework: Vitest (via turbo; packages vary)
@@ -28,7 +28,7 @@ testing:
   coverage:
     available: true
     command: pnpm --filter @multisystem/api run test:coverage
-    note: vitest.config uses provider v8; ensure @vitest/coverage-v8 is installed if coverage fails
+    note: Vitest v8 provider in packages/api/vitest.config.ts; @vitest/coverage-v8 is resolved in the workspace lockfile
   quality:
     linter:
       available: true

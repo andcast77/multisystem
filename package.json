@@ -38,7 +38,8 @@
     "studio": "pnpm --filter=@multisystem/database run studio",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "verify:plan39": "pnpm --filter @multisystem/api exec vitest run src/__tests__/unit/registration-otp.service.test.ts src/__tests__/unit/registration-ticket.service.test.ts"
   },
   "devDependencies": {
     "knip": "catalog:",

@@ -68,3 +68,11 @@ export class TooManyRequestsError extends AppError {
     this.name = 'TooManyRequestsError'
   }
 }
+
+/** OTP / Redis unavailable — client should retry later or contact support. */
+export class ServiceUnavailableError extends AppError {
+  constructor(message = 'Servicio temporalmente no disponible', code = 'SERVICE_UNAVAILABLE') {
+    super(503, message, code)
+    this.name = 'ServiceUnavailableError'
+  }
+}

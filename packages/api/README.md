@@ -129,7 +129,7 @@ NODE_ENV=development
 
 # JWT (obligatorio en producción)
 JWT_SECRET=tu-secreto
-JWT_EXPIRES_IN=7d
+JWT_ACCESS_EXPIRES_IN=15m
 
 # Opcional: caché (Upstash Redis), p. ej. módulos por empresa. Sin Redis, no hay caché (siempre BD).
 # UPSTASH_REDIS_REST_URL=
@@ -143,8 +143,6 @@ JWT_EXPIRES_IN=7d
 # VERCEL=1
 # VITEST=true
 
-# Legacy opcional (no usado por runtime actual)
-# DATABASE_API_URL=
 ```
 
 ### Variables para Render (legado)
@@ -212,7 +210,7 @@ pnpm test:coverage
 
 ### Render.com (legado / no objetivo)
 
-Alternativa PaaS documentada solo por compatibilidad. Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace. **Health check:** `GET /health`. Variables mínimas: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `NODE_ENV` y `CORS_ORIGIN` (ver `.env.render.example`).
+Alternativa PaaS documentada solo por compatibilidad. Desde la raíz del monorepo suele hacer falta instalar y compilar con el workspace. **Health check:** `GET /health`. Variables mínimas: `DATABASE_URL`, `JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `NODE_ENV` y `CORS_ORIGIN` (ver `.env.render.example`).
 
 ## 📝 Notas
 

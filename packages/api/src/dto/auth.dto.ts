@@ -25,19 +25,55 @@ export const mfaVerifyBackupSchema = z.object({
 
 export type MfaVerifyBackupBody = z.infer<typeof mfaVerifyBackupSchema>
 
-/** Input DTO: register */
-export const registerBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  companyName: z.string().optional(),
-  workifyEnabled: z.boolean().optional(),
-  shopflowEnabled: z.boolean().optional(),
-  technicalServicesEnabled: z.boolean().optional(),
-})
+/** Input DTO: register — con `companyName` no vacío se exige `registrationTicket` (PLAN-39). */
+export const registerBodySchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(1),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    companyName: z.string().optional(),
+    registrationTicket: z.string().min(1).optional(),
+    workifyEnabled: z.boolean().optional(),
+    shopflowEnabled: z.boolean().optional(),
+    technicalServicesEnabled: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const cn = data.companyName?.trim()
+    if (cn) {
+      if (!data.registrationTicket?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Se requiere verificación por email antes de registrar la empresa (registrationTicket).',
+          path: ['registrationTicket'],
+        })
+      }
+    }
+  })
 
 export type RegisterBody = z.infer<typeof registerBodySchema>
+
+export const registerOtpSendBodySchema = z.object({
+  email: z.string().email(),
+  captchaToken: z.string().min(1),
+})
+
+export type RegisterOtpSendBody = z.infer<typeof registerOtpSendBodySchema>
+
+export const registerOtpVerifyBodySchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/, 'El código debe tener 6 dígitos'),
+})
+
+export type RegisterOtpVerifyBody = z.infer<typeof registerOtpVerifyBodySchema>
+
+export const verifyEmailQuerySchema = z.object({
+  token: z.string().min(1),
+})
+
+export const resendVerificationBodySchema = z.object({
+  email: z.string().email(),
+})
 
 /** Input DTO: verify token */
 export const verifyTokenSchema = z.object({
