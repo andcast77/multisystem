@@ -20,6 +20,7 @@ type Props = {
   variant?: 'default' | 'compact';
 };
 
+/** interaction-only + flexible: UI solo si hace falta; ancho del contenedor cuando aparece. */
 export function RegistrationTurnstile({ onToken, variant = 'default' }: Props) {
   const siteKey = getTurnstileSiteKey();
   const compact = variant === 'compact';
@@ -27,13 +28,12 @@ export function RegistrationTurnstile({ onToken, variant = 'default' }: Props) {
   return (
     <div
       className={
-        compact
-          ? 'flex w-full min-h-0 justify-center py-0 leading-none [&_iframe]:block [&_iframe]:max-w-[300px]'
-          : 'flex min-h-0 w-full justify-center py-1 [&_iframe]:max-w-full'
+        'flex w-full min-h-0 justify-center ' +
+        (compact ? 'py-1' : 'py-2') +
+        ' [&_iframe]:block [&_iframe]:min-h-[65px] [&_iframe]:min-w-[300px] [&_iframe]:w-full [&_iframe]:max-w-none'
       }
     >
       <Turnstile
-        className={compact ? '!min-h-0 !p-0 [&>div]:!min-h-0' : undefined}
         siteKey={siteKey}
         onSuccess={(t) => onToken(t)}
         onExpire={() => onToken(null)}
@@ -42,7 +42,7 @@ export function RegistrationTurnstile({ onToken, variant = 'default' }: Props) {
           appearance: 'interaction-only',
           theme: 'dark',
           language: 'es',
-          size: 'normal',
+          size: 'flexible',
         }}
       />
     </div>

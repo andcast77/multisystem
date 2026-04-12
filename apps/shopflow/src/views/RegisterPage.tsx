@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ApiError } from "@multisystem/shared";
 import {
   AuthLayout,
@@ -23,10 +22,9 @@ import { authApi } from "@/lib/api/client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
 import { RegistrationTurnstile } from "@/components/auth/RegistrationTurnstile";
 
-type Step = "form" | "otp";
+type Step = "form" | "link-pending";
 
 export function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState<RegisterInput>({
     firstName: "",
     lastName: "",
@@ -40,10 +38,8 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [otpCode, setOtpCode] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
   const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const decorativePanel = (
     <AuthBrandDecorativePanel
@@ -54,7 +50,7 @@ export function RegisterPage() {
     />
   );
 
-  async function sendOtp(e: React.FormEvent) {
+  async function sendLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     const parsed = registerSchema.safeParse(form);
@@ -69,90 +65,52 @@ export function RegisterPage() {
     }
     setIsLoading(true);
     try {
-      await authApi.post("/register/otp/send", {
-        email: form.email.trim().toLowerCase(),
+      const d = parsed.data;
+      await authApi.post("/register/link/send", {
+        email: d.email.trim().toLowerCase(),
         captchaToken,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+        password: d.password,
+        firstName: d.firstName.trim(),
+        lastName: d.lastName.trim(),
+        companyName: d.companyName.trim(),
+        workifyEnabled: false,
+        shopflowEnabled: true,
       });
-      setStep("otp");
-      setOtpCode("");
+      setStep("link-pending");
       setCaptchaToken(null);
       setResendCaptcha(null);
       setTurnstileKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo enviar el código.");
+      setError(err instanceof ApiError ? err.message : "No se pudo enviar el enlace.");
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function verifyAndRegister(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const code = otpCode.trim();
-    if (!/^\d{6}$/.test(code)) {
-      setError("Introduce el código de 6 dígitos.");
-      return;
-    }
-    setIsVerifying(true);
-    try {
-      const verifyRes = await authApi.post<{
-        success?: boolean;
-        data?: { registrationTicket?: string };
-        error?: string;
-      }>("/register/otp/verify", {
-        email: form.email.trim().toLowerCase(),
-        code,
-      });
-      if (
-        verifyRes &&
-        typeof verifyRes === "object" &&
-        "success" in verifyRes &&
-        verifyRes.success === false
-      ) {
-        setError((verifyRes as { error?: string }).error || "Código incorrecto.");
-        return;
-      }
-      const ticket =
-        (verifyRes as { data?: { registrationTicket?: string } })?.data?.registrationTicket;
-      if (!ticket) {
-        setError("Respuesta inválida del servidor.");
-        return;
-      }
-
-      await authApi.post("/register", {
-        email: form.email,
-        password: form.password,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        companyName: form.companyName,
-        shopflowEnabled: true,
-        workifyEnabled: false,
-        registrationTicket: ticket,
-      });
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo completar el registro.");
-    } finally {
-      setIsVerifying(false);
-    }
-  }
-
-  async function resendOtp() {
+  async function resendLink() {
     setError(null);
     if (!resendCaptcha?.trim()) {
-      setError("Completa el captcha para reenviar el código.");
+      setError("Completa el captcha para reenviar el enlace.");
       return;
     }
     setIsLoading(true);
     try {
-      await authApi.post("/register/otp/send", {
+      await authApi.post("/register/link/send", {
         email: form.email.trim().toLowerCase(),
         captchaToken: resendCaptcha,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+        password: form.password,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        companyName: form.companyName.trim(),
+        workifyEnabled: false,
+        shopflowEnabled: true,
       });
       setResendCaptcha(null);
       setTurnstileKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo reenviar el código.");
+      setError(err instanceof ApiError ? err.message : "No se pudo reenviar el enlace.");
     } finally {
       setIsLoading(false);
     }
@@ -168,17 +126,14 @@ export function RegisterPage() {
       <AuthBrandWelcomeHeader
         title="Crear cuenta"
         subtitle={
-          step === "otp" ? "Revisa tu bandeja e introduce el código" : "Completa los datos para usar Shopflow"
+          step === "link-pending"
+            ? "Abre el enlace en tu correo"
+            : "Completa los datos para usar Shopflow"
         }
       />
 
       <AuthBrandCard
-        cardTitle={step === "otp" ? "Verifica tu email" : "Registrarse"}
-        cardDescription={
-          step === "otp"
-            ? "Introduce el código de 6 dígitos que enviamos a tu correo."
-            : "Completa los campos; luego te enviaremos un código de verificación."
-        }
+        cardTitle={step === "link-pending" ? "Revisa tu correo" : "Registrarse"}
         footer={
           <AuthBrandFooterCenter>
             <p className="text-sm text-white/50">
@@ -190,39 +145,23 @@ export function RegisterPage() {
           </AuthBrandFooterCenter>
         }
       >
-        {step === "otp" ? (
-          <form className="space-y-3" onSubmit={(e) => void verifyAndRegister(e)}>
-            <p className="text-sm text-white/70">
-              Código enviado a <strong className="text-white">{form.email}</strong>
-            </p>
-            <div className="space-y-2">
-              <Label className={AUTH_BRAND_LABEL_CLASS}>Código de verificación</Label>
-              <Input
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                className={AUTH_BRAND_INPUT_CLASS}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              />
-            </div>
+        {step === "link-pending" ? (
+          <div className="space-y-4">
             {error ? (
               <AuthBrandErrorAlert variant="error">
                 <p className="text-sm text-red-200">{error}</p>
               </AuthBrandErrorAlert>
             ) : null}
-            <Button
-              type="submit"
-              className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
-              disabled={isVerifying}
-            >
-              {isVerifying ? "Verificando…" : "Verificar y crear cuenta"}
-            </Button>
-            <div className="space-y-3 pt-3">
-              <p className="text-center text-xs text-white/45">¿No recibiste el código?</p>
+            <p className="text-sm text-white/70">
+              Enlace enviado a <strong className="text-white">{form.email}</strong>
+            </p>
+            <p className="text-sm text-white/60">
+              Abre el enlace del correo para crear tu cuenta. Puedes usar otro navegador o dispositivo.
+            </p>
+            <div className="space-y-3 pt-2">
+              <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
               <RegistrationTurnstile
-                key={`resend-${turnstileKey}`}
+                key={`resend-link-${turnstileKey}`}
                 onToken={setResendCaptcha}
                 variant="compact"
               />
@@ -230,29 +169,15 @@ export function RegisterPage() {
                 type="button"
                 variant="outline"
                 disabled={!resendCaptcha?.trim() || isLoading}
-                onClick={() => void resendOtp()}
+                onClick={() => void resendLink()}
                 className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
               >
-                {isLoading ? "Enviando…" : "Reenviar código"}
+                {isLoading ? "Enviando…" : "Reenviar enlace"}
               </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-white/60 hover:text-white"
-              onClick={() => {
-                setStep("form");
-                setOtpCode("");
-                setError(null);
-                setCaptchaToken(null);
-                setTurnstileKey((k) => k + 1);
-              }}
-            >
-              Volver y editar datos
-            </Button>
-          </form>
+          </div>
         ) : (
-          <form className="flex flex-col gap-2" onSubmit={(e) => void sendOtp(e)}>
+          <form className="flex flex-col gap-2" onSubmit={(e) => void sendLink(e)}>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className={AUTH_BRAND_LABEL_CLASS}>Nombre</Label>
@@ -327,14 +252,14 @@ export function RegisterPage() {
               </AuthBrandErrorAlert>
             ) : null}
             <div className="flex flex-col gap-1.5">
-              <span className="sr-only">Verificación antispam antes de enviar el código.</span>
+              <span className="sr-only">Verificación antispam antes de enviar el enlace.</span>
               <RegistrationTurnstile key={turnstileKey} onToken={setCaptchaToken} variant="compact" />
               <Button
                 type="submit"
                 className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
                 disabled={isLoading || !form.termsAccepted}
               >
-                {isLoading ? "Enviando código…" : "Enviar código de verificación"}
+                {isLoading ? "Enviando enlace…" : "Enviar enlace de verificación"}
               </Button>
             </div>
           </form>

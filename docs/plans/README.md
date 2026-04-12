@@ -76,6 +76,7 @@ Tras **[PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-next-migration.md) (comple
 | 37 | [completed] Shopflow: verificación manual y smoke | [\[completed\] PLAN-37-shopflow-manual-qa-smoke.md](./%5Bcompleted%5D%20PLAN-37-shopflow-manual-qa-smoke.md) |
 | 38 | [completed] Alineación Vercel + Neon (deploy único, docs, `api:bundle`) | [\[completed\] PLAN-38-vercel-neon-alignment.md](./%5Bcompleted%5D%20PLAN-38-vercel-neon-alignment.md) |
 | 39 | [completed] Registro empresa con OTP, email (Resend), captcha (especificación + implementación) | [\[completed\] PLAN-39-company-registration-otp.md](./%5Bcompleted%5D%20PLAN-39-company-registration-otp.md) |
+| 40 | [completed] Migrar verificación previa al registro de OTP a enlace (magic link, desktop-first) | [\[completed\] PLAN-40-registration-magic-link.md](./%5Bcompleted%5D%20PLAN-40-registration-magic-link.md) |
 
 ## Syncing checklists
 

@@ -106,6 +106,16 @@ export async function sendRegistrationOtpEmail(to: string, code: string): Promis
   })
 }
 
+/** Enlace de un solo uso para continuar el registro (PLAN-40). */
+export async function sendRegistrationMagicLinkEmail(to: string, verifyUrl: string): Promise<void> {
+  await sendMail({
+    to,
+    subject: 'Confirma tu email para continuar el registro — Multisystem',
+    text: `Abre este enlace para continuar con el registro de tu empresa:\n\n${verifyUrl}\n\nVálido unos minutos. Si no solicitaste crear una cuenta, ignora este mensaje.`,
+    html: `<p><a href="${verifyUrl}">Continuar registro</a></p><p>Válido unos minutos. Si no solicitaste crear una cuenta, ignora este mensaje.</p>`,
+  })
+}
+
 export async function sendEmailVerificationLink(to: string, verifyUrl: string): Promise<void> {
   await sendMail({
     to,
