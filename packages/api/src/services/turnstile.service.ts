@@ -27,7 +27,13 @@ export async function verifyTurnstileToken(token: string, remoteip?: string): Pr
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body,
   })
-  const json = (await res.json()) as { success?: boolean }
+  const text = await res.text()
+  let json: { success?: boolean }
+  try {
+    json = JSON.parse(text) as { success?: boolean }
+  } catch {
+    throw new BadRequestError('Captcha inválido', 'CAPTCHA_FAILED')
+  }
   if (!json.success) {
     throw new BadRequestError('Captcha inválido', 'CAPTCHA_FAILED')
   }
