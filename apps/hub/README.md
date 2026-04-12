@@ -16,6 +16,7 @@ La API es **`@multisystem/api`** (Fastify). En desarrollo, **Next rewrites** env
 ## Stack
 
 - **Next.js 16** (App Router), **TanStack Query**, **react-hook-form** + **Zod**
+- **Tailwind CSS 4** (PostCSS `@tailwindcss/postcss`, escaneo de `packages/component-library` vía `@source` en `src/globals.css`)
 - **@multisystem/ui**, **@multisystem/contracts**, **@multisystem/shared** (reexport cookie auth en `src/lib/auth.ts`)
 
 ## Scripts (desde `apps/hub` o con filter)

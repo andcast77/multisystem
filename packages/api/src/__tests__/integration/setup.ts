@@ -22,7 +22,6 @@ process.env.VERCEL = '1'
 
 // Deterministic JWT secret for generated test tokens.
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-for-users-auth-regression'
-process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '1h'
 
 // Uncomment when testcontainers is installed:
 // import { PostgreSqlContainer } from '@testcontainers/postgresql'

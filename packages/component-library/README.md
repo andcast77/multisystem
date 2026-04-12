@@ -63,12 +63,23 @@ packages/component-library/
 └── package.json
 ```
 
+## Tooling y versiones
+
+Las dependencias de build y pruebas (`typescript`, `vite`, `vitest`, `@vitejs/plugin-react`, `sass`, `@types/*`) y los peers `react` / `react-dom` se declaran como **`catalog:`** en `package.json` y se resuelven desde el catálogo único del monorepo en `pnpm-workspace.yaml` (alineado con PLAN-32 / PLAN-35). No hace falta fijar versiones duplicadas en este paquete.
+
+El build de librería usa **Vite** en modo `build.lib` (`vite.config.ts`): bundle ESM + CSS, luego **`tsc --emitDeclarationOnly`** para tipos en `dist/`. El plugin local `inject-css-import` antepone `import './index.css'` a `dist/index.js` tras el bundle.
+
+### Bundlers alternativos (referencia)
+
+**Vite** se mantiene como bundler: encaja con el pipeline actual (Sass, plugin React, hook post-build). **tsup** u otros bundlers mínimos serían candidatos si en el futuro se prioriza una config más corta o empaquetado distinto; cualquier cambio debe conservar los `exports` de `package.json` y el comportamiento del CSS descrito arriba. Ver decisión documentada en `docs/plans/[completed] PLAN-35-component-library-tooling-alignment.md`.
+
 ## Scripts
 
 | Comando | Descripción |
 |---------|-------------|
-| `pnpm build` | `tsc` + Vite (JS + CSS en `dist/`) |
+| `pnpm build` | Vite (`dist/index.js` + CSS) + `tsc` solo declaraciones (`.d.ts`) |
 | `pnpm dev` | Vite build en modo watch |
+| `pnpm test` | Vitest |
 | `prepublishOnly` | Ejecuta `build` antes de publicar |
 
-**Peer:** `react` y `react-dom` ≥ 19.2.4.
+**Peer:** `react` y `react-dom` alineados con el catálogo del monorepo (p. ej. 19.2.x en lockfile).

@@ -46,14 +46,12 @@
     "@prisma/client": "catalog:",
     "bcryptjs": "catalog:",
     "dotenv": "catalog:",
-    "nodemailer": "catalog:",
     "pg": "catalog:",
     "ws": "catalog:"
   },
   "devDependencies": {
     "@types/bcryptjs": "catalog:",
     "@types/node": "catalog:",
-    "@types/nodemailer": "catalog:",
     "@types/ws": "catalog:",
     "cross-env": "catalog:",
     "prisma": "catalog:",

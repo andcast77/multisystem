@@ -19,9 +19,9 @@ Complementa el **objetivo 2** de [PLAN-31](./%5Bcompleted%5D%20PLAN-31-shopflow-
 
 ## Fuera de alcance (planes dedicados)
 
-- **Tailwind 3 → 4** en Hub/Techservices → [PLAN-33](./PLAN-33-tailwind-v4-hub-techservices.md)
-- **Catálogo pnpm** → [PLAN-34](./PLAN-34-pnpm-catalog.md)
-- **Tooling de `@multisystem/ui`** (bundler) → [PLAN-35](./PLAN-35-component-library-tooling-alignment.md)
+- **Tailwind 3 → 4** en Hub/Techservices → [PLAN-33](./%5Bcompleted%5D%20PLAN-33-tailwind-v4-hub-techservices.md)
+- **Catálogo pnpm** → [PLAN-34](./%5Bcompleted%5D%20PLAN-34-pnpm-catalog.md)
+- **Tooling de `@multisystem/ui`** (bundler) → [PLAN-35](./%5Bcompleted%5D%20PLAN-35-component-library-tooling-alignment.md)
 
 ## Mecánica sugerida
 
@@ -41,7 +41,7 @@ Inventario `pnpm outdated -r` (2026-04-09):
 
 Cambios realizados:
 
-- Ampliado el bloque `catalog:` en la raíz ([`pnpm-workspace.yaml`](../../pnpm-workspace.yaml)): stack **Fastify**, tipos asociados, **Radix UI** (`@multisystem/ui`), `nodemailer`, `@upstash/redis`, etc.
+- Ampliado el bloque `catalog:` en la raíz ([`pnpm-workspace.yaml`](../../pnpm-workspace.yaml)): stack **Fastify**, tipos asociados, **Radix UI** (`@multisystem/ui`), `@upstash/redis`, etc.
 - [`packages/api/package.json`](../../packages/api/package.json), [`packages/database/package.json`](../../packages/database/package.json) y [`packages/component-library/package.json`](../../packages/component-library/package.json): dependencias que usaban `^` pasan a **`catalog:`** donde existe entrada en el catálogo.
 - **Convención:** versión canónica = entrada en `pnpm-workspace.yaml` → `"nombre": "catalog:"` en cada workspace; excepciones documentadas arriba (`eslint`, `@types/bcryptjs`).
 - **Workify:** script `test` ajustado a `vitest run --passWithNoTests` porque aún no hay archivos `*.test.*` (evita fallo de `turbo run test`).

@@ -17,15 +17,26 @@ function isAuthPublicPath(url: string): boolean {
     p === '/v1/auth/login' ||
     p === '/v1/auth/register' ||
     p === '/v1/auth/verify' ||
-    p === '/v1/auth/refresh'
+    p === '/v1/auth/refresh' ||
+    p === '/v1/auth/register/otp/send' ||
+    p === '/v1/auth/register/otp/verify' ||
+    p === '/v1/auth/register/link/send' ||
+    p === '/v1/auth/register/link/verify' ||
+    p === '/v1/auth/verify-email' ||
+    p === '/v1/auth/resend-verification'
   )
+}
+
+/** Vercel Cron → GET /v1/internal/cron/* — do not count toward the global IP bucket. */
+function isInternalCronPath(url: string): boolean {
+  return pathOnly(url).startsWith('/v1/internal/cron/')
 }
 
 export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-    skip: (request) => isAuthPublicPath(request.url)
+    skip: (request) => isAuthPublicPath(request.url) || isInternalCronPath(request.url)
   } as Parameters<typeof fastify.register>[1])
 
   await fastify.register(async function authPublicScope(f) {
@@ -36,6 +47,26 @@ export const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
     } as Parameters<typeof f.register>[1])
 
     await authController.registerPublicAuthRoutes(f)
+  })
+
+  await fastify.register(async function registerOtpScope(f) {
+    await f.register(rateLimit, {
+      max: 15,
+      timeWindow: '15 minutes',
+      name: 'ms-auth-register-otp',
+    } as Parameters<typeof f.register>[1])
+
+    await authController.registerRegisterOtpRoutes(f)
+  })
+
+  await fastify.register(async function registerLinkScope(f) {
+    await f.register(rateLimit, {
+      max: 15,
+      timeWindow: '15 minutes',
+      name: 'ms-auth-register-link',
+    } as Parameters<typeof f.register>[1])
+
+    await authController.registerRegisterLinkRoutes(f)
   })
 
   await fastify.register(async function mfaVerifyScope(f) {

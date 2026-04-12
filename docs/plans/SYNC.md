@@ -29,6 +29,18 @@ These rules keep **`docs/plans/PLAN-*.md`** accurate without duplicate checklist
 3. If one change completes tasks in **multiple** plans (e.g. shared client touches Plan 3 and indirectly Plan 1), update **each** file’s relevant lines.
 4. **Do not** leave plans stale: if the repo already satisfies a checkbox but the box is empty, mark it `[x]` in a small “sync” commit or include it in the next related PR.
 
+## pnpm workspace catalog
+
+The monorepo pins shared dependency versions in **`pnpm-workspace.yaml`** under `catalog:` (not duplicated in the root `package.json`). Workspaces reference them with `"packageName": "catalog:"` in their own `package.json`.
+
+**To add a new cataloged dependency:**
+
+1. Add `packageName: x.y.z` under `catalog:` in [`pnpm-workspace.yaml`](../../pnpm-workspace.yaml) (keep alphabetical order if the file is ordered that way).
+2. In the workspace that needs it, add `"packageName": "catalog:"` under `dependencies` / `devDependencies` / `peerDependencies` as appropriate.
+3. Run `pnpm install` from the repository root and commit the updated lockfile if it changes.
+
+Version bumps across the repo follow dependency-alignment discipline (see [PLAN-32](./%5Bcompleted%5D%20PLAN-32-monorepo-dependency-alignment.md)); the catalog is the single place those pinned versions live for shared packages.
+
 ## Cross-plan overlap
 
 - **Plan 1** (auth) and **Plan 2** (CORS) are independent files—update both if one feature touches both (e.g. BFF affects cookies and origins).

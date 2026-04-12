@@ -1,6 +1,6 @@
 # PLAN-36 — Shopflow: verificación y documentación del Service Worker (push)
 
-**Estado:** pendiente.
+**Estado:** completado.
 
 ## Contexto
 
@@ -17,15 +17,18 @@
 
 ## Alcance
 
-- Solo **Shopflow** y archivos relacionados (no cambiar la API salvo bug bloqueante acordado).
+- **Shopflow:** SW, README, CSP/cliente.
+- **API (ampliación explícita):** alinear **jobs programados + Web Push** con despliegue **100% Vercel serverless** (Cron HTTP + `CRON_SECRET`), sin depender de `node-cron` en el proceso serverless.
 
 ## Checklist
 
-- [ ] Confirmar ruta y contenido del SW (`/sw.js` vs otro).
-- [ ] Prueba en navegador (o checklist reproducible): permiso, suscripción, error esperado sin VAPID.
-- [ ] Revisar CSP vs necesidades de push/SW.
-- [ ] README actualizado con “cómo probar” y “qué no está soportado”.
-- [ ] Si hay bug corregible en el mismo PR, enlazar aquí y marcar ítem.
+- [x] Confirmar ruta y contenido del SW (`/sw.js` vs otro).
+- [x] Prueba en navegador (o checklist reproducible): permiso, suscripción, error esperado sin VAPID.
+- [x] Revisar CSP vs necesidades de push/SW.
+- [x] README Shopflow actualizado con “cómo probar” y “qué no está soportado”.
+- [x] Bug corregido: faltaba `apps/shopflow/public/sw.js` pese a que `usePushNotifications` registraba `/sw.js` — añadido SW mínimo alineado con `push-sender.service.ts`.
+- [x] **Vercel serverless:** rutas `GET /v1/internal/cron/*` (Bearer `CRON_SECRET`), `vercel.json` `crons` en UTC (paridad con `runner.ts`), rate-limit excluye cron, README API + `.env.example`, fila en README Shopflow.
+- [x] `server.ts` documenta que en `VERCEL` no corre `node-cron`; jobs por Cron HTTP.
 
 ## Referencias
 

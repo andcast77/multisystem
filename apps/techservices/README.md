@@ -17,7 +17,7 @@ El usuario debe tener el módulo activo para la empresa (`technicalServicesEnabl
 
 ## Stack
 
-- **Next.js 16**, **React 19**, **Tailwind CSS 3**
+- **Next.js 16**, **React 19**, **Tailwind CSS 4**
 - **@multisystem/ui**, **@multisystem/shared**, **@multisystem/contracts**
 - Cliente HTTP en **`src/lib/api/client.ts`**: `techServicesApi` (prefijo `/api/techservices`), `authApi` (`/api/auth`)
 

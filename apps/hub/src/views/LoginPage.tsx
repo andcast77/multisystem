@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/lib/api-client";
+import { shouldCallMeForLoggedInCheck } from "@/lib/auth-session-probe";
 import { ApiError } from "@multisystem/shared";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import {
@@ -66,7 +67,8 @@ export function LoginPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await authApi.me();
+        if (!(await shouldCallMeForLoggedInCheck())) return;
+        await authApi.meGuestProbe();
         router.replace(nextPath ?? "/dashboard");
       } catch {
         // stay on login

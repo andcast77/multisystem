@@ -34,6 +34,9 @@ export type { LoginResponse, MeResponse, ContextResponse, CompaniesResponse, Reg
 
 const API_URL = getHubApiBaseUrl();
 
+/** Same origin/credentials as main client, but no refresh-on-401 — use for guest-only pages that probe session (avoids duplicate 401 + POST /refresh noise). */
+const clientGuestProbe = new ApiClient(API_URL, { refreshOn401: false });
+
 export type CompanyUpdateResult = {
   id: string;
   name: string;
@@ -77,6 +80,31 @@ export const authApi = {
   verifyMfaBackup: (tempToken: string, backupCode: string, companyId?: string) =>
     client.post<ApiResponse<LoginResponse>>("/v1/auth/mfa/verify-backup", { tempToken, backupCode, companyId }),
 
+  /** PLAN-39: solicitar OTP al email (requiere captcha en servidor salvo dev sin secret). */
+  sendRegistrationOtp: (body: { email: string; captchaToken: string }) =>
+    client.post<ApiResponse<{ sent: boolean }>>("/v1/auth/register/otp/send", body),
+
+  verifyRegistrationOtp: (body: { email: string; code: string }) =>
+    client.post<ApiResponse<{ registrationTicket: string }>>("/v1/auth/register/otp/verify", body),
+
+  /** PLAN-40: enlace de verificación — payload de alta en Redis hasta abrir el enlace (cualquier navegador). */
+  sendRegistrationLink: (body: {
+    email: string;
+    captchaToken: string;
+    verificationBaseUrl?: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    companyName: string;
+    workifyEnabled?: boolean;
+    shopflowEnabled?: boolean;
+    technicalServicesEnabled?: boolean;
+  }) =>
+    client.post<ApiResponse<{ sent: boolean }>>("/v1/auth/register/link/send", body),
+
+  verifyRegistrationLink: (body: { email: string; token: string }) =>
+    client.post<ApiResponse<RegisterResponse>>("/v1/auth/register/link/verify", body),
+
   register: (data: {
     email: string;
     password: string;
@@ -86,10 +114,18 @@ export const authApi = {
     workifyEnabled?: boolean;
     shopflowEnabled?: boolean;
     technicalServicesEnabled?: boolean;
+    registrationTicket?: string;
   }) =>
     client.post<ApiResponse<RegisterResponse>>("/v1/auth/register", data),
 
   me: () => client.get<ApiResponse<MeResponse>>("/v1/auth/me"),
+
+  /**
+   * GET /v1/auth/me without refresh-on-401. For login/register “already logged in?” checks only.
+   * Unauthenticated users still get 401 once (expected); avoids an extra POST /v1/auth/refresh 401 in DevTools.
+   */
+  meGuestProbe: () =>
+    clientGuestProbe.get<ApiResponse<MeResponse>>("/v1/auth/me"),
 
   context: (companyId: string) =>
     client.post<ApiResponse<ContextResponse>>("/v1/auth/context", { companyId }),

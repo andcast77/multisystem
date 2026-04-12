@@ -37,6 +37,7 @@
     "otplib": "catalog:",
     "pg": "catalog:",
     "qrcode": "catalog:",
+    "resend": "catalog:",
     "web-push": "catalog:",
     "ws": "catalog:",
     "zod": "catalog:"

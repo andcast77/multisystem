@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
+import { ApiError } from '@multisystem/shared';
 import {
   AuthLayout,
   AuthBrandDecorativePanel,
@@ -12,11 +13,13 @@ import {
   AUTH_BRAND_INPUT_CLASS,
   AUTH_BRAND_LABEL_CLASS,
   AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
   Button,
   Input,
   Label,
 } from '@multisystem/ui';
 import { authApi } from '@/lib/api/client';
+import { RegistrationTurnstile } from '@/components/auth/RegistrationTurnstile';
 
 const workifyRegisterPanel = (
   <AuthBrandDecorativePanel
@@ -41,6 +44,8 @@ function sanitizeInput(value: string): string {
     .substring(0, 100);
 }
 
+type Step = 'form' | 'link-pending';
+
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
     email: '',
@@ -53,6 +58,10 @@ export default function RegisterForm() {
   const [error, setError] = useState('');
   const [isLoading, startTransition] = useTransition();
   const [csrfToken, setCsrfToken] = useState('');
+  const [step, setStep] = useState<Step>('form');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
 
   useEffect(() => {
     setCsrfToken(generateCSRFToken());
@@ -91,121 +100,106 @@ export default function RegisterForm() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  /** Returns first error message or null if valid (PLAN-39: empresa requiere OTP antes de register). */
+  function validateRegistrationFields(): string | null {
+    if (!formData.firstName.trim()) return 'El nombre es requerido';
+    if (!formData.lastName.trim()) return 'El apellido es requerido';
+    if (!formData.companyName.trim()) return 'El nombre de la empresa es requerido';
+    if (!formData.email.trim()) return 'El email es requerido';
+    if (!formData.password.trim()) return 'La contraseña es requerida';
+    if (!formData.confirmPassword.trim()) return 'La confirmación de contraseña es requerida';
+    if (!validateName(formData.firstName)) return 'El nombre debe tener entre 1 y 50 caracteres';
+    if (!validateName(formData.lastName)) return 'El apellido debe tener entre 1 y 50 caracteres';
+    if (!validateCompanyName(formData.companyName))
+      return 'El nombre de la empresa debe tener entre 2 y 100 caracteres';
+    if (!validateEmail(formData.email)) return 'Formato de email inválido';
+    if (!validatePassword(formData.password))
+      return 'La contraseña debe tener entre 8 y 128 caracteres';
+    if (!validatePasswordComplexity(formData.password))
+      return 'La contraseña debe contener mayúsculas, minúsculas y números';
+    if (formData.password !== formData.confirmPassword) return 'Las contraseñas no coinciden';
+    if (!csrfToken) return 'Error de seguridad. Recarga la página e intenta de nuevo.';
+    return null;
+  }
+
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!formData.firstName.trim()) {
-      setError('El nombre es requerido');
+    const v = validateRegistrationFields();
+    if (v) {
+      setError(v);
       return;
     }
-
-    if (!formData.lastName.trim()) {
-      setError('El apellido es requerido');
+    if (!captchaToken?.trim()) {
+      setError('Completa la verificación anti-robots (captcha).');
       return;
     }
-
-    if (!formData.companyName.trim()) {
-      setError('El nombre de la empresa es requerido');
-      return;
-    }
-
-    if (!formData.email.trim()) {
-      setError('El email es requerido');
-      return;
-    }
-
-    if (!formData.password.trim()) {
-      setError('La contraseña es requerida');
-      return;
-    }
-
-    if (!formData.confirmPassword.trim()) {
-      setError('La confirmación de contraseña es requerida');
-      return;
-    }
-
-    if (!validateName(formData.firstName)) {
-      setError('El nombre debe tener entre 1 y 50 caracteres');
-      return;
-    }
-
-    if (!validateName(formData.lastName)) {
-      setError('El apellido debe tener entre 1 y 50 caracteres');
-      return;
-    }
-
-    if (!validateCompanyName(formData.companyName)) {
-      setError('El nombre de la empresa debe tener entre 2 y 100 caracteres');
-      return;
-    }
-
-    if (!validateEmail(formData.email)) {
-      setError('Formato de email inválido');
-      return;
-    }
-
-    if (!validatePassword(formData.password)) {
-      setError('La contraseña debe tener entre 8 y 128 caracteres');
-      return;
-    }
-
-    if (!validatePasswordComplexity(formData.password)) {
-      setError('La contraseña debe contener mayúsculas, minúsculas y números');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-
-    if (!csrfToken) {
-      setError('Error de seguridad. Recarga la página e intenta de nuevo.');
-      return;
-    }
-
     startTransition(async () => {
       try {
-        const res = await authApi.post<{
-          success?: boolean;
-          data?: { user?: unknown };
-          error?: string;
-        }>('/register', {
+        await authApi.post('/register/link/send', {
           email: formData.email.toLowerCase().trim(),
+          captchaToken,
+          verificationBaseUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
           password: formData.password,
-          companyName: formData.companyName.trim(),
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
-          csrfToken,
+          companyName: formData.companyName.trim(),
+          workifyEnabled: true,
+          shopflowEnabled: false,
         });
-
-        const err = (res as { error?: string })?.error;
-        if (err) {
-          setError(err);
-          return;
-        }
-        const user =
-          (res as { data?: { user?: unknown } })?.data?.user ?? (res as { user?: unknown }).user;
-        if (!user) {
-          setError('Respuesta del servidor inválida');
-          return;
-        }
-        window.location.href = '/dashboard';
+        setStep('link-pending');
+        setCaptchaToken(null);
+        setResendCaptcha(null);
+        setTurnstileKey((k) => k + 1);
       } catch (err) {
-        console.error('Error de registro:', err);
-        setError('Error de conexión. Inténtalo de nuevo.');
+        setError(err instanceof ApiError ? err.message : 'No se pudo enviar el enlace.');
+      }
+    });
+  };
+
+  const handleResendLink = () => {
+    setError('');
+    if (!resendCaptcha?.trim()) {
+      setError('Completa el captcha para reenviar el enlace.');
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await authApi.post('/register/link/send', {
+          email: formData.email.toLowerCase().trim(),
+          captchaToken: resendCaptcha,
+          verificationBaseUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
+          password: formData.password,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          companyName: formData.companyName.trim(),
+          workifyEnabled: true,
+          shopflowEnabled: false,
+        });
+        setResendCaptcha(null);
+        setTurnstileKey((k) => k + 1);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'No se pudo reenviar el enlace.');
       }
     });
   };
 
   return (
     <AuthLayout variant="brand" contentClassName="max-w-lg" panel={workifyRegisterPanel}>
-      <AuthBrandWelcomeHeader title="Comienza ahora" subtitle="Crea tu empresa en Workify" />
+      <AuthBrandWelcomeHeader
+        title="Comienza ahora"
+        subtitle={
+          step === 'link-pending' ? 'Abre el enlace en tu correo' : 'Crea tu empresa en Workify'
+        }
+      />
 
       <AuthBrandCard
-        cardTitle="Registrarse"
-        cardDescription="Completa los campos para crear la cuenta"
+        cardTitle={step === 'link-pending' ? 'Revisa tu correo' : 'Registrarse'}
+        cardDescription={
+          step === 'link-pending'
+            ? 'Te enviamos un enlace para finalizar el alta. Puedes abrirlo desde cualquier dispositivo o navegador.'
+            : 'Completa los campos; te enviaremos un enlace de verificación.'
+        }
         footer={
           <AuthBrandFooterCenter>
             <p className="text-sm text-white/50">
@@ -217,129 +211,166 @@ export default function RegisterForm() {
           </AuthBrandFooterCenter>
         }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="hidden" name="csrfToken" value={csrfToken} />
+        {step === 'link-pending' ? (
+          <div className="space-y-4">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <p className="text-sm text-white/70">
+              Enlace enviado a <strong className="text-white">{formData.email}</strong>
+            </p>
+            <p className="text-sm text-white/60">
+              Abre el enlace del correo para crear tu cuenta. Puedes usar otro navegador o dispositivo.
+            </p>
+            <div className="space-y-3 pt-2">
+              <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
+              <RegistrationTurnstile
+                key={`resend-link-${turnstileKey}`}
+                onToken={setResendCaptcha}
+                variant="compact"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!resendCaptcha?.trim() || isLoading}
+                onClick={handleResendLink}
+                className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+              >
+                {isLoading ? 'Enviando…' : 'Reenviar enlace'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSendLink} className="flex flex-col gap-2">
+            <input type="hidden" name="csrfToken" value={csrfToken} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reg-firstName" className={AUTH_BRAND_LABEL_CLASS}>
+                  Nombre
+                </Label>
+                <Input
+                  id="reg-firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  maxLength={50}
+                  autoComplete="given-name"
+                  className={AUTH_BRAND_INPUT_CLASS}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reg-lastName" className={AUTH_BRAND_LABEL_CLASS}>
+                  Apellido
+                </Label>
+                <Input
+                  id="reg-lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  maxLength={50}
+                  autoComplete="family-name"
+                  className={AUTH_BRAND_INPUT_CLASS}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="reg-firstName" className={AUTH_BRAND_LABEL_CLASS}>
-                Nombre
+              <Label htmlFor="reg-company" className={AUTH_BRAND_LABEL_CLASS}>
+                Nombre de la empresa
               </Label>
               <Input
-                id="reg-firstName"
-                name="firstName"
-                value={formData.firstName}
+                id="reg-company"
+                name="companyName"
+                value={formData.companyName}
                 onChange={handleChange}
                 required
                 disabled={isLoading}
-                maxLength={50}
-                autoComplete="given-name"
+                maxLength={100}
+                autoComplete="organization"
                 className={AUTH_BRAND_INPUT_CLASS}
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="reg-lastName" className={AUTH_BRAND_LABEL_CLASS}>
-                Apellido
+              <Label htmlFor="reg-email" className={AUTH_BRAND_LABEL_CLASS}>
+                Email
               </Label>
               <Input
-                id="reg-lastName"
-                name="lastName"
-                value={formData.lastName}
+                id="reg-email"
+                name="email"
+                type="email"
+                value={formData.email}
                 onChange={handleChange}
+                placeholder="tu@empresa.com"
                 required
                 disabled={isLoading}
-                maxLength={50}
-                autoComplete="family-name"
+                maxLength={100}
+                autoComplete="email"
                 className={AUTH_BRAND_INPUT_CLASS}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reg-company" className={AUTH_BRAND_LABEL_CLASS}>
-              Nombre de la empresa
-            </Label>
-            <Input
-              id="reg-company"
-              name="companyName"
-              value={formData.companyName}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              maxLength={100}
-              autoComplete="organization"
-              className={AUTH_BRAND_INPUT_CLASS}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="reg-email" className={AUTH_BRAND_LABEL_CLASS}>
-              Email
-            </Label>
-            <Input
-              id="reg-email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="tu@empresa.com"
-              required
-              disabled={isLoading}
-              maxLength={100}
-              autoComplete="email"
-              className={AUTH_BRAND_INPUT_CLASS}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="reg-password" className={AUTH_BRAND_LABEL_CLASS}>
-                Contraseña
-              </Label>
-              <Input
-                id="reg-password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                required
-                disabled={isLoading}
-                maxLength={128}
-                autoComplete="new-password"
-                className={AUTH_BRAND_INPUT_CLASS}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reg-password" className={AUTH_BRAND_LABEL_CLASS}>
+                  Contraseña
+                </Label>
+                <Input
+                  id="reg-password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                  disabled={isLoading}
+                  maxLength={128}
+                  autoComplete="new-password"
+                  className={AUTH_BRAND_INPUT_CLASS}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reg-confirm" className={AUTH_BRAND_LABEL_CLASS}>
+                  Confirmar contraseña
+                </Label>
+                <Input
+                  id="reg-confirm"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                  disabled={isLoading}
+                  maxLength={128}
+                  autoComplete="new-password"
+                  className={AUTH_BRAND_INPUT_CLASS}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="reg-confirm" className={AUTH_BRAND_LABEL_CLASS}>
-                Confirmar contraseña
-              </Label>
-              <Input
-                id="reg-confirm"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                required
-                disabled={isLoading}
-                maxLength={128}
-                autoComplete="new-password"
-                className={AUTH_BRAND_INPUT_CLASS}
-              />
+
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+
+            <div className="flex flex-col gap-1.5">
+              <span className="sr-only">Verificación antispam antes de enviar el enlace.</span>
+              <RegistrationTurnstile key={turnstileKey} onToken={setCaptchaToken} variant="compact" />
+              <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
+                {isLoading ? 'Enviando enlace…' : 'Enviar enlace de verificación'}
+              </Button>
             </div>
-          </div>
-
-          {error ? (
-            <AuthBrandErrorAlert variant="error">
-              <p className="text-sm text-red-200">{error}</p>
-            </AuthBrandErrorAlert>
-          ) : null}
-
-          <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
-            {isLoading ? 'Registrando…' : 'Crear cuenta'}
-          </Button>
-        </form>
+          </form>
+        )}
       </AuthBrandCard>
     </AuthLayout>
   );

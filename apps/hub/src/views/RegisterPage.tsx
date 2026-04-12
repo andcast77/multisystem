@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authApi, accountApi } from "@/lib/api-client";
+import { ApiError } from "@multisystem/shared";
+import { authApi } from "@/lib/api-client";
+import { shouldCallMeForLoggedInCheck } from "@/lib/auth-session-probe";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
+import { RegistrationTurnstile } from "@/components/auth/RegistrationTurnstile";
 import {
   AuthLayout,
   AuthBrandDecorativePanel,
@@ -34,13 +37,18 @@ import {
   ScrollArea,
 } from "@multisystem/ui";
 
+type RegisterStep = "form" | "link-pending";
+
 export function RegisterPage() {
   const router = useRouter();
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [registrationEmail, setRegistrationEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [step, setStep] = useState<RegisterStep>("form");
+  const [pendingRegistration, setPendingRegistration] = useState<RegisterInput | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
 
   const {
     register,
@@ -55,10 +63,10 @@ export function RegisterPage() {
   const privacyAccepted = watch("privacyAccepted");
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkAuth = async () => {
       try {
-        await authApi.me();
+        if (!(await shouldCallMeForLoggedInCheck())) return;
+        await authApi.meGuestProbe();
         router.replace("/dashboard");
       } catch {
         // Not logged in, stay on register page
@@ -68,35 +76,66 @@ export function RegisterPage() {
     checkAuth();
   }, [router]);
 
-  async function onSubmit(data: RegisterInput) {
+  const sendLinkWithCaptcha = handleSubmit(async (data: RegisterInput) => {
+    setErrorMessage("");
+    if (!captchaToken?.trim()) {
+      setErrorMessage("Completa la verificación anti-robots (captcha) antes de continuar.");
+      return;
+    }
     try {
-      setErrorMessage("");
-      const res = await authApi.register({
-        email: data.email,
+      await authApi.sendRegistrationLink({
+        email: data.email.trim().toLowerCase(),
+        captchaToken,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
         password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        companyName: data.companyName,
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        companyName: data.companyName.trim(),
       });
+      setPendingRegistration(data);
+      setStep("link-pending");
+      setCaptchaToken(null);
+      setResendCaptcha(null);
+      setTurnstileResetKey((k) => k + 1);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "No se pudo enviar el enlace.";
+      setErrorMessage(msg);
+    }
+  });
 
-      if (!res.success) {
-        setErrorMessage(res.error || "Error al registrar. Intenta de nuevo.");
-        return;
-      }
-
-      // Record explicit privacy policy acceptance (GDPR Art. 7 / LFPDPPP)
-      // The session cookie is set by the register endpoint so this call is authenticated.
-      try {
-        await accountApi.acceptPrivacy();
-      } catch {
-        // Non-blocking: registration succeeded; privacy timestamp can be back-filled via support.
-      }
-
-      setRegistrationEmail(data.email);
-      setRegistrationSuccess(true);
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      setErrorMessage(err?.response?.data?.error || err?.message || "Error al registrar");
+  async function resendLink() {
+    if (!pendingRegistration) return;
+    if (!resendCaptcha?.trim()) {
+      setErrorMessage("Completa el captcha para reenviar el enlace.");
+      return;
+    }
+    setErrorMessage("");
+    const d = pendingRegistration;
+    try {
+      await authApi.sendRegistrationLink({
+        email: d.email.trim().toLowerCase(),
+        captchaToken: resendCaptcha,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+        password: d.password,
+        firstName: d.firstName.trim(),
+        lastName: d.lastName.trim(),
+        companyName: d.companyName.trim(),
+      });
+      setResendCaptcha(null);
+      setTurnstileResetKey((k) => k + 1);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "No se pudo reenviar el enlace.";
+      setErrorMessage(msg);
     }
   }
 
@@ -118,74 +157,64 @@ export function RegisterPage() {
     <>
       <AuthLayout variant="brand" contentClassName="max-w-lg" panel={decorativePanel}>
         <AuthBrandWelcomeHeader
-          title={registrationSuccess ? "¡Cuenta creada!" : "Comienza ahora"}
+          title="Comienza ahora"
           subtitle={
-            registrationSuccess ? "Verifica tu email para continuar" : "Crea tu empresa en el Hub"
+            step === "link-pending"
+              ? "Abre el enlace que enviamos a tu correo"
+              : "Crea tu empresa en el Hub"
           }
         />
 
-            {/* Success Message or Register Form Card */}
-            {registrationSuccess ? (
-              <Card className={AUTH_BRAND_CARD_CLASS}>
-                <CardHeader className="text-center">
-                  <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <svg className="h-8 w-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <CardTitle className="text-2xl text-white">¡Registro exitoso!</CardTitle>
-                  <CardDescription className="text-white/60">
-                    Hemos enviado un email de verificación a <strong>{registrationEmail}</strong>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg bg-sky-500/10 border border-sky-400/30">
-                    <p className="text-sm text-sky-200 text-center">
-                      Por favor revisa tu bandeja de entrada y haz clic en el enlace de verificación para activar tu cuenta
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Button onClick={() => router.push("/login")} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
-                      Ir al Login
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await authApi.resendVerification(registrationEmail);
-                          alert("Email de verificación reenviado. Revisa tu bandeja de entrada.");
-                        } catch (error) {
-                          alert("Error al reenviar email. Intenta más tarde.");
-                        }
-                      }}
-                      className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
-                    >
-                      ¿No recibiste el email? Reenviar
-                    </Button>
-                  </div>
-
-                  <p className="text-xs text-center text-white/40">
-                    El enlace de verificación expirará en 24 horas
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
               <Card className={AUTH_BRAND_CARD_CLASS}>
                 <CardHeader>
-                  <CardTitle className="text-white">Registrarse</CardTitle>
-                  <CardDescription className="text-white/60">Completa los campos para crear la cuenta</CardDescription>
+                  <CardTitle className="text-white">
+                    {step === "link-pending" ? "Revisa tu correo" : "Registrarse"}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-auto max-h-[60vh] pr-4">
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {step === "link-pending" ? (
+                    <div className="space-y-4">
+                      {errorMessage ? (
+                        <AuthBrandErrorAlert variant="error">
+                          <p className="text-sm text-red-200">{errorMessage}</p>
+                        </AuthBrandErrorAlert>
+                      ) : null}
+                      <p className="text-sm text-white/70">
+                        Enlace enviado a{" "}
+                        <strong className="text-white">{pendingRegistration?.email}</strong>
+                      </p>
+                      <p className="text-sm text-white/60">
+                        Haz clic en el enlace del correo para crear tu cuenta. Usa «Reenviar enlace» si no
+                        llega el correo.
+                      </p>
+                      <div className="space-y-3 pt-2">
+                        <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
+                        <p className="text-center text-xs text-white/45">Completa la verificación anti robots</p>
+                        <RegistrationTurnstile
+                          key={`resend-link-${turnstileResetKey}`}
+                          onToken={setResendCaptcha}
+                          variant="compact"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!resendCaptcha?.trim()}
+                          onClick={() => void resendLink()}
+                          className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+                        >
+                          Reenviar enlace
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={sendLinkWithCaptcha} className="flex flex-col gap-2">
                       {/* Error Message */}
                       {errorMessage ? (
                         <AuthBrandErrorAlert variant="error">
                           <p className="text-sm text-red-200">{errorMessage}</p>
                         </AuthBrandErrorAlert>
                       ) : null}
+                    <div className="space-y-2.5">
                     {/* Two-column layout for names on medium+ screens */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* First Name */}
@@ -329,17 +358,24 @@ export function RegisterPage() {
                         <p className="text-sm text-red-300">{errors.privacyAccepted.message}</p>
                       )}
                     </div>
+                    </div>
 
-                    {/* Submit Button */}
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || !termsAccepted || !privacyAccepted}
-                      className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
-                    >
-                      {isSubmitting ? "Registrando…" : "Crear cuenta"}
-                    </Button>
+                    <div className="flex flex-col gap-1.5">
+                      <RegistrationTurnstile
+                        key={turnstileResetKey}
+                        onToken={setCaptchaToken}
+                        variant="compact"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || !termsAccepted || !privacyAccepted}
+                        className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+                      >
+                        {isSubmitting ? "Enviando enlace…" : "Enviar enlace de verificación"}
+                      </Button>
+                    </div>
                   </form>
-                </ScrollArea>
+                  )}
 
                 <AuthBrandFooterCenter>
                   <p className="text-sm text-white/50">
@@ -351,7 +387,6 @@ export function RegisterPage() {
                 </AuthBrandFooterCenter>
               </CardContent>
             </Card>
-            )}
       </AuthLayout>
 
       {/* Terms & Conditions Modal */}

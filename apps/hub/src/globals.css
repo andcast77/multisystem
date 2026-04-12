@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* UI compartido en packages/component-library; Tailwind v4 no escanea fuera del app por defecto. */
+@source "../../../packages/component-library/src";
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { ApiError } from "@multisystem/shared";
 import {
   AuthLayout,
   AuthBrandDecorativePanel,
@@ -13,15 +13,18 @@ import {
   AUTH_BRAND_INPUT_CLASS,
   AUTH_BRAND_LABEL_CLASS,
   AUTH_BRAND_PRIMARY_BUTTON_CLASS,
+  AUTH_BRAND_OUTLINE_BUTTON_CLASS,
   Button,
   Input,
   Label,
 } from "@multisystem/ui";
 import { authApi } from "@/lib/api/client";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
+import { RegistrationTurnstile } from "@/components/auth/RegistrationTurnstile";
+
+type Step = "form" | "link-pending";
 
 export function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState<RegisterInput>({
     firstName: "",
     lastName: "",
@@ -33,6 +36,10 @@ export function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<Step>("form");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
 
   const decorativePanel = (
     <AuthBrandDecorativePanel
@@ -43,6 +50,72 @@ export function RegisterPage() {
     />
   );
 
+  async function sendLink(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const parsed = registerSchema.safeParse(form);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || "Formulario inválido");
+      return;
+    }
+    if (!form.termsAccepted) return;
+    if (!captchaToken?.trim()) {
+      setError("Completa la verificación anti-robots (captcha).");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const d = parsed.data;
+      await authApi.post("/register/link/send", {
+        email: d.email.trim().toLowerCase(),
+        captchaToken,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+        password: d.password,
+        firstName: d.firstName.trim(),
+        lastName: d.lastName.trim(),
+        companyName: d.companyName.trim(),
+        workifyEnabled: false,
+        shopflowEnabled: true,
+      });
+      setStep("link-pending");
+      setCaptchaToken(null);
+      setResendCaptcha(null);
+      setTurnstileKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo enviar el enlace.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function resendLink() {
+    setError(null);
+    if (!resendCaptcha?.trim()) {
+      setError("Completa el captcha para reenviar el enlace.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await authApi.post("/register/link/send", {
+        email: form.email.trim().toLowerCase(),
+        captchaToken: resendCaptcha,
+        verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+        password: form.password,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        companyName: form.companyName.trim(),
+        workifyEnabled: false,
+        shopflowEnabled: true,
+      });
+      setResendCaptcha(null);
+      setTurnstileKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo reenviar el enlace.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <AuthLayout
       variant="brand"
@@ -50,11 +123,17 @@ export function RegisterPage() {
       panel={decorativePanel}
       className="shopflow-auth-shell shopflow-auth-layout"
     >
-      <AuthBrandWelcomeHeader title="Crear cuenta" subtitle="Completa los datos para usar Shopflow" />
+      <AuthBrandWelcomeHeader
+        title="Crear cuenta"
+        subtitle={
+          step === "link-pending"
+            ? "Abre el enlace en tu correo"
+            : "Completa los datos para usar Shopflow"
+        }
+      />
 
       <AuthBrandCard
-        cardTitle="Registrarse"
-        cardDescription="Completa los campos para crear la cuenta"
+        cardTitle={step === "link-pending" ? "Revisa tu correo" : "Registrarse"}
         footer={
           <AuthBrandFooterCenter>
             <p className="text-sm text-white/50">
@@ -66,117 +145,125 @@ export function RegisterPage() {
           </AuthBrandFooterCenter>
         }
       >
-        <form
-          className="space-y-3"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setError(null);
-            const parsed = registerSchema.safeParse(form);
-            if (!parsed.success) {
-              setError(parsed.error.issues[0]?.message || "Formulario inválido");
-              return;
-            }
-            if (!form.termsAccepted) return;
-            setIsLoading(true);
-            try {
-              await authApi.post("/register", {
-                email: form.email,
-                password: form.password,
-                firstName: form.firstName,
-                lastName: form.lastName,
-                companyName: form.companyName,
-                shopflowEnabled: true,
-                workifyEnabled: false,
-              });
-              router.push("/dashboard");
-            } catch (err) {
-              setError(err instanceof Error ? err.message : "No se pudo registrar");
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-        >
-          <div className="grid grid-cols-2 gap-3">
+        {step === "link-pending" ? (
+          <div className="space-y-4">
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <p className="text-sm text-white/70">
+              Enlace enviado a <strong className="text-white">{form.email}</strong>
+            </p>
+            <p className="text-sm text-white/60">
+              Abre el enlace del correo para crear tu cuenta. Puedes usar otro navegador o dispositivo.
+            </p>
+            <div className="space-y-3 pt-2">
+              <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
+              <RegistrationTurnstile
+                key={`resend-link-${turnstileKey}`}
+                onToken={setResendCaptcha}
+                variant="compact"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!resendCaptcha?.trim() || isLoading}
+                onClick={() => void resendLink()}
+                className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
+              >
+                {isLoading ? "Enviando…" : "Reenviar enlace"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form className="flex flex-col gap-2" onSubmit={(e) => void sendLink(e)}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className={AUTH_BRAND_LABEL_CLASS}>Nombre</Label>
+                <Input
+                  className={AUTH_BRAND_INPUT_CLASS}
+                  value={form.firstName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={AUTH_BRAND_LABEL_CLASS}>Apellido</Label>
+                <Input
+                  className={AUTH_BRAND_INPUT_CLASS}
+                  value={form.lastName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label className={AUTH_BRAND_LABEL_CLASS}>Nombre</Label>
+              <Label className={AUTH_BRAND_LABEL_CLASS}>Empresa</Label>
               <Input
                 className={AUTH_BRAND_INPUT_CLASS}
-                value={form.firstName}
-                onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                value={form.companyName}
+                onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label className={AUTH_BRAND_LABEL_CLASS}>Apellido</Label>
+              <Label className={AUTH_BRAND_LABEL_CLASS}>Email</Label>
               <Input
+                type="email"
                 className={AUTH_BRAND_INPUT_CLASS}
-                value={form.lastName}
-                onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                value={form.email}
+                onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="tu@empresa.com"
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label className={AUTH_BRAND_LABEL_CLASS}>Empresa</Label>
-            <Input
-              className={AUTH_BRAND_INPUT_CLASS}
-              value={form.companyName}
-              onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className={AUTH_BRAND_LABEL_CLASS}>Email</Label>
-            <Input
-              type="email"
-              className={AUTH_BRAND_INPUT_CLASS}
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="tu@empresa.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className={AUTH_BRAND_LABEL_CLASS}>Contraseña</Label>
-            <Input
-              type="password"
-              className={AUTH_BRAND_INPUT_CLASS}
-              value={form.password}
-              onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              placeholder="••••••••"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className={AUTH_BRAND_LABEL_CLASS}>Confirmar contraseña</Label>
-            <Input
-              type="password"
-              className={AUTH_BRAND_INPUT_CLASS}
-              value={form.confirmPassword}
-              onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-              placeholder="••••••••"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-white/80">
-            <input
-              type="checkbox"
-              className="accent-indigo-500"
-              checked={form.termsAccepted}
-              onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))}
-            />
-            Acepto los{" "}
-            <Link className="text-indigo-300 underline hover:text-indigo-200" href="/terms">
-              términos
-            </Link>
-          </label>
-          {error ? (
-            <AuthBrandErrorAlert variant="error">
-              <p className="text-sm text-red-200">{error}</p>
-            </AuthBrandErrorAlert>
-          ) : null}
-          <Button
-            type="submit"
-            className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
-            disabled={isLoading || !form.termsAccepted}
-          >
-            {isLoading ? "Registrando…" : "Crear cuenta"}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label className={AUTH_BRAND_LABEL_CLASS}>Contraseña</Label>
+              <Input
+                type="password"
+                className={AUTH_BRAND_INPUT_CLASS}
+                value={form.password}
+                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className={AUTH_BRAND_LABEL_CLASS}>Confirmar contraseña</Label>
+              <Input
+                type="password"
+                className={AUTH_BRAND_INPUT_CLASS}
+                value={form.confirmPassword}
+                onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-white/80">
+              <input
+                type="checkbox"
+                className="accent-indigo-500"
+                checked={form.termsAccepted}
+                onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))}
+              />
+              Acepto los{" "}
+              <Link className="text-indigo-300 underline hover:text-indigo-200" href="/terms">
+                términos
+              </Link>
+            </label>
+            {error ? (
+              <AuthBrandErrorAlert variant="error">
+                <p className="text-sm text-red-200">{error}</p>
+              </AuthBrandErrorAlert>
+            ) : null}
+            <div className="flex flex-col gap-1.5">
+              <span className="sr-only">Verificación antispam antes de enviar el enlace.</span>
+              <RegistrationTurnstile key={turnstileKey} onToken={setCaptchaToken} variant="compact" />
+              <Button
+                type="submit"
+                className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
+                disabled={isLoading || !form.termsAccepted}
+              >
+                {isLoading ? "Enviando enlace…" : "Enviar enlace de verificación"}
+              </Button>
+            </div>
+          </form>
+        )}
       </AuthBrandCard>
     </AuthLayout>
   );

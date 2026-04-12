@@ -27,10 +27,6 @@ export const envSchema = {
       type: 'string',
       default: ''
     },
-    JWT_EXPIRES_IN: {
-      type: 'string',
-      default: '7d'
-    },
     JWT_ACCESS_EXPIRES_IN: {
       type: 'string',
       default: '15m'
@@ -78,7 +74,22 @@ export const envSchema = {
     FIELD_ENCRYPTION_KEY: {
       type: 'string',
       default: ''
-    }
+    },
+    /** Shared secret for GET /v1/internal/cron/* (Vercel Cron sends Authorization: Bearer <CRON_SECRET>). */
+    CRON_SECRET: {
+      type: 'string',
+      default: ''
+    },
+    TURNSTILE_SECRET_KEY: { type: 'string', default: '' },
+    OTP_PEPPER: { type: 'string', default: '' },
+    REGISTRATION_TICKET_SECRET: { type: 'string', default: '' },
+    REGISTRATION_TICKET_EXPIRES_IN: { type: 'string', default: '15m' },
+    OTP_CHALLENGE_TTL_SECONDS: { type: 'string', default: '900' },
+    /** true/1/yes reactiva POST /v1/auth/register/otp/* (defecto: desactivado). */
+    REGISTRATION_OTP_ENABLED: { type: 'string', default: 'false' },
+    RESEND_API_KEY: { type: 'string', default: '' },
+    MAIL_FROM: { type: 'string', default: '' },
+    HUB_PUBLIC_URL: { type: 'string', default: 'http://localhost:3001' }
   }
 } as const
 

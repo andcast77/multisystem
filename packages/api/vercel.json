@@ -1,16 +1,46 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm run vercel:build",
+  "buildCommand": "cd ../.. && pnpm run api:bundle",
   "installCommand": "pnpm install",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/api"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/v1/internal/cron/inventory-alert",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/v1/internal/cron/scheduled-report-daily",
+      "schedule": "59 23 * * *"
+    },
+    {
+      "path": "/v1/internal/cron/scheduled-report-weekly",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/v1/internal/cron/invoice-reminder",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/v1/internal/cron/backup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/v1/internal/cron/techservices-reminder",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/v1/internal/cron/data-retention",
+      "schedule": "0 3 * * *"
     }
   ]
 }

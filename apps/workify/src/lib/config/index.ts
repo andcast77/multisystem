@@ -43,8 +43,8 @@ export const JWT_CONFIG = {
   // Clave secreta para JWT (OBLIGATORIO en producción)
   SECRET: requireEnvVar('JWT_SECRET'),
   
-  // Tiempo de expiración del token JWT (en segundos)
-  EXPIRES_IN: getEnvVarNumber('JWT_EXPIRES_IN', 7 * 24 * 60 * 60), // 7 días por defecto
+  // Solo informativo (sesión JWT la emite la API; 7 días en segundos)
+  EXPIRES_IN: 7 * 24 * 60 * 60,
   
   // Opciones adicionales para JWT
   ISSUER: 'workify',
