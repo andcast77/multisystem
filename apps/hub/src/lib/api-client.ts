@@ -87,6 +87,24 @@ export const authApi = {
   verifyRegistrationOtp: (body: { email: string; code: string }) =>
     client.post<ApiResponse<{ registrationTicket: string }>>("/v1/auth/register/otp/verify", body),
 
+  /** PLAN-40: enlace de verificación — payload de alta en Redis hasta abrir el enlace (cualquier navegador). */
+  sendRegistrationLink: (body: {
+    email: string;
+    captchaToken: string;
+    verificationBaseUrl?: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    companyName: string;
+    workifyEnabled?: boolean;
+    shopflowEnabled?: boolean;
+    technicalServicesEnabled?: boolean;
+  }) =>
+    client.post<ApiResponse<{ sent: boolean }>>("/v1/auth/register/link/send", body),
+
+  verifyRegistrationLink: (body: { email: string; token: string }) =>
+    client.post<ApiResponse<RegisterResponse>>("/v1/auth/register/link/verify", body),
+
   register: (data: {
     email: string;
     password: string;

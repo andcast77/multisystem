@@ -15,12 +15,15 @@ import {
   mfaVerifyBackupSchema,
   registerOtpSendBodySchema,
   registerOtpVerifyBodySchema,
+  registerLinkSendBodySchema,
+  registerLinkVerifyBodySchema,
   verifyEmailQuerySchema,
   resendVerificationBodySchema,
 } from '../../dto/auth.dto.js'
 import { ok } from '../../common/api-response.js'
 import * as authService from '../../services/auth.service.js'
 import * as registrationOtpService from '../../services/registration-otp.service.js'
+import * as registrationLinkService from '../../services/registration-link.service.js'
 import * as emailVerificationService from '../../services/email-verification.service.js'
 import {
   attachAuthSessionCookie,
@@ -34,7 +37,7 @@ import { apiOkEnvelope200 } from '../../common/fastify-response-schemas.js'
 import { assertSelfOrSuperuser } from '../../policies/company-authorization.policy.js'
 import { writeAuditLog } from '../../services/audit-log.service.js'
 import { verifyMfaPendingToken, verifyToken } from '../../core/auth.js'
-import { UnauthorizedError, BadRequestError } from '../../common/errors/app-error.js'
+import { UnauthorizedError, BadRequestError, ForbiddenError } from '../../common/errors/app-error.js'
 
 async function attachWebAuthCookies(
   reply: FastifyReply,
@@ -240,6 +243,12 @@ export async function verify(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function registerOtpSend(request: FastifyRequest, reply: FastifyReply) {
+  if (!getConfig().REGISTRATION_OTP_ENABLED) {
+    throw new ForbiddenError(
+      'El registro por código de correo no está disponible.',
+      'REGISTRATION_OTP_DISABLED',
+    )
+  }
   const body = validateBody(registerOtpSendBodySchema, request.body)
   await registrationOtpService.sendRegistrationOtp({
     email: body.email,
@@ -250,9 +259,48 @@ export async function registerOtpSend(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function registerOtpVerify(request: FastifyRequest, reply: FastifyReply) {
+  if (!getConfig().REGISTRATION_OTP_ENABLED) {
+    throw new ForbiddenError(
+      'El registro por código de correo no está disponible.',
+      'REGISTRATION_OTP_DISABLED',
+    )
+  }
   const body = validateBody(registerOtpVerifyBodySchema, request.body)
   const { registrationTicket } = await registrationOtpService.verifyRegistrationOtp(body)
   return ok({ registrationTicket })
+}
+
+export async function registerLinkSend(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(registerLinkSendBodySchema, request.body)
+  await registrationLinkService.sendRegistrationLink({
+    email: body.email,
+    captchaToken: body.captchaToken,
+    remoteip: request.ip,
+    verificationBaseUrl: body.verificationBaseUrl,
+    draft: {
+      password: body.password,
+      firstName: body.firstName ?? '',
+      lastName: body.lastName ?? '',
+      companyName: body.companyName,
+      workifyEnabled: body.workifyEnabled,
+      shopflowEnabled: body.shopflowEnabled,
+      technicalServicesEnabled: body.technicalServicesEnabled,
+    },
+  })
+  return ok({ sent: true })
+}
+
+export async function registerLinkVerify(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(registerLinkVerifyBodySchema, request.body)
+  const ip = request.ip
+  const ua = (request.headers['user-agent'] as string | undefined) ?? null
+  const result = await registrationLinkService.completeRegistrationFromLink(body)
+  const { token, ...data } = result
+  await attachWebAuthCookies(reply, token, result.user.id, {
+    companyId: result.user.companyId,
+    membershipRole: result.user.companyId ? 'OWNER' : undefined,
+  }, { ip, ua })
+  return ok(data)
 }
 
 export async function verifyEmailGet(request: FastifyRequest, reply: FastifyReply) {
@@ -419,6 +467,16 @@ export async function registerRegisterOtpRoutes(fastify: FastifyInstance) {
   )
   fastify.post('/v1/auth/register/otp/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
     registerOtpVerify(request, reply)
+  )
+}
+
+/** PLAN-40 — magic link pre-registro; mismo bucket de rate-limit que OTP (plugin). */
+export async function registerRegisterLinkRoutes(fastify: FastifyInstance) {
+  fastify.post('/v1/auth/register/link/send', { schema: authSuccessResponseSchema }, (request, reply) =>
+    registerLinkSend(request, reply)
+  )
+  fastify.post('/v1/auth/register/link/verify', { schema: authSuccessResponseSchema }, (request, reply) =>
+    registerLinkVerify(request, reply)
   )
 }
 

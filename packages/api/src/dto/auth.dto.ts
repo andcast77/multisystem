@@ -67,6 +67,29 @@ export const registerOtpVerifyBodySchema = z.object({
 
 export type RegisterOtpVerifyBody = z.infer<typeof registerOtpVerifyBodySchema>
 
+/** PLAN-40: magic link — payload de alta en Redis hasta consumir el enlace (cualquier navegador). */
+export const registerLinkSendBodySchema = z.object({
+  email: z.string().email(),
+  captchaToken: z.string().min(1),
+  verificationBaseUrl: z.string().trim().max(2048).optional(),
+  password: z.string().min(1),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  companyName: z.string().min(1, 'El nombre de la empresa es requerido'),
+  workifyEnabled: z.boolean().optional(),
+  shopflowEnabled: z.boolean().optional(),
+  technicalServicesEnabled: z.boolean().optional(),
+})
+
+export type RegisterLinkSendBody = z.infer<typeof registerLinkSendBodySchema>
+
+export const registerLinkVerifyBodySchema = z.object({
+  email: z.string().email(),
+  token: z.string().min(32, 'Token de enlace inválido'),
+})
+
+export type RegisterLinkVerifyBody = z.infer<typeof registerLinkVerifyBodySchema>
+
 export const verifyEmailQuerySchema = z.object({
   token: z.string().min(1),
 })

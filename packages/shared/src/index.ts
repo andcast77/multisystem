@@ -5,6 +5,12 @@ export {
   hasApiSession,
 } from './auth'
 export {
+  REGISTER_DRAFT_STORAGE_KEY,
+  parseRegisterDraftV1,
+  type RegisterDraftV1,
+} from './register-draft'
+export { runRegisterVerifyDeduped, dedupeRegisterVerifyKey } from './register-verify-dedupe'
+export {
   ApiClient,
   ApiError,
   getAuthHeaders,

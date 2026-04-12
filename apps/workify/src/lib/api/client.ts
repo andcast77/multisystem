@@ -34,6 +34,12 @@ export const authApi = {
   delete: <T>(endpoint: string, options?: RequestInit) => apiClient.delete<T>(`/v1/auth${endpoint}`, undefined, options),
 }
 
+/** Cuenta (misma instancia ApiClient que auth — cookies de sesión). */
+export const accountApi = {
+  acceptPrivacy: () =>
+    apiClient.post<{ success: boolean; message?: string }>('/v1/account/accept-privacy', {}),
+}
+
 // Company members API (usuarios de la empresa - misma lista en Workify y Shopflow)
 export const companiesApi = {
   getMembers: <T>(companyId: string) =>

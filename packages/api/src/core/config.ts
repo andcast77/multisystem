@@ -30,6 +30,11 @@ export type AppConfig = {
   REGISTRATION_TICKET_EXPIRES_IN: string
   /** Redis TTL for OTP challenge (seconds). */
   OTP_CHALLENGE_TTL_SECONDS: number
+  /**
+   * When false (default), `POST /v1/auth/register/otp/*` returns 403 — product uses magic link only.
+   * Set `REGISTRATION_OTP_ENABLED=true` to re-enable pre-registration email codes (PLAN-39).
+   */
+  REGISTRATION_OTP_ENABLED: boolean
   /** Resend API key (https://resend.com/docs/api-reference/emails/send-email). */
   RESEND_API_KEY: string
   /** Remitente verificado en el proveedor, p. ej. `Multisystem <noreply@tudominio.com>`. */
@@ -55,6 +60,15 @@ export function parseTrustProxy(raw: string | undefined): boolean | number {
 function parsePositiveInt(raw: string | undefined): number {
   const n = parseInt(raw ?? '', 10)
   return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+/** Empty/undefined → defaultVal; true/1/yes → true; false/0/no → false; other → defaultVal. */
+function parseEnvBool(raw: string | undefined, defaultVal: boolean): boolean {
+  if (raw == null || raw.trim() === '') return defaultVal
+  const v = raw.trim().toLowerCase()
+  if (v === 'true' || v === '1' || v === 'yes') return true
+  if (v === 'false' || v === '0' || v === 'no') return false
+  return defaultVal
 }
 
 /** Solo desarrollo: nunca commitear secretos reales; prod/staging debe definir env. */
@@ -95,6 +109,7 @@ export function getConfig(): AppConfig {
     REGISTRATION_TICKET_SECRET: (process.env.REGISTRATION_TICKET_SECRET ?? '').trim(),
     REGISTRATION_TICKET_EXPIRES_IN: (process.env.REGISTRATION_TICKET_EXPIRES_IN ?? '').trim() || '15m',
     OTP_CHALLENGE_TTL_SECONDS: parsePositiveInt(process.env.OTP_CHALLENGE_TTL_SECONDS) || 900,
+    REGISTRATION_OTP_ENABLED: parseEnvBool(process.env.REGISTRATION_OTP_ENABLED, false),
     RESEND_API_KEY: (process.env.RESEND_API_KEY ?? '').trim(),
     MAIL_FROM: (process.env.MAIL_FROM ?? '').trim(),
     HUB_PUBLIC_URL: (process.env.HUB_PUBLIC_URL ?? '').trim() || 'http://localhost:3001',
