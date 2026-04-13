@@ -29,6 +29,13 @@ interface InjectResponse {
   body: string | Buffer | null
 }
 
+/** Fastify inject puede devolver `Buffer`; `Response` (tipos DOM) no acepta `Buffer` como `BodyInit`. */
+function injectBodyToBodyInit(body: string | Buffer | null | undefined): BodyInit | undefined {
+  if (body == null) return undefined
+  if (typeof body === 'string') return body
+  return new Uint8Array(body)
+}
+
 /** Web Fetch API Request shape used by Vercel's default handler signature */
 interface FetchRequest {
   url: string
@@ -136,7 +143,7 @@ export default {
       // Fetch Response forbids a body for certain status codes (e.g. 204 preflight).
       const status = response.statusCode
       const statusDisallowsBody = status === 204 || status === 205 || status === 304
-      const bodyOut = statusDisallowsBody ? undefined : (response.body ?? undefined)
+      const bodyOut = statusDisallowsBody ? undefined : injectBodyToBodyInit(response.body)
       const responseHeaders = ensureCorsHeaders(request, headersFromFastify(response.headers))
       return new Response(bodyOut, {
         status,
