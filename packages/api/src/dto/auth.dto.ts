@@ -70,7 +70,8 @@ export type RegisterOtpVerifyBody = z.infer<typeof registerOtpVerifyBodySchema>
 /** PLAN-40: magic link — payload de alta en Redis hasta consumir el enlace (cualquier navegador). */
 export const registerLinkSendBodySchema = z.object({
   email: z.string().email(),
-  captchaToken: z.string().min(1),
+  /** Obligatorio en el primer envío; omitir en reenvíos (misma sesión en Redis, máx. 3 envíos). */
+  captchaToken: z.string().min(1).optional(),
   verificationBaseUrl: z.string().trim().max(2048).optional(),
   password: z.string().min(1),
   firstName: z.string().optional(),

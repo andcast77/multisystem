@@ -90,7 +90,7 @@ export const authApi = {
   /** PLAN-40: enlace de verificación — payload de alta en Redis hasta abrir el enlace (cualquier navegador). */
   sendRegistrationLink: (body: {
     email: string;
-    captchaToken: string;
+    captchaToken?: string;
     verificationBaseUrl?: string;
     password: string;
     firstName?: string;

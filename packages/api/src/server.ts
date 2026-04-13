@@ -24,7 +24,16 @@ import { getConfig, parseTrustProxy, type AppConfig } from './core/config.js'
 import { startJobRunner, stopJobRunner } from './jobs/runner.js'
 
 const __dirname = __dirnameApi
-const trustProxy = parseTrustProxy(process.env.TRUST_PROXY)
+
+/** Detrás de Vercel, X-Forwarded-For debe alimentar request.ip (rate limit, auditoría). */
+function resolveTrustProxy(): boolean | number {
+  const raw = process.env.TRUST_PROXY
+  if (raw != null && raw.trim() !== '') return parseTrustProxy(raw)
+  if (process.env.VERCEL === '1') return true
+  return false
+}
+
+const trustProxy = resolveTrustProxy()
 const fastify = Fastify({ logger: true, trustProxy })
 
 async function start() {

@@ -2,6 +2,7 @@ export {
   AppError,
   NotFoundError,
   BadRequestError,
+  CaptchaFailedError,
   UnauthorizedError,
   ForbiddenError,
   ConflictError,

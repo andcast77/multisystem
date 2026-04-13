@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { getLandingUrls } from "@/lib/landingUrls";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const urls = getLandingUrls();
 
   return (
     <footer className="bg-[#0a0a0f] border-t border-white/[0.06]">
@@ -28,28 +30,31 @@ export function Footer() {
               </h4>
               <ul className="space-y-2.5 text-sm">
                 <li>
-                  <Link
-                    href="/shopflow"
+                  <a
+                    href={urls.shopflow}
                     className="text-white/40 hover:text-white transition-colors duration-150"
+                    rel="noopener noreferrer"
                   >
                     ShopFlow
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link
-                    href="/workify"
+                  <a
+                    href={urls.workify}
                     className="text-white/40 hover:text-white transition-colors duration-150"
+                    rel="noopener noreferrer"
                   >
                     Workify
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link
-                    href="/techservices"
+                  <a
+                    href={urls.techservices}
                     className="text-white/40 hover:text-white transition-colors duration-150"
+                    rel="noopener noreferrer"
                   >
                     Servicios Técnicos
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>

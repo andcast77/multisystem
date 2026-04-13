@@ -27,6 +27,17 @@ export class BadRequestError extends AppError {
   }
 }
 
+/** Turnstile / siteverify falló; `turnstileErrorCodes` expone códigos de Cloudflare para depuración. */
+export class CaptchaFailedError extends BadRequestError {
+  constructor(
+    message = 'Captcha inválido',
+    public readonly turnstileErrorCodes?: string[],
+  ) {
+    super(message, 'CAPTCHA_FAILED')
+    this.name = 'CaptchaFailedError'
+  }
+}
+
 export class UnauthorizedError extends AppError {
   constructor(message = 'Unauthorized', code?: string) {
     super(401, message, code)
