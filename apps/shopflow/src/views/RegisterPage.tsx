@@ -259,7 +259,7 @@ export function RegisterPage() {
                 className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
                 disabled={isLoading || !form.termsAccepted}
               >
-                {isLoading ? "Enviando enlace…" : "Enviar enlace de verificación"}
+                {isLoading ? "Registrando…" : "Registrar empresa"}
               </Button>
             </div>
           </form>

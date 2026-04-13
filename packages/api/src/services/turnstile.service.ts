@@ -27,13 +27,18 @@ export async function verifyTurnstileToken(token: string, remoteip?: string): Pr
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body,
   })
-  let json: { success?: boolean }
+  type SiteverifyJson = { success?: boolean; 'error-codes'?: string[] }
+  let json: SiteverifyJson
   try {
-    json = (await res.json()) as { success?: boolean }
+    json = (await res.json()) as SiteverifyJson
   } catch {
     throw new BadRequestError('Captcha inválido', 'CAPTCHA_FAILED')
   }
   if (!json.success) {
+    const codes = json['error-codes']
+    if (codes?.length) {
+      console.warn('[turnstile] siteverify failed', { errorCodes: codes })
+    }
     throw new BadRequestError('Captcha inválido', 'CAPTCHA_FAILED')
   }
 }

@@ -366,7 +366,7 @@ export default function RegisterForm() {
               <span className="sr-only">Verificación antispam antes de enviar el enlace.</span>
               <RegistrationTurnstile key={turnstileKey} onToken={setCaptchaToken} variant="compact" />
               <Button type="submit" disabled={isLoading} className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}>
-                {isLoading ? 'Enviando enlace…' : 'Enviar enlace de verificación'}
+                {isLoading ? 'Registrando…' : 'Registrar empresa'}
               </Button>
             </div>
           </form>

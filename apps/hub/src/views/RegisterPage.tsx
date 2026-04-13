@@ -371,7 +371,7 @@ export function RegisterPage() {
                         disabled={isSubmitting || !termsAccepted || !privacyAccepted}
                         className={AUTH_BRAND_PRIMARY_BUTTON_CLASS}
                       >
-                        {isSubmitting ? "Enviando enlace…" : "Enviar enlace de verificación"}
+                        {isSubmitting ? "Registrando…" : "Registrar empresa"}
                       </Button>
                     </div>
                   </form>
