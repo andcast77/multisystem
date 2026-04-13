@@ -95,7 +95,7 @@ export function resolveVerificationBaseUrl(verificationBaseUrl: string | undefin
 
 export async function sendRegistrationLink(params: {
   email: string
-  captchaToken: string
+  captchaToken?: string
   remoteip?: string
   verificationBaseUrl?: string
   draft: RegistrationLinkDraft
@@ -115,12 +115,11 @@ export async function sendRegistrationLink(params: {
     throw new BadRequestError('Ya existe un usuario con este email')
   }
 
-  await verifyTurnstileToken(params.captchaToken, params.remoteip)
-
-  const base = resolveVerificationBaseUrl(params.verificationBaseUrl)
   const key = pendingKey(email)
   const rawPrev = await redis.get(key)
   const prev = parsePendingRegBlob(rawPrev)
+  const isResend = Boolean(prev?.draft && typeof prev.h === 'string' && prev.h.length > 0)
+
   if (prev && prev.sc >= 3) {
     throw new TooManyRequestsError(
       'Límite de envíos alcanzado. Espera o vuelve más tarde.',
@@ -129,10 +128,33 @@ export async function sendRegistrationLink(params: {
     )
   }
 
-  const cn = params.draft.companyName?.trim()
-  if (!cn) {
-    throw new BadRequestError('El nombre de la empresa es requerido')
+  if (!isResend) {
+    const cap = params.captchaToken?.trim()
+    if (!cap) {
+      throw new BadRequestError('Captcha requerido', 'CAPTCHA_FAILED')
+    }
+    await verifyTurnstileToken(cap, params.remoteip)
   }
+
+  const base = resolveVerificationBaseUrl(params.verificationBaseUrl)
+
+  const draftSource: RegistrationLinkDraft = isResend
+    ? prev!.draft
+    : (() => {
+        const cn = params.draft.companyName?.trim()
+        if (!cn) {
+          throw new BadRequestError('El nombre de la empresa es requerido')
+        }
+        return {
+          password: params.draft.password,
+          firstName: params.draft.firstName?.trim() ?? '',
+          lastName: params.draft.lastName?.trim() ?? '',
+          companyName: cn,
+          workifyEnabled: params.draft.workifyEnabled,
+          shopflowEnabled: params.draft.shopflowEnabled,
+          technicalServicesEnabled: params.draft.technicalServicesEnabled,
+        }
+      })()
 
   const token = randomBytes(32).toString('base64url')
   const pepper = effectivePepper(config)
@@ -141,15 +163,7 @@ export async function sendRegistrationLink(params: {
     h,
     sc: (prev?.sc ?? 0) + 1,
     fc: 0,
-    draft: {
-      password: params.draft.password,
-      firstName: params.draft.firstName?.trim() ?? '',
-      lastName: params.draft.lastName?.trim() ?? '',
-      companyName: cn,
-      workifyEnabled: params.draft.workifyEnabled,
-      shopflowEnabled: params.draft.shopflowEnabled,
-      technicalServicesEnabled: params.draft.technicalServicesEnabled,
-    },
+    draft: draftSource,
   }
   await redis.set(key, JSON.stringify(next), { ex: config.OTP_CHALLENGE_TTL_SECONDS })
 

@@ -46,6 +46,7 @@ vi.mock('../../services/auth.service.js', () => ({
   register: mockAuthRegister,
 }))
 
+import { verifyTurnstileToken } from '../../services/turnstile.service.js'
 import {
   sendRegistrationLink,
   completeRegistrationFromLink,
@@ -115,6 +116,22 @@ describe('registration-link.service (PLAN-40)', () => {
       code: 'LINK_SEND_LIMIT',
       statusCode: 429,
     })
+  })
+
+  it('sendRegistrationLink: first send requires captcha', async () => {
+    await expect(sendRegistrationLink({ email: 'nocap@example.com', draft: defaultDraft })).rejects.toMatchObject({
+      code: 'CAPTCHA_FAILED',
+      statusCode: 400,
+    })
+  })
+
+  it('sendRegistrationLink: resend skips Turnstile (same pending in Redis)', async () => {
+    const email = 'resend-skip-cap@example.com'
+    await sendRegistrationLink({ email, captchaToken: 'tok', draft: defaultDraft })
+    vi.mocked(verifyTurnstileToken).mockClear()
+    await sendRegistrationLink({ email, draft: defaultDraft })
+    expect(vi.mocked(verifyTurnstileToken)).not.toHaveBeenCalled()
+    expect(mockSendRegistrationMagicLinkEmail).toHaveBeenCalledTimes(2)
   })
 
   it('completeRegistrationFromLink: wrong token increments failures; 3 failures lockout', async () => {

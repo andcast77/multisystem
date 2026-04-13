@@ -48,7 +48,6 @@ export function RegisterPage() {
   const [pendingRegistration, setPendingRegistration] = useState<RegisterInput | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
-  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
 
   const {
     register,
@@ -95,7 +94,6 @@ export function RegisterPage() {
       setPendingRegistration(data);
       setStep("link-pending");
       setCaptchaToken(null);
-      setResendCaptcha(null);
       setTurnstileResetKey((k) => k + 1);
     } catch (err: unknown) {
       const msg =
@@ -110,24 +108,17 @@ export function RegisterPage() {
 
   async function resendLink() {
     if (!pendingRegistration) return;
-    if (!resendCaptcha?.trim()) {
-      setErrorMessage("Completa el captcha para reenviar el enlace.");
-      return;
-    }
     setErrorMessage("");
     const d = pendingRegistration;
     try {
       await authApi.sendRegistrationLink({
         email: d.email.trim().toLowerCase(),
-        captchaToken: resendCaptcha,
         verificationBaseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
         password: d.password,
         firstName: d.firstName.trim(),
         lastName: d.lastName.trim(),
         companyName: d.companyName.trim(),
       });
-      setResendCaptcha(null);
-      setTurnstileResetKey((k) => k + 1);
     } catch (err: unknown) {
       const msg =
         err instanceof ApiError
@@ -189,16 +180,13 @@ export function RegisterPage() {
                       </p>
                       <div className="space-y-3 pt-2">
                         <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
-                        <p className="text-center text-xs text-white/45">Completa la verificación anti robots</p>
-                        <RegistrationTurnstile
-                          key={`resend-link-${turnstileResetKey}`}
-                          onToken={setResendCaptcha}
-                          variant="compact"
-                        />
+                        <p className="text-center text-xs text-white/50">
+                          Máximo 3 correos con enlace por intento de registro (incluido el primero). Luego espera o
+                          empieza de nuevo.
+                        </p>
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={!resendCaptcha?.trim()}
                           onClick={() => void resendLink()}
                           className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
                         >

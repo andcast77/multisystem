@@ -61,7 +61,6 @@ export default function RegisterForm() {
   const [step, setStep] = useState<Step>('form');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
-  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
 
   useEffect(() => {
     setCsrfToken(generateCSRFToken());
@@ -149,7 +148,6 @@ export default function RegisterForm() {
         });
         setStep('link-pending');
         setCaptchaToken(null);
-        setResendCaptcha(null);
         setTurnstileKey((k) => k + 1);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'No se pudo enviar el enlace.');
@@ -159,15 +157,10 @@ export default function RegisterForm() {
 
   const handleResendLink = () => {
     setError('');
-    if (!resendCaptcha?.trim()) {
-      setError('Completa el captcha para reenviar el enlace.');
-      return;
-    }
     startTransition(async () => {
       try {
         await authApi.post('/register/link/send', {
           email: formData.email.toLowerCase().trim(),
-          captchaToken: resendCaptcha,
           verificationBaseUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
           password: formData.password,
           firstName: formData.firstName.trim(),
@@ -176,8 +169,6 @@ export default function RegisterForm() {
           workifyEnabled: true,
           shopflowEnabled: false,
         });
-        setResendCaptcha(null);
-        setTurnstileKey((k) => k + 1);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'No se pudo reenviar el enlace.');
       }
@@ -226,15 +217,13 @@ export default function RegisterForm() {
             </p>
             <div className="space-y-3 pt-2">
               <p className="text-center text-xs text-white/45">¿No recibiste el correo?</p>
-              <RegistrationTurnstile
-                key={`resend-link-${turnstileKey}`}
-                onToken={setResendCaptcha}
-                variant="compact"
-              />
+              <p className="text-center text-xs text-white/50">
+                Máximo 3 correos con enlace por intento (incluido el primero). Luego espera o empieza de nuevo.
+              </p>
               <Button
                 type="button"
                 variant="outline"
-                disabled={!resendCaptcha?.trim() || isLoading}
+                disabled={isLoading}
                 onClick={handleResendLink}
                 className={AUTH_BRAND_OUTLINE_BUTTON_CLASS}
               >
