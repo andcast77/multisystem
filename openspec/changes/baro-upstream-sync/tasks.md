@@ -49,5 +49,5 @@ Chain strategy: feature-branch-chain
 ## Phase 5: Delivery
 
 - [x] 5.1 Commit SDD + sync on feature branch
-- [ ] 5.2 PR + merge to `v2`
+- [x] 5.2 PR + merge to `v2`
 - [ ] 5.3 Pause before `sdd-archive` for user confirmation
