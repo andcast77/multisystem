@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { baroApi } from '@/lib/api/client'
+import type { ApiResponse } from '@multisystem/contracts'
 import type { ApiProfessionalListItem } from '@/components/app/professional-profile-form'
 import { ProfessionalsList, ProfessionalsListSearch } from '@/components/app/professionals-list'
 
@@ -35,18 +37,14 @@ export default function Client({
   }
 
   async function handleSetPrincipal(professionalId: string) {
-    const res = await fetch(`/api/auth/profile`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profesionalPrincipalId: professionalId }),
+    const res = await baroApi.patch<ApiResponse<unknown>>('/profile', {
+      profesionalPrincipalId: professionalId,
     })
-    if (res.ok) {
+    if (res.success) {
       setCurrentPrincipalId(professionalId)
       router.refresh()
     } else {
-      const d = await res.json().catch(() => ({}))
-      alert(d.message || 'No se pudo establecer el profesional principal')
+      alert(res.message ?? 'No se pudo establecer el profesional principal')
     }
   }
 

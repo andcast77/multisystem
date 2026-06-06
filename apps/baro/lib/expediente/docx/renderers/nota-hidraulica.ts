@@ -14,7 +14,7 @@ import {
   buildExpedienteDocxAttachmentFilename,
   getExpedienteDownloadDocMeta,
 } from '@/lib/expediente/descarga'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 export async function renderNotaHidraulica(data: NotaHidraulicaRenderData): Promise<Buffer> {
   const { principal, nomenclaturaCatastral, tipoMensuraLabel, motivoHidraulica } = data
@@ -52,10 +52,8 @@ export async function handleNotaHidraulicaDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteNotaHidraulicaFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteNotaHidraulicaQueryRow>(expedienteId, 'nota-hidraulica')
   if (!row) return new NextResponse(null, { status: 404 })
 
   const payload = expedienteRowToNotaHidraulicaRenderData(row)

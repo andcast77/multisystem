@@ -13,7 +13,7 @@ import {
   buildExpedienteDocxAttachmentFilename,
   getExpedienteDownloadDocMeta,
 } from '@/lib/expediente/descarga'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 export async function renderNotaFiscalia(data: NotaFiscaliaRenderData): Promise<Buffer> {
   const { principal, nomenclaturaCatastral, tipoMensuraLabel, motivoFiscalia } = data
@@ -51,10 +51,8 @@ export async function handleNotaFiscaliaDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteNotaFiscaliaFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteNotaFiscaliaQueryRow>(expedienteId, 'nota-fiscalia')
   if (!row) return new NextResponse(null, { status: 404 })
 
   const payload = expedienteRowToNotaFiscaliaRenderData(row)

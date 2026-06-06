@@ -23,7 +23,7 @@ import {
   getExpedienteDownloadDocMeta,
   sanitizeExpedienteNomenclaturaForFilename,
 } from '@/lib/expediente/descarga'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 const DOTS = '……………………………………..'
 
@@ -222,10 +222,8 @@ export async function handleCitacionDownload(
   userId: string,
   ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteCitacionFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteCitacionQueryRow>(expedienteId, 'citacion')
   if (!row) return new NextResponse(null, { status: 404 })
 
   const payload = expedienteRowToCitacionRenderData(row)

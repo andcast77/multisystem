@@ -21,7 +21,6 @@ const nextConfig: NextConfig = {
         : {}),
     },
   },
-  serverExternalPackages: ['@prisma/client', '@prisma/adapter-pg', 'prisma', 'pg'],
   compress: false,
   images: {
     remotePatterns: [

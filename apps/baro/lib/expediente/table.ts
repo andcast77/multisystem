@@ -1,4 +1,4 @@
-import type { Expediente, Professional } from '@prisma/client'
+import type { BaroExpedienteDto } from '@multisystem/contracts'
 
 export type ExpedienteRow = {
   id: string
@@ -16,8 +16,8 @@ export type ExpedienteFilters = {
   to: string
 }
 
-export type ExpedienteListRecord = Expediente & {
-  principalProfessional: Pick<Professional, 'displayName'>
+export type ExpedienteListRecord = BaroExpedienteDto & {
+  principalProfessional?: { displayName: string }
 }
 
 export function displayNameInitials(displayName: string): string {
@@ -28,11 +28,12 @@ export function displayNameInitials(displayName: string): string {
 }
 
 export function expedienteToListRow(m: ExpedienteListRecord): ExpedienteRow {
+  const profesionalNombre = m.principalProfessionalName ?? m.principalProfessional?.displayName ?? '—'
   return {
     id: m.id,
-    profesionalNombre: m.principalProfessional.displayName,
-    profesionalIniciales: displayNameInitials(m.principalProfessional.displayName),
-    fechaActa: m.createdAt.toISOString(),
+    profesionalNombre,
+    profesionalIniciales: displayNameInitials(profesionalNombre),
+    fechaActa: m.createdAt,
     nomenclatura: m.nomenclaturaCatastral,
     titular: m.propietario,
     ubicacion: m.domicilioParcela?.trim() ?? '',

@@ -12,17 +12,30 @@ import { ExpedienteShell } from '@/components/app/expedientes/expediente-shell'
 import { parseActaNotarialFechaToDate } from '@/lib/expediente/acta-notarial-fecha'
 import type { ColindanteNotifica } from '@/lib/expediente/schemas'
 import { getSessionUserId } from '@/lib/auth/session'
-import { prisma } from '@/lib/prisma'
+import { serverBaroGetData } from '@/lib/api/server'
+import type { BaroExpedienteDetailDto, BaroProfessionalDto } from '@multisystem/contracts'
 import type { OrdenanteRow } from '@/stores/expediente-store'
-import {
-  pickRepresentativeRegistration,
-  summarizeProfessionalTitles,
-} from '@/lib/professional/registration-pick'
 
 function mapNotificaColindanteDb(raw: string): ColindanteNotifica {
   if (raw === 'Particular' || raw === 'Fiscalía' || raw === 'Ente') return raw
   if (raw === 'Municipal') return 'Ente'
   return 'Particular'
+}
+
+function mapProfessionalForForm(p: BaroProfessionalDto, titularId: string | null): ProfessionalForForm {
+  return {
+    id: p.id,
+    displayName: p.displayName,
+    professionalTitle: p.professionalTitle,
+    titleGrammarGender: p.titleGrammarGender ?? 'MASCULINO',
+    locality: p.locality,
+    phone: p.phone ?? null,
+    professionalEmail: p.professionalEmail ?? null,
+    primaryMatricula: p.primaryMatricula ?? null,
+    primaryJurisdiction: p.primaryJurisdiction ?? null,
+    isTitular: titularId != null && p.id === titularId,
+    active: p.active,
+  }
 }
 
 export default async function ExpedienteDetallePage({
@@ -34,67 +47,17 @@ export default async function ExpedienteDetallePage({
   const userId = await getSessionUserId()
   if (!userId) notFound()
 
-  const registrationOrderBy = [{ jurisdiction: 'asc' as const }, { licenseNumber: 'asc' as const }]
-
   const [m, rawProfessionals] = await Promise.all([
-    prisma.expediente.findFirst({
-      where: { id, accountOwnerId: userId },
-      include: {
-        actuantes: { orderBy: { orden: 'asc' }, select: { professionalId: true } },
-        colindantes: {
-          orderBy: { orden: 'asc' },
-          include: { nomenclaturas: { orderBy: { orden: 'asc' } } },
-        },
-        ordenantes: { orderBy: { orden: 'asc' } },
-        linderos: { include: { puntos: { orderBy: { orden: 'asc' } } } },
-        accountOwner: { select: { titularProfessionalId: true } },
-      },
-    }),
-    prisma.professional.findMany({
-      where: { accountOwnerId: userId },
-      orderBy: { displayName: 'asc' },
-      select: {
-        id: true,
-        displayName: true,
-        sexo: true,
-        professionalTitle: true,
-        locality: true,
-        phone: true,
-        professionalEmail: true,
-        active: true,
-        registrations: {
-          orderBy: registrationOrderBy,
-          select: {
-            licenseNumber: true,
-            jurisdiction: true,
-            bodyName: true,
-            createdAt: true,
-          },
-        },
-      },
-    }),
+    serverBaroGetData<BaroExpedienteDetailDto>(`/expedientes/${id}/detail`),
+    serverBaroGetData<BaroProfessionalDto[]>('/professionals/list'),
   ])
 
   if (!m) notFound()
 
-  const titularId = m.accountOwner.titularProfessionalId
-  const professionals: ProfessionalForForm[] = rawProfessionals.map((p) => {
-    const rep = pickRepresentativeRegistration(p.registrations)
-    const titles = summarizeProfessionalTitles(p.professionalTitle, p.sexo)
-    return {
-      id: p.id,
-      displayName: p.displayName,
-      professionalTitle: titles.professionalTitle,
-      titleGrammarGender: titles.titleGrammarGender,
-      locality: p.locality,
-      phone: p.phone ?? null,
-      professionalEmail: p.professionalEmail ?? null,
-      primaryMatricula: rep?.licenseNumber ?? null,
-      primaryJurisdiction: rep?.jurisdiction ?? null,
-      isTitular: p.id === titularId,
-      active: p.active,
-    }
-  })
+  const titularId = m.titularProfessionalId
+  const professionals: ProfessionalForForm[] = (rawProfessionals ?? []).map((p) =>
+    mapProfessionalForForm(p, titularId)
+  )
 
   const actuantesProfessionalIds = m.actuantes.map((a) => a.professionalId)
 
@@ -116,17 +79,17 @@ export default async function ExpedienteDetallePage({
     dirigidoA: c.dirigidoA,
   }))
 
-const ordenantes: OrdenanteRow[] = m.ordenantes.map((o) => ({
-     _key: o.id,
-     id: o.id,
-     nombre: o.nombre,
-     documento: o.documento,
-     sexo: o.sexo,
-     cuit: o.cuit,
-     domicilio: o.domicilio,
-     caracter: o.caracter,
-     esPropietario: o.esPropietario,
-   }))
+  const ordenantes: OrdenanteRow[] = m.ordenantes.map((o) => ({
+    _key: o.id,
+    id: o.id,
+    nombre: o.nombre,
+    documento: o.documento,
+    sexo: o.sexo,
+    cuit: o.cuit,
+    domicilio: o.domicilio,
+    caracter: o.caracter,
+    esPropietario: o.esPropietario,
+  }))
 
   const linderos: LinderosInitial = m.linderos
     ? {

@@ -8,7 +8,8 @@ import {
 } from '@/lib/expediente/ui-rules'
 import { buildExpedienteNuevaRaw } from '@/lib/expediente/validate-nueva-client'
 import { expedienteNuevaSchema } from '@/lib/expediente/schemas'
-import { prisma } from '@/lib/prisma'
+import { serverBaroPost } from '@/lib/api/server'
+import type { ApiResponse, BaroExpedienteDto } from '@multisystem/contracts'
 import type { DatosFields, OrdenanteRow } from '@/stores/expediente-store'
 
 export type ExpedienteNuevaState =
@@ -25,7 +26,6 @@ export async function submitExpedienteNueva(
   ordenantes: OrdenanteRow[] = []
 ): Promise<ExpedienteNuevaState> {
   const parsed = expedienteNuevaSchema.safeParse(buildExpedienteNuevaRaw(datos))
-
   if (!parsed.success) {
     return { ok: false, message: 'Los datos del expediente no son válidos.' }
   }
@@ -56,49 +56,44 @@ export async function submitExpedienteNueva(
   }
   const { principalProfessionalId, secondProfessionalId } = principalResolved
 
-  let created
   try {
-    created = await prisma.expediente.create({
-      data: {
-        accountOwnerId: userId,
-        principalProfessionalId,
-        secondProfessionalId,
-        objetoExpedienteId: d.objetoExpedienteId,
-        nomenclaturaCatastral: d.nomenclaturaCatastral,
-        fechaOrdenTrabajo: optTrim(d.fechaOrdenTrabajo),
-        planoAntecedente: optTrim(d.planoAntecedente),
-        loteFraccion: optTrim(d.loteFraccion),
-        domicilioParcela: optTrim(d.domicilioParcela),
-        parcial: d.parcial,
-        soloOrdenTrabajo: d.soloOrdenTrabajo,
-        propietario: d.propietario.trim(),
-        domicilioPropietario: optTrim(d.domicilioPropietario),
-        inscripcionDominio: optTrim(d.inscripcionDominio),
-        naturalezaActo: optTrim(d.naturalezaActo),
-        memoriaObservaciones: optTrim(d.memoriaObservaciones),
-        motivoHidraulica: optTrim(d.motivoHidraulica),
-        motivoFiscalia: optTrim(d.motivoFiscalia),
-        municipio: optTrim(d.municipio),
-        requiereVisacionMunicipal: d.requiereVisacionMunicipal,
-        actuantes: {
-          create: actuantesOrdered.map((professionalId, orden) => ({ professionalId, orden })),
-        },
-ordenantes: {
-           create: ordenantes
-             .filter((o) => o.nombre.trim())
-             .map((o, orden) => ({
-               orden,
-               nombre: o.nombre.trim(),
-               documento: o.documento.trim(),
-               sexo: o.sexo.trim(),
-               cuit: o.cuit.trim(),
-               domicilio: o.domicilio.trim(),
-               caracter: o.caracter.trim(),
-               esPropietario: o.esPropietario,
-             })),
-         },
-      },
+    const res = await serverBaroPost<ApiResponse<BaroExpedienteDto>>('/expedientes', {
+      objetoExpedienteId: d.objetoExpedienteId,
+      nomenclaturaCatastral: d.nomenclaturaCatastral,
+      propietario: d.propietario,
+      principalProfessionalId,
+      secondProfessionalId: secondProfessionalId ?? undefined,
+      actuantesIds: actuantesOrdered,
+      fechaOrdenTrabajo: optTrim(d.fechaOrdenTrabajo),
+      planoAntecedente: optTrim(d.planoAntecedente),
+      loteFraccion: optTrim(d.loteFraccion),
+      domicilioParcela: optTrim(d.domicilioParcela),
+      parcial: d.parcial,
+      soloOrdenTrabajo: d.soloOrdenTrabajo,
+      domicilioPropietario: optTrim(d.domicilioPropietario),
+      inscripcionDominio: optTrim(d.inscripcionDominio),
+      naturalezaActo: optTrim(d.naturalezaActo),
+      memoriaObservaciones: optTrim(d.memoriaObservaciones),
+      motivoHidraulica: optTrim(d.motivoHidraulica),
+      motivoFiscalia: optTrim(d.motivoFiscalia),
+      municipio: optTrim(d.municipio),
+      requiereVisacionMunicipal: d.requiereVisacionMunicipal,
+      ordenantes: ordenantes
+        .filter((o) => o.nombre.trim())
+        .map((o) => ({
+          nombre: o.nombre.trim(),
+          documento: o.documento.trim(),
+          sexo: o.sexo.trim(),
+          cuit: o.cuit.trim(),
+          domicilio: o.domicilio.trim(),
+          caracter: o.caracter.trim(),
+          esPropietario: o.esPropietario,
+        })),
     })
+    if (!res.success || !res.data) {
+      return { ok: false, message: res.message ?? 'No se pudo guardar el expediente.' }
+    }
+    redirect(`/expedientes/${res.data.id}`)
   } catch (e) {
     console.error('[submitExpedienteNueva]', e)
     return {
@@ -106,6 +101,4 @@ ordenantes: {
       message: 'No se pudo guardar el expediente. Intentá de nuevo.',
     }
   }
-
-  redirect(`/expedientes/${created.id}`)
 }

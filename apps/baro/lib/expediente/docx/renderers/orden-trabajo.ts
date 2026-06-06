@@ -25,7 +25,7 @@ import {
   buildExpedienteDocxAttachmentFilename,
   getExpedienteDownloadDocMeta,
 } from '@/lib/expediente/descarga'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 /** Genera `.docx` conforme modelo `context/OrdenDeTrabajo.pdf` + reglas acordadas. */
 export async function renderOrdenDeTrabajo(data: OrdenTrabajoRenderData): Promise<Buffer> {
@@ -71,10 +71,8 @@ export async function handleOrdenTrabajoDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteOrdenTrabajoFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteOrdenTrabajoQueryRow>(expedienteId, 'orden-trabajo')
   if (!row) {
     return new NextResponse(null, { status: 404 })
   }

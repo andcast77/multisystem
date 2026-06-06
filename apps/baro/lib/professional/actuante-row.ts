@@ -1,4 +1,4 @@
-import type { ProfessionalTitle } from '@prisma/client'
+type ProfessionalTitle = 'AGRIMENSOR' | 'INGENIERO_AGRIMENSOR'
 import {
   pickRepresentativeRegistration,
   summarizeProfessionalTitles,

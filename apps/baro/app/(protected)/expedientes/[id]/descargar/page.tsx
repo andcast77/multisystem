@@ -4,7 +4,8 @@ import { ArrowLeft } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ExpedienteDescargarPanel } from '@/components/app/expedientes/expediente-descargar-panel'
 import { getSessionUserId } from '@/lib/auth/session'
-import { prisma } from '@/lib/prisma'
+import { serverBaroGetData } from '@/lib/api/server'
+import type { BaroExpedienteDto } from '@multisystem/contracts'
 
 export default async function ExpedienteDescargarPage({
   params,
@@ -13,10 +14,7 @@ export default async function ExpedienteDescargarPage({
   const userId = await getSessionUserId()
   if (!userId) notFound()
 
-  const m = await prisma.expediente.findFirst({
-    where: { id, accountOwnerId: userId },
-    select: { id: true, nomenclaturaCatastral: true },
-  })
+  const m = await serverBaroGetData<BaroExpedienteDto>(`/expedientes/${id}`)
   if (!m) notFound()
 
   return (

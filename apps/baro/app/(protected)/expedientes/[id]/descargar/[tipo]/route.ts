@@ -19,7 +19,8 @@ import {
 import { ExpedienteDocxError, mapExpedienteDocxErrorToHttp } from '@/lib/expediente/docx/errors'
 import { getExpedienteDocxDocumentDefinition } from '@/lib/expediente/docx/definitions'
 import { DYNAMIC_RENDERERS } from '@/lib/expediente/docx/renderer-registry'
-import { prisma } from '@/lib/prisma'
+import { serverBaroGetData } from '@/lib/api/server'
+import type { BaroExpedienteDto } from '@multisystem/contracts'
 
 const PDF_RETIRADO_MSG =
   'El formato PDF ya no está disponible. Usá descarga en DOCX (format=docx o sin parámetro).'
@@ -66,10 +67,7 @@ export async function GET(
   const meta = getExpedienteDownloadDocMeta(tipo)
 
   try {
-    const row = await prisma.expediente.findFirst({
-      where: { id, accountOwnerId: userId },
-      select: { updatedAt: true, nomenclaturaCatastral: true },
-    })
+    const row = await serverBaroGetData<BaroExpedienteDto>(`/expedientes/${id}`)
     if (!row) {
       console.warn('[expediente-descargar] 404 expediente-not-found-for-user', {
         id,
@@ -111,7 +109,7 @@ export async function GET(
     const etag = buildExpedienteDocxPreviewEtag({
       expedienteId: id,
       docTipo: tipo,
-      expedienteUpdatedAt: row.updatedAt,
+      expedienteUpdatedAt: new Date(row.updatedAt),
       staticTemplateMtimeMs,
       dynamicVariant,
     })

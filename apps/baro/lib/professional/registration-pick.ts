@@ -1,4 +1,7 @@
-import type { ProfessionalTitle, TitleGrammarGender } from '@prisma/client'
+import type { BaroProfessionalTitle, BaroTitleGrammarGender } from '@multisystem/contracts'
+
+type ProfessionalTitle = BaroProfessionalTitle
+type TitleGrammarGender = BaroTitleGrammarGender
 
 /** Registro mínimo para elegir matrícula «representativa» (San Juan + más antigua). */
 export type RepresentativePickable = {

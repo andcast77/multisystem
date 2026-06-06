@@ -13,7 +13,7 @@ import {
   buildExpedienteDocxAttachmentFilename,
   getExpedienteDownloadDocMeta,
 } from '@/lib/expediente/descarga'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 export async function renderRelacionTitulo(data: RelacionTituloRenderData): Promise<Buffer> {
   const {
@@ -84,10 +84,8 @@ export async function handleRelacionTituloDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteRelacionTituloFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteRelacionTituloQueryRow>(expedienteId, 'relacion-titulo')
   if (!row) return new NextResponse(null, { status: 404 })
 
   const payload = expedienteRowToRelacionTituloRenderData(row)

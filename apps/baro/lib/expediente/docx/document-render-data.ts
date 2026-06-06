@@ -2,13 +2,30 @@
  * Snapshots Prisma → DTO para renderers .docx (orden de trabajo, acta, edicto, etc.).
  */
 
-import type {
-  Professional,
-  ProfessionalRegistration,
-  ProfessionalTitle,
-  Prisma,
-  TitleGrammarGender,
-} from '@prisma/client'
+type ProfessionalTitle = 'AGRIMENSOR' | 'INGENIERO_AGRIMENSOR'
+type TitleGrammarGender = 'MASCULINO' | 'FEMENINO'
+type ProfessionalRegistration = {
+  licenseNumber: string
+  jurisdiction: string
+  bodyName: string | null
+  createdAt: Date
+}
+type Professional = {
+  displayName: string
+  professionalTitle: ProfessionalTitle
+  sexo: string
+  addressLine1: string
+  addressLine2: string | null
+  locality: string
+  province: string
+  postalCode: string | null
+  phone: string | null
+  whatsapp: string | null
+  professionalEmail: string | null
+  cuit: string | null
+  dni: string
+  registrations: ProfessionalRegistration[]
+}
 
 import { getObjetoExpedienteById } from '@/lib/expediente/catalogs'
 import {
@@ -68,15 +85,13 @@ const ordenTrabajoInclude = {
       registrations: { orderBy: { createdAt: 'asc' } },
     },
   },
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteOrdenTrabajoQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof ordenTrabajoInclude
-}>
+export type ExpedienteOrdenTrabajoQueryRow = Record<string, unknown>
 
 export const expedienteOrdenTrabajoFindArgs = {
   include: ordenTrabajoInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function professionalTitleEs(title: ProfessionalTitle, grammar: TitleGrammarGender): string {
   const fem = grammar === 'FEMENINO'
@@ -330,15 +345,13 @@ const citacionInclude = {
   colindantes: expedienteColindantesParaDocxInclude,
   principalProfessional: profesionalConRegistracionesInclude,
   secondProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteCitacionQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof citacionInclude
-}>
+export type ExpedienteCitacionQueryRow = Record<string, unknown>
 
 export const expedienteCitacionFindArgs = {
   include: citacionInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToCitacionRenderData(
   row: ExpedienteCitacionQueryRow
@@ -421,15 +434,13 @@ const edictoInclude = {
   colindantes: expedienteColindantesParaDocxInclude,
   principalProfessional: profesionalConRegistracionesInclude,
   secondProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteEdictoQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof edictoInclude
-}>
+export type ExpedienteEdictoQueryRow = Record<string, unknown>
 
 export const expedienteEdictoFindArgs = {
   include: edictoInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToEdictoRenderData(row: ExpedienteEdictoQueryRow): EdictoRenderData {
   const objetoLabel = (getObjetoExpedienteById(row.objetoExpedienteId)?.label ?? '').trim()
@@ -489,15 +500,13 @@ const actaInclude = {
   ordenantes: { orderBy: { orden: 'asc' as const } },
   principalProfessional: profesionalConRegistracionesInclude,
   secondProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteActaQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof actaInclude
-}>
+export type ExpedienteActaQueryRow = Record<string, unknown>
 
 export const expedienteActaFindArgs = {
   include: actaInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToActaRenderData(row: ExpedienteActaQueryRow): ActaRenderData {
   const objetoLabel = (getObjetoExpedienteById(row.objetoExpedienteId)?.label ?? '').trim()
@@ -564,15 +573,13 @@ const relacionTituloInclude = {
   linderos: {
     include: { puntos: { orderBy: { orden: 'asc' as const } } },
   },
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteRelacionTituloQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof relacionTituloInclude
-}>
+export type ExpedienteRelacionTituloQueryRow = Record<string, unknown>
 
 export const expedienteRelacionTituloFindArgs = {
   include: relacionTituloInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToRelacionTituloRenderData(
   row: ExpedienteRelacionTituloQueryRow
@@ -633,15 +640,13 @@ const memoriaDescriptivaInclude = {
   ordenantes: { orderBy: { orden: 'asc' as const } },
   principalProfessional: profesionalConRegistracionesInclude,
   secondProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteMemoriaDescriptivaQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof memoriaDescriptivaInclude
-}>
+export type ExpedienteMemoriaDescriptivaQueryRow = Record<string, unknown>
 
 export const expedienteMemoriaDescriptivaFindArgs = {
   include: memoriaDescriptivaInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToMemoriaDescriptivaRenderData(
   row: ExpedienteMemoriaDescriptivaQueryRow
@@ -685,15 +690,13 @@ export type NotaHidraulicaRenderData = {
 
 const notaHidraulicaInclude = {
   principalProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteNotaHidraulicaQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof notaHidraulicaInclude
-}>
+export type ExpedienteNotaHidraulicaQueryRow = Record<string, unknown>
 
 export const expedienteNotaHidraulicaFindArgs = {
   include: notaHidraulicaInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToNotaHidraulicaRenderData(
   row: ExpedienteNotaHidraulicaQueryRow
@@ -718,15 +721,13 @@ export type NotaFiscaliaRenderData = {
 
 const notaFiscaliaInclude = {
   principalProfessional: profesionalConRegistracionesInclude,
-} satisfies Prisma.ExpedienteInclude
+}
 
-export type ExpedienteNotaFiscaliaQueryRow = Prisma.ExpedienteGetPayload<{
-  include: typeof notaFiscaliaInclude
-}>
+export type ExpedienteNotaFiscaliaQueryRow = Record<string, unknown>
 
 export const expedienteNotaFiscaliaFindArgs = {
   include: notaFiscaliaInclude,
-} satisfies Prisma.ExpedienteFindFirstArgs
+}
 
 export function expedienteRowToNotaFiscaliaRenderData(
   row: ExpedienteNotaFiscaliaQueryRow

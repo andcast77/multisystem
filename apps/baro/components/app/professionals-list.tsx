@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useAccount } from '@/components/app/account-context'
 import type {
@@ -27,7 +28,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Ban, Check, Loader2, Pencil, Plus, Star, Trash2 } from 'lucide-react'
-import Link from 'next/link'
+import { baroApi } from '@/lib/api/client'
+import type { ApiResponse } from '@multisystem/contracts'
 
 export type ProfessionalsListProps = {
   professionals: ApiProfessionalListItem[]
@@ -125,18 +127,14 @@ export function ProfessionalsList({
   async function tryToggleActive(id: string, currentlyActive: boolean) {
     setTogglingId(id)
 
-    const res = await fetch(`/api/auth/associated-professionals/${id}/active`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !currentlyActive }),
+    const res = await baroApi.patch<ApiResponse<unknown>>(`/professionals/${id}/active`, {
+      active: !currentlyActive,
     })
 
-    if (res.ok) {
+    if (res.success) {
       setActiveStates((prev) => ({ ...prev, [id]: !currentlyActive }))
     } else {
-      const data = res.json().catch(() => ({})) as { message?: string }
-      alert(data.message ?? 'No se pudo cambiar el estado.')
+      alert(res.message ?? 'No se pudo cambiar el estado.')
     }
 
     setTogglingId(null)
@@ -145,13 +143,9 @@ export function ProfessionalsList({
   async function handleRemove(id: string) {
     setDeletingId(id)
     try {
-      const res = await fetch(`/api/auth/associated-professionals/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { message?: string }
-        alert(data.message ?? 'No se pudo eliminar.')
+      const res = await baroApi.delete<ApiResponse<unknown>>(`/professionals/${id}`)
+      if (!res.success) {
+        alert(res.message ?? 'No se pudo eliminar.')
         return
       }
       onProfessionalRemoved?.(id)

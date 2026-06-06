@@ -53,12 +53,12 @@ Chain strategy: stacked-to-v2
 
 ## Phase 3: Baro App Integration
 
-- [ ] 3.1 Rename package to `@multisystem/baro` in `apps/baro/package.json`; set dev port **3006** (avoid API :3000 clash)
-- [ ] 3.2 Create `apps/baro/lib/api/client.ts` (`authApi`, `baroApi` via `@multisystem/shared` ApiClient)
-- [ ] 3.3 Replace login with API auth; register links to Hub (`NEXT_PUBLIC_HUB_URL/register` or existing Hub route)
-- [ ] 3.4 Delete `apps/baro/app/api/auth/**`, `apps/baro/lib/auth/**`, `apps/baro/lib/prisma.ts`, `apps/baro/prisma/**`
-- [ ] 3.5 Refactor pages/actions: remove direct Prisma; call `baroApi` (keep DOCX render local, fetch payload via API)
-- [ ] 3.6 Update `apps/baro/next.config.ts`: `turbopack.root`, dev rewrites optional; add `@multisystem/shared`, `@multisystem/contracts` deps
+- [x] 3.1 Rename package to `@multisystem/baro` in `apps/baro/package.json`; set dev port **3006** (avoid API :3000 clash)
+- [x] 3.2 Create `apps/baro/lib/api/client.ts` (`authApi`, `baroApi` via `@multisystem/shared` ApiClient)
+- [x] 3.3 Replace login with API auth; register links to Hub (`NEXT_PUBLIC_HUB_URL/register` or existing Hub route)
+- [x] 3.4 Delete `apps/baro/app/api/auth/**`, `apps/baro/lib/auth/**`, `apps/baro/lib/prisma.ts`, `apps/baro/prisma/**`
+- [x] 3.5 Refactor pages/actions: remove direct Prisma; call `baroApi` (keep DOCX render local, fetch payload via API)
+- [x] 3.6 Update `apps/baro/next.config.ts`: `turbopack.root`, dev rewrites optional; add `@multisystem/shared`, `@multisystem/contracts` deps
 
 ## Phase 4: Docker, CORS & Monorepo Wiring
 

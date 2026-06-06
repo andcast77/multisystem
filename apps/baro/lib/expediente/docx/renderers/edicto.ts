@@ -12,7 +12,7 @@ import {
   getExpedienteDownloadDocMeta,
 } from '@/lib/expediente/descarga'
 import { parseActaNotarialFechaToDate } from '@/lib/expediente/acta-notarial-fecha'
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 function t(s: string | null | undefined): string {
   return (s ?? '').trim()
@@ -105,10 +105,8 @@ export async function handleEdictoDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteEdictoFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteEdictoQueryRow>(expedienteId, 'edicto')
   if (!row) return new NextResponse(null, { status: 404 })
 
   const data = expedienteRowToEdictoRenderData(row)

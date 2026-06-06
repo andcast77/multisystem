@@ -20,7 +20,7 @@ import {
 import { parseActaNotarialFechaToDate } from '@/lib/expediente/acta-notarial-fecha'
 import { departamentoNombreFromNomenclaturaCatastral } from '@/lib/format'
 
-import { prisma } from '@/lib/prisma'
+import { fetchExpedienteDocxRow } from '../fetch-render-row'
 
 const COSTADOS = ['Norte', 'Sur', 'Este', 'Oeste'] as const
 
@@ -203,10 +203,8 @@ export async function handleActaDownload(
   _ctx?: DynamicDocxRenderContext
 ): Promise<NextResponse> {
   void _ctx
-  const row = await prisma.expediente.findFirst({
-    where: { id: expedienteId, accountOwnerId: userId },
-    ...expedienteActaFindArgs,
-  })
+  void userId
+  const row = await fetchExpedienteDocxRow<ExpedienteActaQueryRow>(expedienteId, 'acta')
 
   if (!row) {
     console.warn('[acta-renderer] 404 expediente-not-found-for-user', {

@@ -1,7 +1,28 @@
-import type { Professional, ProfessionalRegistration } from '@prisma/client'
 import { z } from 'zod'
 import { DNI_DIGITS_PATTERN } from '@/lib/format'
 import { summarizeProfessionalTitles } from '@/lib/professional/registration-pick'
+
+type ProfessionalRegistration = {
+  licenseNumber: string
+  jurisdiction: string
+  bodyName: string | null
+}
+
+type Professional = {
+  displayName: string
+  phone: string | null
+  whatsapp: string | null
+  professionalEmail: string | null
+  addressLine1: string
+  addressLine2: string | null
+  locality: string
+  province: string
+  postalCode: string | null
+  websiteUrl: string | null
+  professionalTitle: 'AGRIMENSOR' | 'INGENIERO_AGRIMENSOR'
+  sexo: string
+  dni: string
+}
 
 /** Campos que pueden mostrarse en membrete, tarjeta o vista pública. El CUIT, DNI y el id interno no deben exponerse así. */
 export const PUBLIC_PROFILE_FIELD_KEYS = [

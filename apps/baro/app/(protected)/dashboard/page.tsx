@@ -1,6 +1,7 @@
 import { WorkspaceDashboard } from '@/components/app/workspace-dashboard'
 import { getSessionUserId } from '@/lib/auth/session'
-import { prisma } from '@/lib/prisma'
+import { serverBaroGetData } from '@/lib/api/server'
+import type { BaroExpedienteDto, BaroProfessionalDto } from '@multisystem/contracts'
 
 export default async function AppHomePage() {
   const userId = await getSessionUserId()
@@ -9,31 +10,25 @@ export default async function AppHomePage() {
     return <WorkspaceDashboard expedienteCount={0} professionalCount={0} recentExpedientes={[]} />
   }
 
-  const [expedienteCount, professionalCount, recentRows] = await Promise.all([
-    prisma.expediente.count({ where: { accountOwnerId: userId } }),
-    prisma.professional.count({ where: { accountOwnerId: userId } }),
-    prisma.expediente.findMany({
-      where: { accountOwnerId: userId },
-      orderBy: { updatedAt: 'desc' },
-      take: 8,
-      select: {
-        id: true,
-        nomenclaturaCatastral: true,
-        propietario: true,
-        updatedAt: true,
-      },
-    }),
+  const [expedientes, professionals] = await Promise.all([
+    serverBaroGetData<BaroExpedienteDto[]>('/expedientes'),
+    serverBaroGetData<BaroProfessionalDto[]>('/professionals/list'),
   ])
+
+  const rows = expedientes ?? []
+  const recentRows = [...rows]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 8)
 
   return (
     <WorkspaceDashboard
-      expedienteCount={expedienteCount}
-      professionalCount={professionalCount}
+      expedienteCount={rows.length}
+      professionalCount={professionals?.length ?? 0}
       recentExpedientes={recentRows.map((m) => ({
         id: m.id,
         nomenclaturaCatastral: m.nomenclaturaCatastral,
         propietario: m.propietario,
-        updatedAt: m.updatedAt.toISOString(),
+        updatedAt: m.updatedAt,
       }))}
     />
   )

@@ -1,11 +1,9 @@
-/**
- * Reglas de expediente que requieren servidor (Prisma). No importar desde componentes cliente.
- */
+'use server'
 
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
-
+import { serverBaroGetData } from '@/lib/api/server'
+import type { BaroProfessionalDto } from '@multisystem/contracts'
 import { principalSecondFromActuantes } from '@/lib/expediente/ui-shell'
 import type { ExpedienteActuantesInput } from '@/lib/expediente/ui-shell'
 
@@ -15,24 +13,19 @@ export type ExpedienteProfessionalsError = {
   fieldErrors: Record<string, string[]>
 }
 
-/**
- * Actuantes deben ser profesionales del estudio (`Professional.accountOwnerId`).
- */
+async function listCompanyProfessionals(): Promise<BaroProfessionalDto[]> {
+  return (await serverBaroGetData<BaroProfessionalDto[]>('/professionals/list')) ?? []
+}
+
 export async function assertExpedienteProfessionalsAllowed(
-  userId: string,
+  _userId: string,
   input: ExpedienteActuantesInput
 ): Promise<{ ok: true } | ExpedienteProfessionalsError> {
-  const rows = await prisma.professional.findMany({
-    where: { accountOwnerId: userId },
-    select: { id: true },
-  })
-
+  const rows = await listCompanyProfessionals()
   const allowedIds = new Set(rows.map((r) => r.id))
   const ids = input.actuantesIds.map((x) => x.trim()).filter(Boolean)
 
-  if (ids.length === 0) {
-    return { ok: true }
-  }
+  if (ids.length === 0) return { ok: true }
 
   const bad = ids.find((id) => !allowedIds.has(id))
   if (bad) {
@@ -48,9 +41,8 @@ export async function assertExpedienteProfessionalsAllowed(
   return { ok: true }
 }
 
-/** Alta de expediente: si no hay actuantes en borrador, usa titular o primer profesional activo solo para el FK legacy. */
 export async function resolvePrincipalForNewExpediente(
-  userId: string,
+  _userId: string,
   actuantesOrdered: string[]
 ): Promise<
   | { principalProfessionalId: string; secondProfessionalId: string | null }
@@ -60,21 +52,10 @@ export async function resolvePrincipalForNewExpediente(
     return principalSecondFromActuantes(actuantesOrdered)
   }
 
-  const owner = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { titularProfessionalId: true },
-  })
-  const pros = await prisma.professional.findMany({
-    where: { accountOwnerId: userId, active: true },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-  })
-  const pro =
-    (owner?.titularProfessionalId
-      ? pros.find((p) => p.id === owner.titularProfessionalId)
-      : null) ?? pros[0]
+  const pros = (await listCompanyProfessionals()).filter((p) => p.active)
+  const titular = pros.find((p) => p.isTitular) ?? pros[0]
 
-  if (!pro) {
+  if (!titular) {
     return {
       ok: false,
       message: 'No hay profesionales activos en el estudio.',
@@ -84,5 +65,5 @@ export async function resolvePrincipalForNewExpediente(
     }
   }
 
-  return { principalProfessionalId: pro.id, secondProfessionalId: null }
+  return { principalProfessionalId: titular.id, secondProfessionalId: null }
 }
