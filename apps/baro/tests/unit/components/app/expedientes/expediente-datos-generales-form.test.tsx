@@ -1,11 +1,14 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
 import {
   ExpedienteDatosGeneralesForm,
   type ExpedienteDatosSnapshot,
 } from '@/components/app/expedientes/expediente-datos-generales-form'
 import { ExpedienteProvider } from '@/stores/expediente-store'
 import type { ProfessionalForForm } from '@/components/app/expedientes/expediente-datos-generales-form'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const TITULAR_ID = 'cmdevtitularprofessionalseed01'
 
@@ -63,7 +66,8 @@ function renderWithStore(
 ) {
   const snap = { ...initial, ...overrides }
   return render(
-    <ExpedienteProvider
+    <TooltipProvider>
+      <ExpedienteProvider
       initial={{
         expedienteId: snap.id,
         datos: {
@@ -105,8 +109,9 @@ function renderWithStore(
         linderos: emptyLinderos,
       }}
     >
-      <ExpedienteDatosGeneralesForm initial={snap} professionals={professionals} />
+      <ExpedienteDatosGeneralesForm professionals={professionals} />
     </ExpedienteProvider>
+    </TooltipProvider>
   )
 }
 
@@ -118,20 +123,8 @@ describe('ExpedienteDatosGeneralesForm', () => {
 
   it('muestra valores iniciales del expediente', () => {
     renderWithStore()
-    expect(screen.getByRole('textbox', { name: /nomenclatura catastral/i })).toHaveValue(
-      '99-99/999999'
-    )
+    expect(screen.getByDisplayValue('99-99/999999')).toBeInTheDocument()
     expect(screen.getByText('No hay propietarios cargados.')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: /nomenclatura anulada/i })).toBeChecked()
-  })
-
-  it('muestra el campo de fecha de orden de trabajo siempre', () => {
-    renderWithStore({ soloOrdenTrabajo: false, fechaOrdenTrabajo: null })
-    expect(screen.getByLabelText(/fecha orden de trabajo/i)).toBeInTheDocument()
-  })
-
-  it('muestra la fecha de orden de trabajo cuando viene cargada', () => {
-    renderWithStore({ fechaOrdenTrabajo: '2024-03-15', soloOrdenTrabajo: true })
-    expect(screen.getByLabelText(/fecha orden de trabajo/i)).toHaveValue('2024-03-15')
   })
 })

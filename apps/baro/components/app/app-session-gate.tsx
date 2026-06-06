@@ -3,7 +3,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAccount } from '@/components/app/account-context'
-import { authApi } from '@/lib/api/client'
 
 let redirectScheduled = false
 
@@ -14,9 +13,9 @@ async function clearSessionAndRedirectToLogin(
   replace: (url: string) => void
 ) {
   try {
-    await authApi.post('/logout')
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
   } catch {
-    /* ignore */
+    /* cookies igual se limpian en el servidor si la petición llega */
   }
   const params = new URLSearchParams()
   if (fromPath && fromPath !== '/login') params.set('from', fromPath)
@@ -34,6 +33,10 @@ function reasonForFailedMe(lastMeStatus: number | null): string {
   return 'network'
 }
 
+/**
+ * El panel `/app` solo se muestra con sesión válida y `GET /api/auth/me` correcto.
+ * Si no hay usuario o la API falla, se cierra sesión y se vuelve al login.
+ */
 export function AppSessionGate({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading, lastMeStatus, error, refresh } = useAccount()
   const router = useRouter()
@@ -75,7 +78,7 @@ export function AppSessionGate({ children }: Readonly<{ children: ReactNode }>) 
     if (transientUpstream) {
       return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-[var(--app-sidebar-bg)] px-4 text-center text-[var(--app-sidebar-fg)]">
-          <p className="text-sm font-medium">Servidor ocupado</p>
+          <p className="text-sm font-medium">Servidor o base ocupados</p>
           <p className="max-w-sm text-xs text-[var(--app-sidebar-muted)]">
             {error ??
               'No pudimos validar tu sesión por un problema temporal. No cerramos tu sesión.'}

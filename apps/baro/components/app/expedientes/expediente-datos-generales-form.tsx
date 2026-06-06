@@ -61,6 +61,7 @@ export type ExpedienteDatosSnapshot = {
   actuantesProfessionalIds: string[]
   objetoExpedienteId: string
   nomenclaturaCatastral: string
+  nomenclaturaAnulada: boolean
   planoAntecedente: string | null
   loteFraccion: string | null
   domicilioParcela: string | null
@@ -146,34 +147,22 @@ export function ExpedienteDatosGeneralesForm({
     [ordenantes]
   )
 
-  /** Propietarios agregados solo desde esta sección (no duplicar ordenantes marcados como propietario). */
-  const propietariosDirectosSolo = useMemo(() => {
-    const ordenanteOwnerKeys = new Set(propietariosDeOrdenantes.map((o) => o._key))
-    return propietariosDirectos.filter((p) => !ordenanteOwnerKeys.has(p._key))
-  }, [propietariosDirectos, propietariosDeOrdenantes])
-
-  // Limpia duplicados legacy (antes se copiaban ordenantes a propietariosDirectos).
-  useEffect(() => {
-    if (propietariosDirectosSolo.length === propietariosDirectos.length) return
-    setPropietariosDirectos(propietariosDirectosSolo)
-  }, [propietariosDirectos, propietariosDirectosSolo, setPropietariosDirectos])
-
   // Sync datos.propietario / datos.domicilioPropietario from BOTH sources
   useEffect(() => {
     const nombres = [
       ...propietariosDeOrdenantes.map((p) => p.nombre),
-      ...propietariosDirectosSolo.map((p) => p.nombre),
+      ...propietariosDirectos.map((p) => p.nombre),
     ]
     const domicilios = [
       ...propietariosDeOrdenantes.map((p) => p.domicilio),
-      ...propietariosDirectosSolo.map((p) => p.domicilio),
+      ...propietariosDirectos.map((p) => p.domicilio),
     ]
     if (nombres.length === 0) return
     setDatos({
       propietario: nombres.join(' y '),
       domicilioPropietario: domicilios.join('; '),
     })
-  }, [propietariosDeOrdenantes, propietariosDirectosSolo, setDatos])
+  }, [propietariosDeOrdenantes, propietariosDirectos, setDatos])
 
   // ─── propietario dialog state ───────────────────────────────────────────────
   const [propDialogOpen, setPropDialogOpen] = useState(false)
@@ -193,24 +182,24 @@ export function ExpedienteDatosGeneralesForm({
   }
 
   const removePropietario = (key: string) => {
-    setPropietariosDirectos(propietariosDirectosSolo.filter((r) => r._key !== key))
+    setPropietariosDirectos(propietariosDirectos.filter((r) => r._key !== key))
   }
 
   const handleSavePropietario = () => {
     if (!isDraftValid(propDraft, true)) return
 
     const payload: PropietarioDirecto = {
-      _key: propEditingKey ?? `prop-${propietariosDirectosSolo.length}`,
+      _key: propEditingKey ?? `prop-${propietariosDirectos.length}`,
       nombre: propDraft.nombre.trim(),
       domicilio: propDraft.domicilio.trim(),
     }
 
     if (propEditingKey) {
       setPropietariosDirectos(
-        propietariosDirectosSolo.map((r) => (r._key === propEditingKey ? payload : r))
+        propietariosDirectos.map((r) => (r._key === propEditingKey ? payload : r))
       )
     } else {
-      setPropietariosDirectos([...propietariosDirectosSolo, payload])
+      setPropietariosDirectos([...propietariosDirectos, payload])
     }
 
     setPropDialogOpen(false)
@@ -302,7 +291,7 @@ export function ExpedienteDatosGeneralesForm({
         description="Titulares dominiales que figuran en memoria y escrituras. Agregalos acá o marcá «Es propietario» en el diálogo de ordenantes."
       >
         <div className="flex flex-col gap-4">
-          {propietariosDeOrdenantes.length === 0 && propietariosDirectosSolo.length === 0 ? (
+          {propietariosDeOrdenantes.length === 0 && propietariosDirectos.length === 0 ? (
             <p className="text-sm text-[var(--color-muted)]">No hay propietarios cargados.</p>
           ) : (
             <ul className="flex flex-col gap-3">
@@ -361,7 +350,7 @@ export function ExpedienteDatosGeneralesForm({
                 </li>
               ))}
               {/* Propietarios directos (editables) */}
-              {propietariosDirectosSolo.map((row) => (
+              {propietariosDirectos.map((row) => (
                 <li key={row._key}>
                   <Card
                     size="sm"
@@ -515,6 +504,28 @@ export function ExpedienteDatosGeneralesForm({
                 <FieldError>{fe('nomenclaturaCatastral')}</FieldError>
               )}
             </Field>
+
+            <div className="flex shrink-0 flex-col gap-2">
+              <span
+                className="block text-sm leading-none font-medium text-transparent select-none"
+                aria-hidden="true"
+              >
+                label
+              </span>
+              <label className="flex h-11 w-max max-w-full cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-border)]/80 bg-[var(--color-muted-bg)]/20 px-3 sm:px-4">
+                <input
+                  type="checkbox"
+                  name="nomenclaturaAnulada"
+                  aria-label="Nomenclatura anulada"
+                  checked={datos.nomenclaturaAnulada}
+                  onChange={(e) => setDatos({ nomenclaturaAnulada: e.target.checked })}
+                  className="h-4 w-4 shrink-0 accent-[var(--accent-bright)]"
+                />
+                <span className="text-sm leading-snug whitespace-nowrap text-[var(--color-heading)]">
+                  Nomenclatura anulada
+                </span>
+              </label>
+            </div>
 
             <div className="flex shrink-0 flex-col gap-2">
               <span

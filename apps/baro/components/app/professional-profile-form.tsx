@@ -22,8 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Trash2 } from 'lucide-react'
-import { baroApi } from '@/lib/api/client'
-import type { ApiResponse } from '@multisystem/contracts'
+import { cn } from '@/lib/utils'
 
 export type ProfessionalTitleChoice = 'AGRIMENSOR' | 'INGENIERO_AGRIMENSOR'
 
@@ -209,25 +208,33 @@ export function ProfessionalProfileForm({
       setError(null)
       try {
         if (variant === 'titular') {
-          const res = await baroApi.get<ApiResponse<{ profile: ApiProfile | null }>>('/profile')
-          if (!res.success) {
-            if (!cancelled) setError(res.message ?? 'No se pudo cargar el perfil.')
+          const res = await fetch('/api/auth/profile', { credentials: 'include' })
+          const data = (await res.json().catch(() => ({}))) as {
+            profile?: ApiProfile | null
+            message?: string
+          }
+          if (!res.ok) {
+            if (!cancelled) setError(data.message ?? 'No se pudo cargar el perfil.')
             return
           }
-          if (res.data?.profile) {
-            hydrateFromProfile(res.data.profile as ApiProfile)
+          if (data.profile) {
+            hydrateFromProfile(data.profile)
           }
         } else {
           if (collaboratorId) {
-            const res = await baroApi.get<ApiResponse<{ professional: ApiProfile }>>(
-              `/professionals/${collaboratorId}`
-            )
-            if (!res.success) {
-              if (!cancelled) setError(res.message ?? 'No se pudo cargar el colaborador.')
+            const res = await fetch(`/api/auth/associated-professionals/${collaboratorId}`, {
+              credentials: 'include',
+            })
+            const data = (await res.json().catch(() => ({}))) as {
+              professional?: ApiProfile
+              message?: string
+            }
+            if (!res.ok) {
+              if (!cancelled) setError(data.message ?? 'No se pudo cargar el colaborador.')
               return
             }
-            if (res.data?.professional) {
-              hydrateFromProfile(res.data.professional)
+            if (data.professional) {
+              hydrateFromProfile(data.professional)
             }
           } else {
             resetEmptyCollaborator()
@@ -277,29 +284,58 @@ export function ProfessionalProfileForm({
     }
     try {
       if (variant === 'titular') {
-        const data = await baroApi.patch<ApiResponse<{ profile: ApiProfile }>>('/profile', payload)
-        if (!data.success) {
-          setIssues([])
-          setError(data.message ?? 'No se pudo guardar.')
+        const res = await fetch('/api/auth/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          issues?: { path: (string | number)[]; message: string }[]
+          message?: string
+          profile?: ApiProfile
+        }
+        if (!res.ok) {
+          if (data.issues?.length) {
+            setIssues(data.issues)
+            setError(null)
+          } else {
+            setIssues([])
+            setError(data.message ?? 'No se pudo guardar.')
+          }
           return
         }
-        if (data.data?.profile) hydrateFromProfile(data.data.profile)
+        if (data.profile) hydrateFromProfile(data.profile)
         void refreshAccount({ silent: true })
       } else {
-        const data = collaboratorId
-          ? await baroApi.patch<ApiResponse<{ professional: ApiProfile }>>(
-              `/professionals/${collaboratorId}`,
-              payload
-            )
-          : await baroApi.post<ApiResponse<{ professional: ApiProfile }>>('/professionals', payload)
-        if (!data.success) {
-          setIssues([])
-          setError(data.message ?? 'No se pudo guardar.')
+        const url = collaboratorId
+          ? `/api/auth/associated-professionals/${collaboratorId}`
+          : '/api/auth/associated-professionals'
+        const method = collaboratorId ? 'PATCH' : 'POST'
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          issues?: { path: (string | number)[]; message: string }[]
+          message?: string
+          professional?: ApiProfile
+        }
+        if (!res.ok) {
+          if (data.issues?.length) {
+            setIssues(data.issues)
+            setError(null)
+          } else {
+            setIssues([])
+            setError(data.message ?? 'No se pudo guardar.')
+          }
           return
         }
-        if (data.data?.professional) {
-          hydrateFromProfile(data.data.professional)
-          onCollaboratorSaved?.(data.data.professional)
+        if (data.professional) {
+          hydrateFromProfile(data.professional)
+          onCollaboratorSaved?.(data.professional)
         }
         void refreshAccount({ silent: true })
       }

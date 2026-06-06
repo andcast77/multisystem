@@ -119,6 +119,7 @@ export type BaroExpedienteTituloRelacionDto = {
 }
 
 export type BaroExpedienteDetailDto = BaroExpedienteDto & {
+  nomenclaturaAnulada: boolean
   planoAntecedente: string | null
   loteFraccion: string | null
   domicilioParcela: string | null
@@ -170,6 +171,7 @@ export type BaroMeResponse = {
 export type CreateBaroExpedienteInput = {
   objetoExpedienteId: string
   nomenclaturaCatastral: string
+  nomenclaturaAnulada?: boolean
   propietario: string
   principalProfessionalId: string
   secondProfessionalId?: string

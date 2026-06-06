@@ -268,6 +268,8 @@ export function OrdenanteFormDialog({
 export function ExpedienteOrdenantesPanel() {
   const ordenantes = useExpedienteStore((s) => s.ordenantes)
   const setOrdenantes = useExpedienteStore((s) => s.setOrdenantes)
+  const setPropietariosDirectos = useExpedienteStore((s) => s.setPropietariosDirectos)
+  const propietariosDirectos = useExpedienteStore((s) => s.propietariosDirectos)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
@@ -288,6 +290,11 @@ export function ExpedienteOrdenantesPanel() {
   }
 
   const removeRow = (key: string) => {
+    const removed = rows.find((r) => r._key === key)
+    if (removed?.esPropietario) {
+      // Also remove the corresponding direct propietario if it exists
+      setPropietariosDirectos(propietariosDirectos.filter((p) => p._key !== key))
+    }
     setOrdenantes(rows.filter((r) => r._key !== key))
   }
 
@@ -309,9 +316,21 @@ export function ExpedienteOrdenantesPanel() {
     }
 
     if (editingKey) {
+      const prev = rows.find((r) => r._key === editingKey)
       setOrdenantes(rows.map((r) => (r._key === editingKey ? payload : r)))
+      // If esPropietario changed, sync propietariosDirectos
+      if (prev && prev.esPropietario !== payload.esPropietario) {
+        if (payload.esPropietario) {
+          setPropietariosDirectos([...propietariosDirectos, { _key: payload._key, nombre: payload.nombre, domicilio: payload.domicilio }])
+        } else {
+          setPropietariosDirectos(propietariosDirectos.filter((p) => p._key !== payload._key))
+        }
+      }
     } else {
       setOrdenantes([...rows, payload])
+      if (payload.esPropietario) {
+        setPropietariosDirectos([...propietariosDirectos, { _key: payload._key, nombre: payload.nombre, domicilio: payload.domicilio }])
+      }
     }
 
     setDialogOpen(false)

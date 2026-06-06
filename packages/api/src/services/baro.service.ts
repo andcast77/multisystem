@@ -540,6 +540,7 @@ export async function getExpedienteDetail(ctx: CompanyContext, id: string) {
     motivoFiscalia: row.motivoFiscalia,
     municipio: row.municipio,
     requiereVisacionMunicipal: row.requiereVisacionMunicipal,
+    nomenclaturaAnulada: row.nomenclaturaAnulada,
     publicacionEdictoFecha: row.publicacionEdictoFecha,
     publicacionEdictoNumero: row.publicacionEdictoNumero,
     boletinOficialNota: row.boletinOficialNota,
@@ -714,6 +715,7 @@ export async function createExpediente(
         createdById: ctx.userId,
         objetoExpedienteId: body.objetoExpedienteId,
         nomenclaturaCatastral: body.nomenclaturaCatastral,
+        nomenclaturaAnulada: body.nomenclaturaAnulada ?? false,
         propietario: body.propietario,
         principalProfessionalId,
         secondProfessionalId,
@@ -777,6 +779,7 @@ export async function updateExpedienteFull(
     actuantesIds?: string[]
     objetoExpedienteId?: string
     nomenclaturaCatastral?: string
+    nomenclaturaAnulada?: boolean
     planoAntecedente?: string | null
     loteFraccion?: string | null
     domicilioParcela?: string | null
@@ -886,6 +889,7 @@ export async function updateExpedienteFull(
         secondProfessionalId,
         objetoExpedienteId: datos.objetoExpedienteId ?? '',
         nomenclaturaCatastral: datos.nomenclaturaCatastral ?? '',
+        nomenclaturaAnulada: datos.nomenclaturaAnulada ?? false,
         planoAntecedente: optTrim(datos.planoAntecedente ?? null),
         loteFraccion: optTrim(datos.loteFraccion ?? null),
         domicilioParcela: optTrim(datos.domicilioParcela ?? null),

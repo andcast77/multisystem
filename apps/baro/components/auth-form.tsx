@@ -6,13 +6,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { authApi } from '@/lib/api/client'
-import type { ApiResponse, LoginResponse } from '@multisystem/contracts'
 
 type Mode = 'login' | 'register'
-
-const HUB_REGISTER_URL =
-  (process.env.NEXT_PUBLIC_HUB_URL?.replace(/\/$/, '') || 'http://localhost:3001') + '/register'
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter()
@@ -23,7 +18,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
     sessionReason === 'session'
       ? 'Tu sesión expiró o dejó de ser válida. Volvé a ingresar.'
       : sessionReason === 'server'
-        ? 'El servidor no pudo validar tu cuenta. Probá de nuevo en unos minutos.'
+        ? 'El servidor no pudo validar tu cuenta (suele ser base de datos o configuración). Si administrás el sistema, revisá DATABASE_URL, migraciones y los logs del servidor.'
         : sessionReason === 'account'
           ? 'No pudimos obtener los datos de tu cuenta.'
           : sessionReason === 'network'
@@ -35,47 +30,27 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  if (mode === 'register') {
-    const hubUrl = new URL(HUB_REGISTER_URL)
-    searchParams.forEach((value, key) => {
-      if (key !== 'from') hubUrl.searchParams.set(key, value)
-    })
-    return (
-      <div className="mt-8 flex flex-col gap-4">
-        <p className="text-sm text-[var(--color-muted)]">
-          El registro de cuentas se realiza desde el Hub de Multisystem.
-        </p>
-        <Button asChild className="mt-2 w-full rounded-full">
-          <a href={hubUrl.toString()}>Ir al registro en Hub</a>
-        </Button>
-        <p className="text-center text-sm text-[var(--color-muted)]">
-          ¿Ya tenés cuenta?{' '}
-          <Link
-            href={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-            className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
-          >
-            Ingresá
-          </Link>
-        </p>
-      </div>
-    )
-  }
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setPending(true)
     try {
-      const res = await authApi.post<ApiResponse<LoginResponse>>('/login', { email, password })
-      if (!res.success) {
-        setError(res.message ?? res.error ?? 'No se pudo completar la solicitud.')
+      const path = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      })
+      const data = (await res.json().catch(() => ({}))) as { message?: string }
+
+      if (!res.ok) {
+        setError(data.message ?? 'No se pudo completar la solicitud.')
         return
       }
 
       router.push(from)
       router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo completar la solicitud.')
     } finally {
       setPending(false)
     }
@@ -109,7 +84,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="auth-password"
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           required
           minLength={8}
           value={password}
@@ -122,16 +97,30 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </p>
       ) : null}
       <Button type="submit" className="mt-2 w-full rounded-full" disabled={pending}>
-        {pending ? 'Procesando…' : 'Ingresar'}
+        {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar' : 'Crear cuenta'}
       </Button>
       <p className="text-center text-sm text-[var(--color-muted)]">
-        ¿No tenés cuenta?{' '}
-        <Link
-          href={`/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-          className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
-        >
-          Registrate
-        </Link>
+        {mode === 'login' ? (
+          <>
+            ¿No tenés cuenta?{' '}
+            <Link
+              href={`/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+              className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
+            >
+              Registrate
+            </Link>
+          </>
+        ) : (
+          <>
+            ¿Ya tenés cuenta?{' '}
+            <Link
+              href={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+              className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
+            >
+              Ingresá
+            </Link>
+          </>
+        )}
       </p>
     </form>
   )

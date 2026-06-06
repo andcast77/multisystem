@@ -38,6 +38,7 @@ function makeEmptyDatos(actuantesIds: string[]): DatosFields {
     actuantesIds,
     objetoExpedienteId: '',
     nomenclaturaCatastral: '',
+    nomenclaturaAnulada: false,
     planoAntecedente: '',
     loteFraccion: '',
     domicilioParcela: '',

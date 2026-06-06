@@ -1,24 +1,23 @@
-import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-const AUTH_SESSION_COOKIE = 'ms_session'
-const AUTH_REFRESH_COOKIE = 'ms_refresh'
+import { NextResponse } from 'next/server'
+import { ACCESS_COOKIE, isAuthenticatedRequest, isAuthEnabled } from '@/lib/auth/client'
 
 const publicRoutes = ['/', '/login', '/register']
 
 export async function proxy(request: NextRequest) {
+  if (!isAuthEnabled()) {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl
-  const isPublic = publicRoutes.includes(pathname)
+  const isPublic = publicRoutes.includes(pathname) || pathname.startsWith('/api/')
 
   if (isPublic) {
     return NextResponse.next()
   }
 
-  const hasSession =
-    Boolean(request.cookies.get(AUTH_SESSION_COOKIE)?.value) ||
-    Boolean(request.cookies.get(AUTH_REFRESH_COOKIE)?.value)
-
-  if (hasSession) {
+  const token = request.cookies.get(ACCESS_COOKIE)?.value
+  if (await isAuthenticatedRequest(token)) {
     return NextResponse.next()
   }
 

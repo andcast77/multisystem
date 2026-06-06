@@ -11,6 +11,7 @@ export type DatosFields = {
   actuantesIds: string[]
   objetoExpedienteId: string
   nomenclaturaCatastral: string
+  nomenclaturaAnulada: boolean
   planoAntecedente: string
   loteFraccion: string
   domicilioParcela: string

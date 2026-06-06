@@ -127,6 +127,7 @@ export default async function ExpedienteDetallePage({
     actuantesProfessionalIds,
     objetoExpedienteId: m.objetoExpedienteId,
     nomenclaturaCatastral: m.nomenclaturaCatastral,
+    nomenclaturaAnulada: m.nomenclaturaAnulada,
     planoAntecedente: m.planoAntecedente,
     loteFraccion: m.loteFraccion,
     domicilioParcela: m.domicilioParcela,

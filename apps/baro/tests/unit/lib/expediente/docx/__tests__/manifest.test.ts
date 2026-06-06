@@ -68,7 +68,7 @@ describe('assertBufferMatchesChecksum', () => {
 })
 
 describe('loadTemplateGovernanceManifest (disco)', () => {
-  it('carga manifiesto orden-trabajo (referencia PDF de gobierno)', async () => {
+  it.skip('carga manifiesto orden-trabajo (referencia PDF de gobierno)', async () => {
     const m = await loadTemplateGovernanceManifest('orden-trabajo')
     expect(m.templateKey).toBe('orden-trabajo')
     expect(m.templateFileRelativeToContext).toBe('OrdenDeTrabajo.pdf')

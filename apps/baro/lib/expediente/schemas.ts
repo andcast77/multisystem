@@ -398,6 +398,7 @@ export const expedienteNuevaSchema = z
       .min(1, 'Seleccioná el objeto del expediente.')
       .refine((v) => isObjetoExpedienteId(v), { message: 'Objeto del expediente no válido.' }),
     nomenclaturaCatastral: zNomenclaturaCatastral,
+    nomenclaturaAnulada: z.boolean().default(false),
     planoAntecedente: z.string().trim().max(120).optional(),
     loteFraccion: z.string().trim().max(200).optional(),
     domicilioParcela: z.string().trim().max(500).optional(),
@@ -454,6 +455,7 @@ export function parseExpedienteNuevaFormData(fd: FormData): Record<string, unkno
     actuantesIds,
     objetoExpedienteId: formDataStr(fd, 'objetoExpedienteId'),
     nomenclaturaCatastral: formDataStr(fd, 'nomenclaturaCatastral'),
+    nomenclaturaAnulada: formDataBool(fd, 'nomenclaturaAnulada'),
     planoAntecedente: formDataStr(fd, 'planoAntecedente'),
     loteFraccion: formDataStr(fd, 'loteFraccion'),
     domicilioParcela: formDataStr(fd, 'domicilioParcela'),
@@ -485,6 +487,7 @@ export function parseExpedienteDatosGeneralesFormData(fd: FormData): Record<stri
     actuantesIds: fd.getAll('actuantesIds').map(String),
     objetoExpedienteId: str('objetoExpedienteId'),
     nomenclaturaCatastral: str('nomenclaturaCatastral'),
+    nomenclaturaAnulada: bool('nomenclaturaAnulada'),
     planoAntecedente: str('planoAntecedente') || undefined,
     loteFraccion: str('loteFraccion') || undefined,
     domicilioParcela: str('domicilioParcela') || undefined,

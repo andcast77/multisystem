@@ -52,7 +52,7 @@ describe('ProfessionalsList — shadcn Table + AlertDialog migration', () => {
       </TooltipProvider>
     )
     await userEvent.click(screen.getByRole('button', { name: /eliminar/i }))
-    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    expect(await screen.findByText('¿Eliminar profesional?')).toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
   })

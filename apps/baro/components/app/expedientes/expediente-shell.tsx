@@ -255,6 +255,7 @@ export function ExpedienteShell({
     actuantesIds: [...datosSnapshot.actuantesProfessionalIds],
     objetoExpedienteId: datosSnapshot.objetoExpedienteId,
     nomenclaturaCatastral: datosSnapshot.nomenclaturaCatastral,
+    nomenclaturaAnulada: datosSnapshot.nomenclaturaAnulada,
     planoAntecedente: datosSnapshot.planoAntecedente ?? '',
     loteFraccion: datosSnapshot.loteFraccion ?? '',
     domicilioParcela: datosSnapshot.domicilioParcela ?? '',

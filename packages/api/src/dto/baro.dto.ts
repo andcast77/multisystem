@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const createBaroExpedienteSchema = z.object({
   objetoExpedienteId: z.string().trim().min(1),
   nomenclaturaCatastral: z.string().trim().min(1),
+  nomenclaturaAnulada: z.boolean().optional(),
   propietario: z.string().trim().min(1),
   principalProfessionalId: z.string().uuid(),
   secondProfessionalId: z.string().uuid().optional(),

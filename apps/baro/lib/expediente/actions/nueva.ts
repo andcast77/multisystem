@@ -60,6 +60,7 @@ export async function submitExpedienteNueva(
     const res = await serverBaroPost<ApiResponse<BaroExpedienteDto>>('/expedientes', {
       objetoExpedienteId: d.objetoExpedienteId,
       nomenclaturaCatastral: d.nomenclaturaCatastral,
+      nomenclaturaAnulada: d.nomenclaturaAnulada,
       propietario: d.propietario,
       principalProfessionalId,
       secondProfessionalId: secondProfessionalId ?? undefined,
