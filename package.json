@@ -10,6 +10,8 @@
     "dev:shopflow": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/shopflow",
     "dev:techservices": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/techservices",
     "dev:workify": "turbo run dev --filter=@multisystem/ui --filter=@multisystem/workify",
+    "dev:baro": "turbo run dev --filter=@multisystem/baro",
+    "dev:balance": "turbo run dev --filter=@multisystem/balance",
     "dev:ui": "turbo run dev --filter=@multisystem/ui",
     "build": "turbo run build",
     "build:shopflow": "turbo run build --filter=@multisystem/shopflow",

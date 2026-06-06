@@ -5,8 +5,12 @@
 #
 # Usage: docker compose up -d
 
+api.multisystem.app {
+    reverse_proxy api:3000
+}
+
 baro.multisystem.app {
-    reverse_proxy baro:3000
+    reverse_proxy baro:3006
 }
 
 hub.multisystem.app {

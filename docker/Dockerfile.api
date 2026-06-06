@@ -1,0 +1,39 @@
+# Production image for @multisystem/api (shared Postgres migrations on startup).
+# Build from monorepo root: docker build -f docker/Dockerfile.api .
+
+ARG NODE_VERSION=20-alpine
+
+FROM node:${NODE_VERSION} AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/*/package.json ./packages/
+COPY apps/*/package.json ./apps/
+RUN pnpm fetch
+
+FROM deps AS builder
+COPY . .
+RUN pnpm install --offline
+RUN pnpm --filter @multisystem/database... build
+RUN pnpm --filter @multisystem/api build
+
+FROM base AS runner
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 apiuser
+
+COPY --from=builder --chown=apiuser:nodejs /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
+COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
+COPY docker/api-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+WORKDIR /app
+USER apiuser
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "packages/api/dist/server.js"]

@@ -1,5 +1,12 @@
+# Unified multisystem stack — shared Postgres, central API, Caddy, six Next.js apps.
+# Usage: docker compose up --build -d
+
+x-app-env: &app-env
+  NEXT_PUBLIC_API_URL: http://localhost:3000
+  API_INTERNAL_URL: http://api:3000
+  NODE_ENV: production
+
 services:
-  # ── Shared Postgres (used by @multisystem/api and other shared services) ──
   postgres:
     image: postgres:16-alpine
     container_name: multisystem-db
@@ -8,57 +15,145 @@ services:
       POSTGRES_USER: multisystem
       POSTGRES_PASSWORD: multisystem
       POSTGRES_DB: multisystem
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - caddy_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U multisystem -d multisystem']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # ── Reverse Proxy ──
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: multisystem-api
+    restart: unless-stopped
+    environment:
+      PORT: '3000'
+      NODE_ENV: production
+      DATABASE_URL: postgresql://multisystem:multisystem@postgres:5432/multisystem
+      JWT_SECRET: dev-docker-jwt-secret-change-in-production
+      FIELD_ENCRYPTION_KEY: ZGV2LWRvY2tlci1maWVsZC1lbmNyeXB0aW9uLWtleQ==
+      CORS_ORIGIN: >-
+        http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:3006,
+        https://api.multisystem.app,https://hub.multisystem.app,https://shopflow.multisystem.app,https://workify.multisystem.app,https://techservices.multisystem.app,https://balance.multisystem.app,https://baro.multisystem.app
+      TRUST_PROXY: 'true'
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - caddy_network
+
   caddy:
     image: caddy:2-alpine
     container_name: multisystem-caddy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
     networks:
       - caddy_network
+    depends_on:
+      - api
+      - hub
+      - shopflow
+      - workify
+      - techservices
+      - balance
+      - baro
 
-  # ── Baro (Next.js app) ──
+  hub:
+    build:
+      context: .
+      dockerfile: apps/hub/Dockerfile
+    container_name: multisystem-hub
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_HUB_URL: http://localhost:3001
+    networks:
+      - caddy_network
+    depends_on:
+      - api
+
+  shopflow:
+    build:
+      context: .
+      dockerfile: apps/shopflow/Dockerfile
+    container_name: multisystem-shopflow
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_SHOPFLOW_URL: http://localhost:3002
+    networks:
+      - caddy_network
+    depends_on:
+      - api
+
+  workify:
+    build:
+      context: .
+      dockerfile: apps/workify/Dockerfile
+    container_name: multisystem-workify
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_WORKIFY_URL: http://localhost:3003
+    networks:
+      - caddy_network
+    depends_on:
+      - api
+
+  techservices:
+    build:
+      context: .
+      dockerfile: apps/techservices/Dockerfile
+    container_name: multisystem-techservices
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_TECHSERVICES_URL: http://localhost:3004
+    networks:
+      - caddy_network
+    depends_on:
+      - api
+
+  balance:
+    build:
+      context: .
+      dockerfile: apps/balance/Dockerfile
+    container_name: multisystem-balance
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_BALANCE_URL: http://localhost:3005
+    networks:
+      - caddy_network
+    depends_on:
+      - api
+
   baro:
     build:
       context: .
       dockerfile: apps/baro/Dockerfile
-    container_name: baro
+    container_name: multisystem-baro
     restart: unless-stopped
-    ports:
-      - "3000"
-    env_file: apps/baro/.env
+    environment:
+      <<: *app-env
+      NEXT_PUBLIC_HUB_URL: http://localhost:3001
+      NEXT_PUBLIC_BARO_URL: http://localhost:3006
     networks:
       - caddy_network
     depends_on:
-      - baro-db
-
-  # ── Baro Database ──
-  baro-db:
-    image: postgres:16-alpine
-    container_name: baro-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: baro
-      POSTGRES_PASSWORD: baro
-      POSTGRES_DB: baro
-    ports:
-      - "5433:5432"
-    volumes:
-      - baro_pgdata:/var/lib/postgresql/data
-    networks:
-      - caddy_network
+      - api
 
 networks:
   caddy_network:
@@ -68,4 +163,3 @@ networks:
 volumes:
   postgres_data:
   caddy_data:
-  baro_pgdata:

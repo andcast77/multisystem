@@ -4,7 +4,8 @@ import { cookies } from 'next/headers'
 import { ApiClient } from '@multisystem/shared'
 import type { ApiResponse } from '@multisystem/contracts'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_URL =
+  process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 async function forwardCookieHeader(): Promise<HeadersInit> {
   const jar = await cookies()
