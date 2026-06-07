@@ -1,5 +1,5 @@
 {
-  "$schema": "https://turborepo.org/schema.json",
+  "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "AUTH_SESSION_INSECURE",
     "CORS_ORIGIN",
@@ -44,18 +44,20 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**",
-        "generated/**"
-      ],
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "generated/**"],
       "env": [
         "AUTH_SESSION_INSECURE",
-        "FIELD_ENCRYPTION_KEY"
+        "FIELD_ENCRYPTION_KEY",
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_HUB_URL",
+        "NEXT_PUBLIC_SHOPFLOW_URL",
+        "NEXT_PUBLIC_TECHSERVICES_URL",
+        "NEXT_PUBLIC_WORKIFY_URL",
+        "NEXT_PUBLIC_BALANCE_URL",
+        "NEXT_PUBLIC_BARO_URL",
+        "API_INTERNAL_URL",
+        "NODE_ENV"
       ]
     },
     "dev": {
@@ -63,45 +65,15 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     },
     "typecheck": {
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [],
       "cache": false
-    },
-
-    "@multisystem/baro#build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**"
-      ]
-    },
-    "@multisystem/baro#dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "@multisystem/baro#typecheck": {
-      "dependsOn": [
-        "^build"
-      ]
-    },
-    "@multisystem/baro#lint": {
-      "dependsOn": [
-        "^build"
-      ]
     }
   }
 }
