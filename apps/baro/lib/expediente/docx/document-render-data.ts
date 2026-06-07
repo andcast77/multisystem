@@ -87,8 +87,6 @@ const ordenTrabajoInclude = {
   },
 }
 
-export type ExpedienteOrdenTrabajoQueryRow = Record<string, unknown>
-
 export const expedienteOrdenTrabajoFindArgs = {
   include: ordenTrabajoInclude,
 }
@@ -135,6 +133,17 @@ export type ProfesionalWithRegistrations = Professional & {
   registrations: ProfessionalRegistration[]
 }
 
+export type ExpedienteOrdenTrabajoQueryRow = {
+  objetoExpedienteId: string
+  fechaOrdenTrabajo: Date | string | null
+  ordenantes: OrdenTrabajoOrdenanteDto[]
+  principalProfessional: ProfesionalWithRegistrations
+  secondProfessional?: ProfesionalWithRegistrations | null
+  nomenclaturaCatastral: string
+  parcial: boolean
+  domicilioParcela: string | null
+}
+
 /** Include fragment reutilizable en cualquier query que necesite datos del profesional. */
 export const profesionalConRegistracionesInclude = {
   include: { registrations: { orderBy: { createdAt: 'asc' as const } } },
@@ -170,7 +179,7 @@ function mapProfesional(p: ProfesionalWithRegistrations): OrdenTrabajoProfesiona
 }
 
 function mapOrdenantes(row: ExpedienteOrdenTrabajoQueryRow): OrdenTrabajoOrdenanteDto[] {
-   return row.ordenantes.map((o) => ({
+  return row.ordenantes.map((o) => ({
      orden: o.orden,
      nombre: o.nombre.trim(),
      documento: o.documento.trim(),
@@ -229,8 +238,12 @@ export function formatOrdenTrabajoFechaNumeroyLetra(fechaYYYYMMDD: string): stri
   return `${dNum} de ${mesTxt} de ${yNum}`
 }
 
-function buildFechaLine(fechaOrdenTrabajo: string | null): string {
-  const t = (fechaOrdenTrabajo?.trim() ?? '') || ''
+function buildFechaLine(fechaOrdenTrabajo: string | Date | null): string {
+  const raw =
+    fechaOrdenTrabajo instanceof Date
+      ? fechaOrdenTrabajo.toISOString().slice(0, 10)
+      : fechaOrdenTrabajo
+  const t = (raw?.trim() ?? '') || ''
   if (!t) return 'San Juan'
   const numeroyLetra = formatOrdenTrabajoFechaNumeroyLetra(t)
   return numeroyLetra ? `San Juan, ${numeroyLetra}` : `San Juan, ${t}`
@@ -253,10 +266,8 @@ export function expedienteRowToOrdenTrabajoRenderData(
   return {
     fechaOrdenTrabajoLinea: buildFechaLine(row.fechaOrdenTrabajo),
     ordenantes: mapOrdenantes(row),
-    principal: mapProfesional(row.principalProfessional as ProfesionalWithRegistrations),
-    segundo: row.secondProfessional
-      ? mapProfesional(row.secondProfessional as ProfesionalWithRegistrations)
-      : null,
+    principal: mapProfesional(row.principalProfessional),
+    segundo: row.secondProfessional ? mapProfesional(row.secondProfessional) : null,
     tipoMensuraLabel,
     nomenclaturaCatastral: row.nomenclaturaCatastral.trim(),
     parcial: row.parcial,
@@ -294,7 +305,8 @@ export type ColindanteDto = {
   dirigidoA: string
 }
 
-function mapPrismaColindanteToDto(c: {
+/** Raw colindante row from API docx-data payloads (before mapPrismaColindanteToDto). */
+type ColindanteQueryRow = {
   id: string
   orden: number
   distancia: string
@@ -305,7 +317,36 @@ function mapPrismaColindanteToDto(c: {
   domicilioTitularColindante: string
   dirigidoA: string
   nomenclaturas: { nomenclatura: string; rumbo: string }[]
-}): ColindanteDto {
+}
+
+type OrdenanteQueryRow = OrdenTrabajoOrdenanteDto
+
+type ExpedienteDocxProfessionalFields = {
+  objetoExpedienteId: string
+  nomenclaturaCatastral: string
+  propietario: string
+  parcial: boolean
+  principalProfessional: ProfesionalWithRegistrations
+  secondProfessional?: ProfesionalWithRegistrations | null
+}
+
+export type LinderoPuntoDto = {
+  orden: number
+  tipo: string
+  direccion: string
+  descripcion: string
+  medida: string
+}
+
+type LinderosQueryRow = {
+  superficieTotal: string
+  superficieSegun: string
+  fechaRelacionTitulos: string
+  observacionesGenerales: string
+  puntos: LinderoPuntoDto[]
+}
+
+function mapPrismaColindanteToDto(c: ColindanteQueryRow): ColindanteDto {
   return {
     id: c.id,
     orden: c.orden,
@@ -347,7 +388,16 @@ const citacionInclude = {
   secondProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteCitacionQueryRow = Record<string, unknown>
+export type ExpedienteCitacionQueryRow = ExpedienteDocxProfessionalFields & {
+  municipio?: string | null
+  domicilioParcela?: string | null
+  inscripcionDominio?: string | null
+  lugarReunion?: string | null
+  toleranciaActa?: string | null
+  publicacionEdictoFecha?: string | null
+  actaNotarialFecha?: string | null
+  colindantes: ColindanteQueryRow[]
+}
 
 export const expedienteCitacionFindArgs = {
   include: citacionInclude,
@@ -436,7 +486,16 @@ const edictoInclude = {
   secondProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteEdictoQueryRow = Record<string, unknown>
+export type ExpedienteEdictoQueryRow = ExpedienteDocxProfessionalFields & {
+  domicilioParcela?: string | null
+  lugarReunion?: string | null
+  toleranciaActa?: string | null
+  actaNotarialFecha?: string | null
+  llevPublicacionEdictos: boolean
+  medioPublicacion?: string | null
+  publicacionEdictoFecha?: string | null
+  colindantes: ColindanteQueryRow[]
+}
 
 export const expedienteEdictoFindArgs = {
   include: edictoInclude,
@@ -462,7 +521,7 @@ export function expedienteRowToEdictoRenderData(row: ExpedienteEdictoQueryRow): 
     segundo: row.secondProfessional ? mapProfesionalToDto(row.secondProfessional) : null,
     colindanteTitular: (row.colindantes[0]?.colindante?.trim() ?? '') || '',
     colindanteNomenclatura: (row.colindantes[0]?.nomenclaturas ?? [])
-      .map((n) => n.nomenclatura.trim())
+      .map((n: ColindanteNomenclaturaDto) => n.nomenclatura.trim())
       .filter(Boolean)
       .join(' · '),
   }
@@ -502,7 +561,20 @@ const actaInclude = {
   secondProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteActaQueryRow = Record<string, unknown>
+export type ExpedienteActaQueryRow = ExpedienteDocxProfessionalFields & {
+  domicilioParcela?: string | null
+  inscripcionDominio?: string | null
+  publicacionEdictoFecha?: string | null
+  publicacionEdictoNumero?: string | null
+  boletinOficialNota?: string | null
+  medioPublicacion?: string | null
+  actaNotarialFecha?: string | null
+  lugarReunion?: string | null
+  toleranciaActa?: string | null
+  publicacionActaObservaciones?: string | null
+  llevPublicacionEdictos: boolean
+  ordenantes: OrdenanteQueryRow[]
+}
 
 export const expedienteActaFindArgs = {
   include: actaInclude,
@@ -528,7 +600,7 @@ export function expedienteRowToActaRenderData(row: ExpedienteActaQueryRow): Acta
     toleranciaActa: (row.toleranciaActa?.trim() ?? '') || '',
     publicacionActaObservaciones: (row.publicacionActaObservaciones?.trim() ?? '') || '',
     llevPublicacionEdictos: row.llevPublicacionEdictos,
-     ordenantes: row.ordenantes.map((o) => ({
+     ordenantes: row.ordenantes.map((o: OrdenanteQueryRow) => ({
        orden: o.orden,
        nombre: o.nombre.trim(),
        documento: o.documento.trim(),
@@ -544,14 +616,6 @@ export function expedienteRowToActaRenderData(row: ExpedienteActaQueryRow): Acta
 }
 
 // ═══ relación título ═══════════════════════════════════════════════════════
-
-export type LinderoPuntoDto = {
-  orden: number
-  tipo: string
-  direccion: string
-  descripcion: string
-  medida: string
-}
 
 export type RelacionTituloRenderData = {
   nomenclaturaCatastral: string
@@ -575,7 +639,10 @@ const relacionTituloInclude = {
   },
 }
 
-export type ExpedienteRelacionTituloQueryRow = Record<string, unknown>
+export type ExpedienteRelacionTituloQueryRow = ExpedienteDocxProfessionalFields & {
+  inscripcionDominio?: string | null
+  linderos?: LinderosQueryRow | null
+}
 
 export const expedienteRelacionTituloFindArgs = {
   include: relacionTituloInclude,
@@ -597,7 +664,7 @@ export function expedienteRowToRelacionTituloRenderData(
     superficieSegun: linderos?.superficieSegun.trim() ?? '',
     fechaRelacionTitulos: linderos?.fechaRelacionTitulos.trim() ?? '',
     observacionesGenerales: linderos?.observacionesGenerales.trim() ?? '',
-    puntos: (linderos?.puntos ?? []).map((p) => ({
+    puntos: (linderos?.puntos ?? []).map((p: LinderoPuntoDto) => ({
       orden: p.orden,
       tipo: p.tipo.trim(),
       direccion: p.direccion.trim(),
@@ -642,7 +709,19 @@ const memoriaDescriptivaInclude = {
   secondProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteMemoriaDescriptivaQueryRow = Record<string, unknown>
+export type ExpedienteMemoriaDescriptivaQueryRow = ExpedienteDocxProfessionalFields & {
+  domicilioParcela?: string | null
+  inscripcionDominio?: string | null
+  loteFraccion?: string | null
+  planoAntecedente?: string | null
+  actaNotarialFecha?: string | null
+  memoriaObservaciones?: string | null
+  publicacionEdictoFecha?: string | null
+  medioPublicacion?: string | null
+  llevPublicacionEdictos: boolean
+  colindantes: ColindanteQueryRow[]
+  ordenantes: OrdenanteQueryRow[]
+}
 
 export const expedienteMemoriaDescriptivaFindArgs = {
   include: memoriaDescriptivaInclude,
@@ -692,7 +771,9 @@ const notaHidraulicaInclude = {
   principalProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteNotaHidraulicaQueryRow = Record<string, unknown>
+export type ExpedienteNotaHidraulicaQueryRow = ExpedienteDocxProfessionalFields & {
+  motivoHidraulica?: string | null
+}
 
 export const expedienteNotaHidraulicaFindArgs = {
   include: notaHidraulicaInclude,
@@ -723,7 +804,9 @@ const notaFiscaliaInclude = {
   principalProfessional: profesionalConRegistracionesInclude,
 }
 
-export type ExpedienteNotaFiscaliaQueryRow = Record<string, unknown>
+export type ExpedienteNotaFiscaliaQueryRow = ExpedienteDocxProfessionalFields & {
+  motivoFiscalia?: string | null
+}
 
 export const expedienteNotaFiscaliaFindArgs = {
   include: notaFiscaliaInclude,

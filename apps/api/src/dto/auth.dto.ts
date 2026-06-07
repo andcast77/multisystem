@@ -99,6 +99,20 @@ export const resendVerificationBodySchema = z.object({
   email: z.string().email(),
 })
 
+/** Authenticated user changes their own password. */
+export const changePasswordBodySchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Ingresá la contraseña actual'),
+    newPassword: z.string().min(8, 'La contraseña nueva debe tener al menos 8 caracteres'),
+    confirmPassword: z.string().min(1, 'Confirmá la contraseña nueva'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Las contraseñas nuevas no coinciden',
+    path: ['confirmPassword'],
+  })
+
+export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>
+
 /** Input DTO: verify token */
 export const verifyTokenSchema = z.object({
   token: z.string().min(1),

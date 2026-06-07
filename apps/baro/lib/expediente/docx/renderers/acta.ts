@@ -5,7 +5,11 @@ import { NextResponse } from 'next/server'
 import type { DynamicDocxRenderContext } from '../renderer-context'
 import type { ActaRenderData } from '../document-render-data'
 
-import { expedienteActaFindArgs, expedienteRowToActaRenderData } from '../document-render-data'
+import {
+  expedienteActaFindArgs,
+  expedienteRowToActaRenderData,
+  type ExpedienteActaQueryRow,
+} from '../document-render-data'
 
 import { pBody, pBodyKeepNext, pBodyRuns, pTitle, runBody } from '../render-utils'
 
@@ -220,7 +224,7 @@ export async function handleActaDownload(
 
   const meta = getExpedienteDownloadDocMeta('acta')
 
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
 
   return new NextResponse(new Uint8Array(body), {
     status: 200,

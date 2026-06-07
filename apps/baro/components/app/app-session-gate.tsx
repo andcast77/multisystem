@@ -1,5 +1,6 @@
 'use client'
 
+import { authApi } from '@/lib/api/client'
 import { useEffect, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAccount } from '@/components/app/account-context'
@@ -13,7 +14,7 @@ async function clearSessionAndRedirectToLogin(
   replace: (url: string) => void
 ) {
   try {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    await authApi.logout().catch(() => {})
   } catch {
     /* cookies igual se limpian en el servidor si la petición llega */
   }
@@ -34,7 +35,7 @@ function reasonForFailedMe(lastMeStatus: number | null): string {
 }
 
 /**
- * El panel `/app` solo se muestra con sesión válida y `GET /api/auth/me` correcto.
+ * El panel protegido solo se muestra con sesión válida y GET /v1/baro/me correcto.
  * Si no hay usuario o la API falla, se cierra sesión y se vuelve al login.
  */
 export function AppSessionGate({ children }: Readonly<{ children: ReactNode }>) {

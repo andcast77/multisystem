@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { baroApi } from '@/lib/api/client'
+import { ApiError } from '@multisystem/shared'
 import { ORDENANTE_SEXO_LABEL_SET, ORDENANTE_SEXO_OPTIONS } from '@/lib/expediente/catalogs'
 import { useAccount } from '@/components/app/account-context'
 import {
@@ -208,33 +210,31 @@ export function ProfessionalProfileForm({
       setError(null)
       try {
         if (variant === 'titular') {
-          const res = await fetch('/api/auth/profile', { credentials: 'include' })
-          const data = (await res.json().catch(() => ({}))) as {
-            profile?: ApiProfile | null
+          const data = await baroApi.get<{
+            success: boolean
+            data?: { profile?: ApiProfile | null }
             message?: string
-          }
-          if (!res.ok) {
+          }>('/profile')
+          if (!data.success) {
             if (!cancelled) setError(data.message ?? 'No se pudo cargar el perfil.')
             return
           }
-          if (data.profile) {
-            hydrateFromProfile(data.profile)
+          if (data.data?.profile) {
+            hydrateFromProfile(data.data.profile)
           }
         } else {
           if (collaboratorId) {
-            const res = await fetch(`/api/auth/associated-professionals/${collaboratorId}`, {
-              credentials: 'include',
-            })
-            const data = (await res.json().catch(() => ({}))) as {
-              professional?: ApiProfile
+            const data = await baroApi.get<{
+              success: boolean
+              data?: { professional?: ApiProfile }
               message?: string
-            }
-            if (!res.ok) {
+            }>(`/professionals/${collaboratorId}`)
+            if (!data.success) {
               if (!cancelled) setError(data.message ?? 'No se pudo cargar el colaborador.')
               return
             }
-            if (data.professional) {
-              hydrateFromProfile(data.professional)
+            if (data.data?.professional) {
+              hydrateFromProfile(data.data.professional)
             }
           } else {
             resetEmptyCollaborator()
@@ -284,60 +284,48 @@ export function ProfessionalProfileForm({
     }
     try {
       if (variant === 'titular') {
-        const res = await fetch('/api/auth/profile', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload),
-        })
-        const data = (await res.json().catch(() => ({}))) as {
-          issues?: { path: (string | number)[]; message: string }[]
+        const data = await baroApi.patch<{
+          success: boolean
+          data?: { profile?: ApiProfile }
           message?: string
-          profile?: ApiProfile
-        }
-        if (!res.ok) {
-          if (data.issues?.length) {
-            setIssues(data.issues)
-            setError(null)
-          } else {
-            setIssues([])
-            setError(data.message ?? 'No se pudo guardar.')
-          }
+        }>('/profile', payload)
+        if (!data.success) {
+          setIssues([])
+          setError(data.message ?? 'No se pudo guardar.')
           return
         }
-        if (data.profile) hydrateFromProfile(data.profile)
+        if (data.data?.profile) hydrateFromProfile(data.data.profile)
         void refreshAccount({ silent: true })
       } else {
-        const url = collaboratorId
-          ? `/api/auth/associated-professionals/${collaboratorId}`
-          : '/api/auth/associated-professionals'
-        const method = collaboratorId ? 'PATCH' : 'POST'
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload),
-        })
-        const data = (await res.json().catch(() => ({}))) as {
-          issues?: { path: (string | number)[]; message: string }[]
-          message?: string
-          professional?: ApiProfile
-        }
-        if (!res.ok) {
-          if (data.issues?.length) {
-            setIssues(data.issues)
-            setError(null)
-          } else {
-            setIssues([])
-            setError(data.message ?? 'No se pudo guardar.')
-          }
+        const data = collaboratorId
+          ? await baroApi.patch<{
+              success: boolean
+              data?: { professional?: ApiProfile }
+              message?: string
+            }>(`/professionals/${collaboratorId}`, payload)
+          : await baroApi.post<{
+              success: boolean
+              data?: { professional?: ApiProfile }
+              message?: string
+            }>('/professionals', payload)
+        if (!data.success) {
+          setIssues([])
+          setError(data.message ?? 'No se pudo guardar.')
           return
         }
-        if (data.professional) {
-          hydrateFromProfile(data.professional)
-          onCollaboratorSaved?.(data.professional)
+        if (data.data?.professional) {
+          hydrateFromProfile(data.data.professional)
+          onCollaboratorSaved?.(data.data.professional)
         }
         void refreshAccount({ silent: true })
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setIssues([])
+        setError(err.message || 'No se pudo guardar.')
+      } else {
+        setIssues([])
+        setError('No se pudo guardar.')
       }
     } finally {
       setSaving(false)

@@ -10,6 +10,7 @@ const initialData: InitialData = {
     actuantesIds: [],
     objetoExpedienteId: '',
     nomenclaturaCatastral: '',
+    nomenclaturaAnulada: false,
     planoAntecedente: '',
     loteFraccion: '',
     domicilioParcela: '',

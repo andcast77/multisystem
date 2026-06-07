@@ -1,5 +1,7 @@
 'use client'
 
+import { baroApi } from '@/lib/api/client'
+import { ApiError } from '@multisystem/shared'
 import { useState } from 'react'
 import { useAccount } from '@/components/app/account-context'
 import type {
@@ -124,38 +126,30 @@ export function ProfessionalsList({
 
   async function tryToggleActive(id: string, currentlyActive: boolean) {
     setTogglingId(id)
-
-    const res = await fetch(`/api/auth/associated-professionals/${id}/active`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !currentlyActive }),
-    })
-
-    if (res.ok) {
-      setActiveStates((prev) => ({ ...prev, [id]: !currentlyActive }))
-    } else {
-      const data = res.json().catch(() => ({})) as { message?: string }
-      alert(data.message ?? 'No se pudo cambiar el estado.')
+    try {
+      const res = await baroApi.patch<{ success: boolean; message?: string }>(
+        `/professionals/${id}/active`,
+        { active: !currentlyActive }
+      )
+      if (res.success) {
+        setActiveStates((prev) => ({ ...prev, [id]: !currentlyActive }))
+      } else {
+        alert(res.message ?? 'No se pudo cambiar el estado.')
+      }
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'No se pudo cambiar el estado.')
     }
-
     setTogglingId(null)
   }
 
   async function handleRemove(id: string) {
     setDeletingId(id)
     try {
-      const res = await fetch(`/api/auth/associated-professionals/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { message?: string }
-        alert(data.message ?? 'No se pudo eliminar.')
-        return
-      }
+      await baroApi.delete<{ success: boolean; message?: string }>(`/professionals/${id}`)
       onProfessionalRemoved?.(id)
       await refreshAccount({ silent: true })
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'No se pudo eliminar.')
     } finally {
       setDeletingId(null)
     }

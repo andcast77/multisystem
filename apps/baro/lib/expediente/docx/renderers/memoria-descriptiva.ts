@@ -5,6 +5,7 @@ import type { MemoriaDescriptivaRenderData } from '../document-render-data'
 import {
   expedienteMemoriaDescriptivaFindArgs,
   expedienteRowToMemoriaDescriptivaRenderData,
+  type ExpedienteMemoriaDescriptivaQueryRow,
 } from '../document-render-data'
 import {
   buildConsultasFooterText,
@@ -172,7 +173,7 @@ export async function handleMemoriaDescriptivaDownload(
   const payload = expedienteRowToMemoriaDescriptivaRenderData(row)
   const body = await renderMemoriaDescriptiva(payload)
   const meta = getExpedienteDownloadDocMeta('memoria-descriptiva')
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

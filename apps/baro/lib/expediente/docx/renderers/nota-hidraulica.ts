@@ -5,6 +5,7 @@ import type { NotaHidraulicaRenderData } from '../document-render-data'
 import {
   expedienteNotaHidraulicaFindArgs,
   expedienteRowToNotaHidraulicaRenderData,
+  type ExpedienteNotaHidraulicaQueryRow,
 } from '../document-render-data'
 import { buildFirmasTable, pBlankLine, pBody, pBodyCenteredBold } from '../render-utils'
 import { expedienteDocxStandardSectionPage } from '../word-page-layout'
@@ -59,7 +60,7 @@ export async function handleNotaHidraulicaDownload(
   const payload = expedienteRowToNotaHidraulicaRenderData(row)
   const body = await renderNotaHidraulica(payload)
   const meta = getExpedienteDownloadDocMeta('nota-hidraulica')
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

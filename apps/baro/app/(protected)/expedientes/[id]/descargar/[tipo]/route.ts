@@ -1,22 +1,19 @@
-import { readFile, stat } from 'node:fs/promises'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { getSessionUserId } from '@/lib/auth/session'
 import {
-  EXPEDIENTE_DOCX_MIME,
-  buildExpedienteDocxAttachmentFilename,
-  getExpedienteDownloadDocMeta,
   parseExpedienteDownloadDocType,
-  resolveExpedienteDocTemplateAbsolutePath,
+} from '@/lib/expediente/descarga-catalog'
+import {
   withExpedienteDocxPreviewCacheHeaders,
   withExpedienteDocxPreviewDisposition,
-} from '@/lib/expediente/descarga'
+} from '@/lib/expediente/descarga-preview'
 import {
   buildExpedienteDocxDynamicVariant,
   buildExpedienteDocxPreviewEtag,
   previewEtagMatchesIfNoneMatch,
 } from '@/lib/expediente/preview-etag'
-import { ExpedienteDocxError, mapExpedienteDocxErrorToHttp } from '@/lib/expediente/docx/errors'
+import { mapExpedienteDocxErrorToHttp } from '@/lib/expediente/docx/errors'
 import { getExpedienteDocxDocumentDefinition } from '@/lib/expediente/docx/definitions'
 import { DYNAMIC_RENDERERS } from '@/lib/expediente/docx/renderer-registry'
 import { serverBaroGetData } from '@/lib/api/server'
@@ -64,7 +61,6 @@ export async function GET(
   }
 
   const definition = getExpedienteDocxDocumentDefinition(tipo)
-  const meta = getExpedienteDownloadDocMeta(tipo)
 
   try {
     const row = await serverBaroGetData<BaroExpedienteDto>(`/expedientes/${id}`)
@@ -79,38 +75,16 @@ export async function GET(
       return new NextResponse(null, { status: 404 })
     }
 
-    let staticTemplateMtimeMs: number | undefined
-    let staticAbsolute: string | null = null
-
     if (!definition.dynamic) {
-      const templatePath = meta.templateFileName.trim()
-      if (!templatePath) {
-        const mapped = mapExpedienteDocxErrorToHttp(
-          new ExpedienteDocxError('plantilla_faltante', 'Sin plantilla estática')
-        )
-        return new NextResponse(mapped.body, { status: mapped.status })
-      }
-      staticAbsolute = resolveExpedienteDocTemplateAbsolutePath(templatePath)
-      try {
-        const st = await stat(staticAbsolute)
-        staticTemplateMtimeMs = st.mtimeMs
-      } catch {
-        throw new ExpedienteDocxError(
-          'plantilla_faltante',
-          `Plantilla no encontrada: ${templatePath}`
-        )
-      }
+      return new NextResponse(null, { status: 404 })
     }
 
-    const dynamicVariant = definition.dynamic
-      ? buildExpedienteDocxDynamicVariant(request.nextUrl.searchParams)
-      : undefined
+    const dynamicVariant = buildExpedienteDocxDynamicVariant(request.nextUrl.searchParams)
 
     const etag = buildExpedienteDocxPreviewEtag({
       expedienteId: id,
       docTipo: tipo,
       expedienteUpdatedAt: new Date(row.updatedAt),
-      staticTemplateMtimeMs,
       dynamicVariant,
     })
 
@@ -125,40 +99,16 @@ export async function GET(
       })
     }
 
-    if (definition.dynamic) {
-      const renderer = DYNAMIC_RENDERERS[tipo]
-      if (!renderer) {
-        return new NextResponse(null, { status: 404 })
-      }
-      const res = await renderer(id, userId, { request })
-      const withDisposition = withExpedienteDocxPreviewDisposition(res, preview)
-      if (withDisposition.status !== 200) {
-        return withDisposition
-      }
-      return withExpedienteDocxPreviewCacheHeaders(withDisposition, etag)
+    const renderer = DYNAMIC_RENDERERS[tipo]
+    if (!renderer) {
+      return new NextResponse(null, { status: 404 })
     }
 
-    let body: Buffer
-    try {
-      body = await readFile(staticAbsolute!)
-    } catch {
-      const templatePath = meta.templateFileName.trim()
-      throw new ExpedienteDocxError(
-        'plantilla_faltante',
-        `Plantilla no encontrada: ${templatePath}`
-      )
+    const res = await renderer(id, userId, { request })
+    const withDisposition = withExpedienteDocxPreviewDisposition(res, preview)
+    if (withDisposition.status !== 200) {
+      return withDisposition
     }
-
-    const baseFilename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
-
-    const staticRes = new NextResponse(new Uint8Array(body), {
-      status: 200,
-      headers: {
-        'Content-Type': EXPEDIENTE_DOCX_MIME,
-        'Content-Disposition': `attachment; filename="${baseFilename}"; filename*=UTF-8''${encodeURIComponent(baseFilename)}`,
-      },
-    })
-    const withDisposition = withExpedienteDocxPreviewDisposition(staticRes, preview)
     return withExpedienteDocxPreviewCacheHeaders(withDisposition, etag)
   } catch (err: unknown) {
     const mapped = mapExpedienteDocxErrorToHttp(err)

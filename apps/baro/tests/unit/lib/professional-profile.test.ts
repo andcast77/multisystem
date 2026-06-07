@@ -70,17 +70,13 @@ describe('toPublicProfessionalProfile', () => {
       updatedAt: new Date(),
       registrations: [
         {
-          id: 'r1',
-          professionalId: 'p1',
           licenseNumber: '99',
           jurisdiction: 'San Juan',
           bodyName: 'CPASJ',
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       ],
       active: true,
-    } satisfies FullProfessionalProfile
+    } as FullProfessionalProfile
 
     const pub = toPublicProfessionalProfile(full)
     expect(pub).not.toHaveProperty('cuit')

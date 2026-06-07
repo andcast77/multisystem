@@ -6,6 +6,7 @@ import {
   expedienteOrdenTrabajoFindArgs,
   expedienteRowToOrdenTrabajoRenderData,
   ORDEN_TRABAJO_DOC_ID,
+  type ExpedienteOrdenTrabajoQueryRow,
 } from '../document-render-data'
 import { buildOrdenTrabajoMandateBody, ORDEN_TRABAJO_VIGENCIA_TEXT } from '../orden-trabajo-text'
 import {
@@ -76,7 +77,13 @@ export async function handleOrdenTrabajoDownload(
   if (!row) {
     return new NextResponse(null, { status: 404 })
   }
-  const fechaOt = row.fechaOrdenTrabajo?.trim()
+  const fechaRaw = row.fechaOrdenTrabajo
+  const fechaOt =
+    typeof fechaRaw === 'string'
+      ? fechaRaw.trim()
+      : fechaRaw instanceof Date
+        ? fechaRaw.toISOString().slice(0, 10)
+        : ''
   if (!fechaOt) {
     const mapped = mapExpedienteDocxErrorToHttp(
       new ExpedienteDocxError(
@@ -89,7 +96,7 @@ export async function handleOrdenTrabajoDownload(
   const payload = expedienteRowToOrdenTrabajoRenderData(row)
   const body = await renderOrdenDeTrabajo(payload)
   const meta = getExpedienteDownloadDocMeta(ORDEN_TRABAJO_DOC_ID)
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

@@ -1,4 +1,5 @@
 import { ApiClient as SharedApiClient } from '@multisystem/shared'
+import type { LoginResponse } from '@multisystem/contracts'
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -13,6 +14,21 @@ export const authApi = {
     apiClient.put<T>(`/v1/auth${endpoint}`, data, options),
   delete: <T>(endpoint: string, options?: RequestInit) =>
     apiClient.delete<T>(`/v1/auth${endpoint}`, undefined, options),
+  login: (email: string, password: string) =>
+    apiClient.post<{ success: boolean; data?: LoginResponse; message?: string; error?: string }>(
+      '/v1/auth/login',
+      { email, password }
+    ),
+  logout: () =>
+    apiClient.post<{ success: boolean; message?: string; error?: string }>('/v1/auth/logout'),
+  refresh: () =>
+    apiClient.post<{ success: boolean; message?: string; error?: string }>('/v1/auth/refresh', {}),
+  changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
+    apiClient.post<{ success: boolean; message?: string; error?: string }>('/v1/auth/password', {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    }),
 }
 
 export const baroApi = {

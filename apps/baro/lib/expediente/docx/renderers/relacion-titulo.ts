@@ -5,6 +5,7 @@ import type { RelacionTituloRenderData } from '../document-render-data'
 import {
   expedienteRelacionTituloFindArgs,
   expedienteRowToRelacionTituloRenderData,
+  type ExpedienteRelacionTituloQueryRow,
 } from '../document-render-data'
 import { buildFirmasTable, pBlankLine, pBody, pBodyCenteredBold } from '../render-utils'
 import { expedienteDocxStandardSectionPage } from '../word-page-layout'
@@ -91,7 +92,7 @@ export async function handleRelacionTituloDownload(
   const payload = expedienteRowToRelacionTituloRenderData(row)
   const body = await renderRelacionTitulo(payload)
   const meta = getExpedienteDownloadDocMeta('relacion-titulo')
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

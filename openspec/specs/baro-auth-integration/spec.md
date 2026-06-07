@@ -10,7 +10,7 @@ Baro MUST use the same authentication and session model as other multisystem pro
 
 ### Requirement: API-Based Authentication
 
-Baro MUST authenticate users through `@multisystem/api` auth endpoints. Baro MUST NOT implement local login, register, refresh, or password routes.
+Baro MUST authenticate users through `@multisystem/api` auth endpoints. Baro MUST NOT implement local login, register, refresh, or password BFF routes on the Baro origin; client flows MUST call `/v1/auth/*` and `/v1/baro/me` via `lib/api/client.ts`.
 
 #### Scenario: Login via API
 
@@ -26,6 +26,13 @@ Baro MUST authenticate users through `@multisystem/api` auth endpoints. Baro MUS
 - WHEN accessing baro protected routes
 - THEN the user is redirected to login
 - AND API returns 401 for protected data calls
+
+#### Scenario: Password change via API
+
+- GIVEN an authenticated baro user
+- WHEN changing password from account settings
+- THEN baro calls `POST /v1/auth/password` on the API
+- AND no baro-local password handler processes the request
 
 ### Requirement: No Standalone Auth Tables
 

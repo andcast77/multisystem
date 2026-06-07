@@ -5,6 +5,7 @@ import type { CitacionRenderData, ColindanteDto } from '../document-render-data'
 import {
   expedienteCitacionFindArgs,
   expedienteRowToCitacionRenderData,
+  type ExpedienteCitacionQueryRow,
 } from '../document-render-data'
 import { cardinalFromRumbo } from '../cardinales'
 import {
@@ -236,11 +237,11 @@ export async function handleCitacionDownload(
     const c = payload.colindantes.find((x) => x.id === colId)
     if (!c) return new NextResponse(null, { status: 404 })
     body = await renderCitacionUnSoloColindante(payload, c)
-    filename = buildCitacionColindanteFilename(row.nomenclaturaCatastral, c)
+    filename = buildCitacionColindanteFilename(String(row.nomenclaturaCatastral ?? ''), c)
   } else {
     body = await renderCitacionTodasEnUnDocumento(payload)
     const meta = getExpedienteDownloadDocMeta('citacion-colindantes')
-    filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+    filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   }
 
   return new NextResponse(new Uint8Array(body), {

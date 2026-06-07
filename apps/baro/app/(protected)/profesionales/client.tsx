@@ -1,5 +1,6 @@
 'use client'
 
+import { baroApi } from '@/lib/api/client'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ApiProfessionalListItem } from '@/components/app/professional-profile-form'
@@ -35,18 +36,18 @@ export default function Client({
   }
 
   async function handleSetPrincipal(professionalId: string) {
-    const res = await fetch(`/api/auth/profile`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profesionalPrincipalId: professionalId }),
-    })
-    if (res.ok) {
-      setCurrentPrincipalId(professionalId)
-      router.refresh()
-    } else {
-      const d = await res.json().catch(() => ({}))
-      alert(d.message || 'No se pudo establecer el profesional principal')
+    try {
+      const res = await baroApi.patch<{ success: boolean; message?: string }>('/profile', {
+        profesionalPrincipalId: professionalId,
+      })
+      if (res.success) {
+        setCurrentPrincipalId(professionalId)
+        router.refresh()
+      } else {
+        alert(res.message || 'No se pudo establecer el profesional principal')
+      }
+    } catch {
+      alert('No se pudo establecer el profesional principal')
     }
   }
 

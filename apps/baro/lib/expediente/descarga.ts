@@ -1,10 +1,8 @@
 import 'server-only'
 
-import path from 'node:path'
-import { NextResponse } from 'next/server'
+import { baroContextPath } from '@/lib/expediente/context-path'
 
 import {
-  EXPEDIENTE_DOCX_MIME,
   expedienteDownloadDocCatalog,
   type ExpedienteDownloadDocMeta,
   type ExpedienteDownloadDocType,
@@ -19,7 +17,12 @@ import { EXPEDIENTE_DOCX_DOCUMENT_IDS } from '@/lib/expediente/docx/types'
  * Para listas/tags en cliente: importá `@/lib/expediente/descarga-catalog`.
  */
 
-export { expedienteDownloadDocCatalog }
+export {
+  EXPEDIENTE_DOCX_MIME,
+  expedienteDownloadDocCatalog,
+  getExpedienteDownloadDocMeta,
+  parseExpedienteDownloadDocType,
+} from '@/lib/expediente/descarga-catalog'
 export type { ExpedienteDownloadDocMeta, ExpedienteDownloadDocType }
 
 export { EXPEDIENTE_DOCX_DOCUMENT_IDS }
@@ -41,28 +44,7 @@ export type {
   ExpedienteDocxRenderResult,
 } from '@/lib/expediente/docx/types'
 
-export { EXPEDIENTE_DOCX_MIME }
-
 export const EXPEDIENTE_DOWNLOAD_DOC_TYPES = EXPEDIENTE_DOCX_DOCUMENT_IDS
-
-const DOC_TYPE_SET = new Set<string>(EXPEDIENTE_DOWNLOAD_DOC_TYPES)
-
-const META_BY_ID = Object.fromEntries(
-  expedienteDownloadDocCatalog.map((m) => [m.id, m])
-) as Readonly<Record<ExpedienteDownloadDocType, ExpedienteDownloadDocMeta>>
-
-export function parseExpedienteDownloadDocType(raw: string): ExpedienteDownloadDocType | null {
-  if (DOC_TYPE_SET.has(raw)) {
-    return raw as ExpedienteDownloadDocType
-  }
-  return null
-}
-
-export function getExpedienteDownloadDocMeta(
-  id: ExpedienteDownloadDocType
-): ExpedienteDownloadDocMeta {
-  return META_BY_ID[id]
-}
 
 /** Caracteres problemáticos en nombres de archivo (Windows / sane defaults). */
 export function sanitizeExpedienteNomenclaturaForFilename(nomenclatura: string): string {
@@ -83,6 +65,15 @@ export function buildExpedienteDocxAttachmentFilename(
 }
 
 /**
+ * When `preview=1` is used, serve the same bytes with `Content-Disposition: inline` so tab/open
+ * semantics match “view”; `fetch()` in the preview dialog works either way.
+ */
+export {
+  withExpedienteDocxPreviewDisposition,
+  withExpedienteDocxPreviewCacheHeaders,
+} from '@/lib/expediente/descarga-preview'
+
+/**
  * Construye el nombre de archivo `.docx` (`${prefix}_${nomenclaturaSegura}.docx`).
  */
 export function buildExpedienteAttachmentFilename(
@@ -101,43 +92,6 @@ export function buildExpedienteFormularioAttachmentBase(meta: ExpedienteDownload
 }
 
 export function resolveExpedienteDocTemplateAbsolutePath(templateFileName: string): string {
-  return path.join(process.cwd(), 'context', templateFileName)
+  return baroContextPath(templateFileName)
 }
 
-/**
- * When `preview=1` is used, serve the same bytes with `Content-Disposition: inline` so tab/open
- * semantics match “view”; `fetch()` in the preview dialog works either way.
- */
-export function withExpedienteDocxPreviewDisposition(
-  response: NextResponse,
-  preview: boolean
-): NextResponse {
-  if (!preview || response.status !== 200) {
-    return response
-  }
-  const headers = new Headers(response.headers)
-  const cd = headers.get('Content-Disposition')
-  if (cd?.startsWith('attachment')) {
-    headers.set('Content-Disposition', cd.replace(/^attachment/, 'inline'))
-  }
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  })
-}
-
-/** ETag + política de caché privada para vista previa / revalidación en cliente. */
-export function withExpedienteDocxPreviewCacheHeaders(
-  response: NextResponse,
-  etag: string
-): NextResponse {
-  const headers = new Headers(response.headers)
-  headers.set('ETag', etag)
-  headers.set('Cache-Control', 'private, no-cache')
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  })
-}

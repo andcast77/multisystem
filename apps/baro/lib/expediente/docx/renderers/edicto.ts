@@ -2,7 +2,11 @@ import { Document, FootnoteReferenceRun, Packer, Paragraph, type Table } from 'd
 import { NextResponse } from 'next/server'
 import type { DynamicDocxRenderContext } from '../renderer-context'
 import type { EdictoRenderData } from '../document-render-data'
-import { expedienteEdictoFindArgs, expedienteRowToEdictoRenderData } from '../document-render-data'
+import {
+  expedienteEdictoFindArgs,
+  expedienteRowToEdictoRenderData,
+  type ExpedienteEdictoQueryRow,
+} from '../document-render-data'
 import { buildConsultasFooterText, pBodyRuns, pTitle, runBody } from '../render-utils'
 import { expedienteDocxStandardSectionPage } from '../word-page-layout'
 import { ExpedienteDocxError, mapExpedienteDocxErrorToHttp } from '../errors'
@@ -123,7 +127,7 @@ export async function handleEdictoDownload(
 
   const body = await renderEdicto(data)
   const meta = getExpedienteDownloadDocMeta('edicto')
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

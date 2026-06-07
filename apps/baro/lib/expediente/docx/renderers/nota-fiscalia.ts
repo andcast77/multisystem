@@ -5,6 +5,7 @@ import type { NotaFiscaliaRenderData } from '../document-render-data'
 import {
   expedienteNotaFiscaliaFindArgs,
   expedienteRowToNotaFiscaliaRenderData,
+  type ExpedienteNotaFiscaliaQueryRow,
 } from '../document-render-data'
 import { buildFirmasTable, pBlankLine, pBody, pBodyCenteredBold } from '../render-utils'
 import { expedienteDocxStandardSectionPage } from '../word-page-layout'
@@ -58,7 +59,7 @@ export async function handleNotaFiscaliaDownload(
   const payload = expedienteRowToNotaFiscaliaRenderData(row)
   const body = await renderNotaFiscalia(payload)
   const meta = getExpedienteDownloadDocMeta('nota-fiscalia')
-  const filename = buildExpedienteDocxAttachmentFilename(meta, row.nomenclaturaCatastral)
+  const filename = buildExpedienteDocxAttachmentFilename(meta, String(row.nomenclaturaCatastral ?? ''))
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

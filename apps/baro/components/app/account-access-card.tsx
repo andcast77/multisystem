@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAccount } from '@/components/app/account-context'
+import { authApi } from '@/lib/api/client'
+import { ApiError } from '@multisystem/shared'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,35 +17,17 @@ export function AccountAccessCard() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [passwordIssues, setPasswordIssues] = useState<
-    { path: (string | number)[]; message: string }[]
-  >([])
   const [passwordOk, setPasswordOk] = useState(false)
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault()
     setPasswordError(null)
-    setPasswordIssues([])
     setPasswordOk(false)
     setPasswordSaving(true)
     try {
-      const res = await fetch('/api/auth/password', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
-      })
-      const data = (await res.json().catch(() => ({}))) as {
-        message?: string
-        issues?: { path: (string | number)[]; message: string }[]
-      }
-      if (!res.ok) {
-        if (data.issues?.length) setPasswordIssues(data.issues)
-        setPasswordError(data.message ?? 'No se pudo actualizar la contraseña.')
+      const res = await authApi.changePassword(currentPassword, newPassword, confirmPassword)
+      if (!res.success) {
+        setPasswordError(res.message ?? res.error ?? 'No se pudo actualizar la contraseña.')
         return
       }
       setCurrentPassword('')
@@ -51,6 +35,12 @@ export function AccountAccessCard() {
       setConfirmPassword('')
       setPasswordOk(true)
       void refresh()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setPasswordError(err.message)
+      } else {
+        setPasswordError('No se pudo actualizar la contraseña.')
+      }
     } finally {
       setPasswordSaving(false)
     }
@@ -131,15 +121,6 @@ export function AccountAccessCard() {
             minLength={8}
           />
         </div>
-        {passwordIssues.length > 0 ? (
-          <ul className="list-inside list-disc text-sm text-red-600 dark:text-red-400" role="alert">
-            {passwordIssues.map((issue, idx) => (
-              <li key={idx}>
-                {issue.path.join('.')}: {issue.message}
-              </li>
-            ))}
-          </ul>
-        ) : null}
         {passwordError ? (
           <p className="text-sm text-red-600 dark:text-red-400" role="alert">
             {passwordError}

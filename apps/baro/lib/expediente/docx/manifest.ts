@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
+import { baroContextPath } from '@/lib/expediente/context-path'
 import { ExpedienteDocxError } from '@/lib/expediente/docx/errors'
 import type {
   ExpedienteDocxDocumentId,
@@ -49,17 +50,11 @@ export function assertBufferMatchesChecksum(buffer: Buffer, expectedSha256Hex: s
 }
 
 function governanceManifestAbsolutePath(templateKey: ExpedienteDocxDocumentId): string {
-  return path.join(
-    process.cwd(),
-    'context',
-    'expedientes-docx',
-    templateKey,
-    'template-manifest.json'
-  )
+  return baroContextPath('expedientes-docx', templateKey, 'template-manifest.json')
 }
 
 function templateAbsolutePathFromContext(relativeToContext: string): string {
-  return path.join(process.cwd(), 'context', relativeToContext)
+  return baroContextPath(relativeToContext)
 }
 
 /**

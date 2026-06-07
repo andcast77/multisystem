@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { authApi } from '@/lib/api/client'
 import { useAccount } from '@/components/app/account-context'
 
 export function CuentaLogoutButton() {
@@ -15,7 +16,7 @@ export function CuentaLogoutButton() {
   async function logout() {
     setPending(true)
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      await authApi.logout().catch(() => {})
       const from = pathname && pathname !== '/login' ? `?from=${encodeURIComponent(pathname)}` : ''
       router.replace(`/login${from}`)
     } finally {

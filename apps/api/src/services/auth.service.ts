@@ -14,7 +14,7 @@ import { hashRefreshToken, generateRefreshTokenPlain } from '../core/refresh-tok
 import { blacklistJti, blacklistJtis, isJtiBlacklisted } from '../core/jwt-blacklist.js'
 import { getUserCompanies, selectCompanyForUser } from '../core/auth-context.js'
 import { findModulesByKeys, getCompanyModules } from '../core/modules.js'
-import type { LoginBody, RegisterBody } from '../dto/auth.dto.js'
+import type { LoginBody, RegisterBody, ChangePasswordBody } from '../dto/auth.dto.js'
 import { verifyAndConsumeRegistrationTicket } from './registration-ticket.service.js'
 import type { CompanyRow } from '../core/auth-context.js'
 import {
@@ -932,4 +932,34 @@ export async function updateConcurrentSessions(
     select: { id: true },
   })
   if (!user) throw new NotFoundError('Usuario no encontrado')
+}
+
+export async function changePassword(userId: string, body: ChangePasswordBody): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, password: true, email: true },
+  })
+  if (!user) throw new NotFoundError('Usuario no encontrado')
+
+  const currentOk = await bcrypt.compare(body.currentPassword, user.password)
+  if (!currentOk) throw new UnauthorizedError('Contraseña actual incorrecta')
+
+  if (body.currentPassword === body.newPassword) {
+    throw new BadRequestError('La contraseña nueva debe ser distinta a la actual')
+  }
+
+  const hashedPassword = await bcrypt.hash(body.newPassword, 10)
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  })
+
+  const companyId = await resolveAuditCompanyId(userId)
+  writeAuditLog({
+    companyId,
+    userId,
+    action: 'PASSWORD_CHANGED',
+    entityType: 'user',
+    entityId: userId,
+  })
 }

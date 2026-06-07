@@ -129,7 +129,7 @@ export type ExpedienteStore = {
   setLinderos: (partial: Partial<LinderosFields>) => void
 }
 
-type InitialData = {
+export type InitialData = {
   expedienteId: string
   datos: DatosFields
   publicacion: PublicacionFields

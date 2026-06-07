@@ -1,15 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { baroApi } from '@/lib/api/client'
 import type {
   ApiProfessionalListItem,
   ApiProfile,
 } from '@/components/app/professional-profile-form'
 
 /**
- * Hook que combina el profesional titular (de /api/auth/profile)
- * con los colaboradores (de /api/auth/associated-professionals)
- * en una lista unificada de todos los profesionales del usuario.
+ * Combina el profesional titular (/v1/baro/profile) con colaboradores (/v1/baro/professionals/collaborators).
  */
 export function useProfessionalsList() {
   const [professionals, setProfessionals] = useState<ApiProfessionalListItem[]>([])
@@ -22,52 +21,46 @@ export function useProfessionalsList() {
     setLoading(true)
 
     try {
-      // Cargar datos del titular
-      const profileRes = await fetch('/api/auth/profile', { credentials: 'include' })
-      const profileData = (await profileRes.json().catch(() => ({}))) as {
-        profile?: ApiProfile | null
+      const profileRes = await baroApi.get<{
+        success: boolean
+        data?: { profile?: ApiProfile | null }
         message?: string
-      }
+      }>('/profile')
 
       let professionalIdFromProfile: string | null = null
-      if (profileRes.ok && profileData.profile) {
-        professionalIdFromProfile = profileData.profile.id
+      const profile = profileRes.success ? profileRes.data?.profile : null
+      if (profile) {
+        professionalIdFromProfile = profile.id
         setTitularId(professionalIdFromProfile)
       }
 
-      // Cargar lista de asociados
-      const associatesRes = await fetch('/api/auth/associated-professionals', {
-        credentials: 'include',
-      })
-      const associatesData = (await associatesRes.json().catch(() => ({}))) as {
-        professionals?: ApiProfessionalListItem[]
+      const associatesRes = await baroApi.get<{
+        success: boolean
+        data?: { professionals?: ApiProfessionalListItem[] }
         message?: string
-      }
+      }>('/professionals/collaborators')
 
-      let associates: ApiProfessionalListItem[] = []
-      if (associatesRes.ok) {
-        associates = associatesData.professionals ?? []
-      }
+      const associates =
+        associatesRes.success && associatesRes.data?.professionals
+          ? associatesRes.data.professionals
+          : []
 
-      // Construir lista unificada: titular + asociados
       const allProfessionals: ApiProfessionalListItem[] = []
 
-      // Añadir el titular si existe
-      if (professionalIdFromProfile && profileData.profile) {
+      if (professionalIdFromProfile && profile) {
         allProfessionals.push({
-          id: profileData.profile.id,
-          displayName: profileData.profile.displayName,
-          professionalTitle: profileData.profile.professionalTitle,
-          titleGrammarGender: profileData.profile.titleGrammarGender ?? 'MASCULINO',
-          locality: profileData.profile.locality ?? '',
-          addressLine1: profileData.profile.addressLine1 ?? '',
-          createdAt: profileData.profile.createdAt ?? '',
-          updatedAt: profileData.profile.updatedAt ?? '',
-          active: true, // El titular siempre está activo
+          id: profile.id,
+          displayName: profile.displayName,
+          professionalTitle: profile.professionalTitle,
+          titleGrammarGender: profile.titleGrammarGender ?? 'MASCULINO',
+          locality: profile.locality ?? '',
+          addressLine1: profile.addressLine1 ?? '',
+          createdAt: profile.createdAt ?? '',
+          updatedAt: profile.updatedAt ?? '',
+          active: true,
         })
       }
 
-      // Añadir todos los asociados
       allProfessionals.push(...associates)
 
       setProfessionals(allProfessionals)

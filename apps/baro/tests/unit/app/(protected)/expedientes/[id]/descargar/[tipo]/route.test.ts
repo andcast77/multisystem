@@ -31,14 +31,10 @@ vi.mock('@/lib/expediente/docx/renderer-registry', () => ({
   },
 }))
 
-vi.mock('@/lib/expediente/descarga', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/expediente/descarga')>()
-  return {
-    ...actual,
-    withExpedienteDocxPreviewDisposition: (res: NextResponse) => res,
-    withExpedienteDocxPreviewCacheHeaders: (res: NextResponse) => res,
-  }
-})
+vi.mock('@/lib/expediente/descarga-preview', () => ({
+  withExpedienteDocxPreviewDisposition: (res: NextResponse) => res,
+  withExpedienteDocxPreviewCacheHeaders: (res: NextResponse) => res,
+}))
 
 vi.mock('@/lib/auth/session', () => ({
   getSessionUserId: () => getSessionUserIdMock(),

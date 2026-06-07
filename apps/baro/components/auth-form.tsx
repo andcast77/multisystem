@@ -6,8 +6,12 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { authApi } from '@/lib/api/client'
+import { ApiError } from '@multisystem/shared'
 
 type Mode = 'login' | 'register'
+
+const HUB_URL = (process.env.NEXT_PUBLIC_HUB_URL || 'http://localhost:3001').replace(/\/$/, '')
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter()
@@ -30,27 +34,50 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  if (mode === 'register') {
+    const hubRegister = `${HUB_URL}/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+    return (
+      <div className="mt-8 flex flex-col gap-4">
+        <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+          El registro de nuevas empresas se realiza en Multisystem Hub. Desde allí podés habilitar el
+          módulo Baro para tu organización.
+        </p>
+        <Button asChild className="mt-2 w-full rounded-full">
+          <a href={hubRegister}>Ir al registro en Hub</a>
+        </Button>
+        <p className="text-center text-sm text-[var(--color-muted)]">
+          ¿Ya tenés cuenta?{' '}
+          <Link
+            href={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+            className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
+          >
+            Ingresá
+          </Link>
+        </p>
+      </div>
+    )
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setPending(true)
     try {
-      const path = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
-      const res = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      })
-      const data = (await res.json().catch(() => ({}))) as { message?: string }
+      const res = await authApi.login(email, password)
 
-      if (!res.ok) {
-        setError(data.message ?? 'No se pudo completar la solicitud.')
+      if (!res.success) {
+        setError(res.message ?? res.error ?? 'No se pudo completar la solicitud.')
         return
       }
 
       router.push(from)
       router.refresh()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('No se pudo completar la solicitud.')
+      }
     } finally {
       setPending(false)
     }
@@ -84,7 +111,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="auth-password"
           name="password"
           type="password"
-          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          autoComplete="current-password"
           required
           minLength={8}
           value={password}
@@ -97,30 +124,16 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </p>
       ) : null}
       <Button type="submit" className="mt-2 w-full rounded-full" disabled={pending}>
-        {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar' : 'Crear cuenta'}
+        {pending ? 'Procesando…' : 'Ingresar'}
       </Button>
       <p className="text-center text-sm text-[var(--color-muted)]">
-        {mode === 'login' ? (
-          <>
-            ¿No tenés cuenta?{' '}
-            <Link
-              href={`/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-              className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
-            >
-              Registrate
-            </Link>
-          </>
-        ) : (
-          <>
-            ¿Ya tenés cuenta?{' '}
-            <Link
-              href={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-              className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
-            >
-              Ingresá
-            </Link>
-          </>
-        )}
+        ¿No tenés cuenta?{' '}
+        <a
+          href={`${HUB_URL}/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+          className="font-medium text-[var(--color-accent-bright)] underline-offset-4 hover:underline"
+        >
+          Registrate en Hub
+        </a>
       </p>
     </form>
   )

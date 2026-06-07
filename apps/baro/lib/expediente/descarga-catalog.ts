@@ -26,3 +26,22 @@ export const expedienteDownloadDocCatalog: readonly ExpedienteDownloadDocMeta[] 
     templateFileName: d.staticTemplateFileName ?? '',
     attachmentBasePrefix: d.attachmentBasePrefix,
   }))
+
+const DOC_TYPE_SET = new Set<string>(expedienteDownloadDocCatalog.map((m) => m.id))
+
+const META_BY_ID = Object.fromEntries(
+  expedienteDownloadDocCatalog.map((m) => [m.id, m])
+) as Readonly<Record<ExpedienteDownloadDocType, ExpedienteDownloadDocMeta>>
+
+export function parseExpedienteDownloadDocType(raw: string): ExpedienteDownloadDocType | null {
+  if (DOC_TYPE_SET.has(raw)) {
+    return raw as ExpedienteDownloadDocType
+  }
+  return null
+}
+
+export function getExpedienteDownloadDocMeta(
+  id: ExpedienteDownloadDocType
+): ExpedienteDownloadDocMeta {
+  return META_BY_ID[id]
+}

@@ -19,6 +19,7 @@ import {
   registerLinkVerifyBodySchema,
   verifyEmailQuerySchema,
   resendVerificationBodySchema,
+  changePasswordBodySchema,
 } from '../../dto/auth.dto.js'
 import { ok } from '../../common/api-response.js'
 import * as authService from '../../services/auth.service.js'
@@ -214,6 +215,12 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
 export async function me(request: FastifyRequest, reply: FastifyReply) {
   const result = await authService.me(request.user!)
   return ok(result)
+}
+
+export async function changePassword(request: FastifyRequest, reply: FastifyReply) {
+  const body = validateBody(changePasswordBodySchema, request.body)
+  await authService.changePassword(request.user!.id, body)
+  return ok({ message: 'Contraseña actualizada.' })
 }
 
 export async function logout(request: FastifyRequest, reply: FastifyReply) {
@@ -518,6 +525,9 @@ export async function registerPublicAuthRoutes(fastify: FastifyInstance) {
 
 export async function registerProtectedAuthRoutes(fastify: FastifyInstance) {
   fastify.post('/v1/auth/logout', (request, reply) => logout(request, reply))
+  fastify.post('/v1/auth/password', { preHandler: [requireAuth] }, (request, reply) =>
+    changePassword(request, reply)
+  )
   fastify.get('/v1/auth/me', { preHandler: [requireAuth] }, (request, reply) => me(request, reply))
   fastify.get('/v1/auth/companies', { preHandler: [requireAuth] }, (request, reply) => listCompanies(request, reply))
   fastify.post<{ Body: { companyId: string } }>('/v1/auth/context', { preHandler: [requireAuth] }, (request, reply) => setContext(request, reply))
