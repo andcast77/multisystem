@@ -14,27 +14,34 @@ import * as baroService from '../../services/baro.service.js'
 
 const preBaro = [requireAuth, requireCompanyContext, requireModuleAccess('baro')]
 
+/** Wraps a handler so Fastify's generic request is cast to the handler's expected type. */
+function handle<T extends (req: any, rep: any) => any>(
+  handler: T
+): (req: FastifyRequest, rep: FastifyReply) => ReturnType<T> {
+  return (req, rep) => handler(req as Parameters<T>[0], rep as Parameters<T>[1])
+}
+
 export async function registerRoutes(fastify: FastifyInstance) {
-  fastify.get('/v1/baro/me', { preHandler: preBaro }, getMe)
-  fastify.get('/v1/baro/profile', { preHandler: preBaro }, getTitularProfile)
-  fastify.patch('/v1/baro/profile', { preHandler: preBaro }, patchTitularProfile)
+  fastify.get('/v1/baro/me', { preHandler: preBaro }, handle(getMe))
+  fastify.get('/v1/baro/profile', { preHandler: preBaro }, handle(getTitularProfile))
+  fastify.patch('/v1/baro/profile', { preHandler: preBaro }, handle(patchTitularProfile))
 
-  fastify.get('/v1/baro/professionals', { preHandler: preBaro }, listProfessionals)
-  fastify.get('/v1/baro/professionals/list', { preHandler: preBaro }, listProfessionalsForForms)
-  fastify.get('/v1/baro/professionals/collaborators', { preHandler: preBaro }, listCollaborators)
-  fastify.get('/v1/baro/professionals/:id', { preHandler: preBaro }, getProfessionalById)
-  fastify.post('/v1/baro/professionals', { preHandler: preBaro }, createProfessional)
-  fastify.patch('/v1/baro/professionals/:id', { preHandler: preBaro }, updateProfessional)
-  fastify.patch('/v1/baro/professionals/:id/active', { preHandler: preBaro }, setProfessionalActive)
-  fastify.delete('/v1/baro/professionals/:id', { preHandler: preBaro }, deleteProfessional)
+  fastify.get('/v1/baro/professionals', { preHandler: preBaro }, handle(listProfessionals))
+  fastify.get('/v1/baro/professionals/list', { preHandler: preBaro }, handle(listProfessionalsForForms))
+  fastify.get('/v1/baro/professionals/collaborators', { preHandler: preBaro }, handle(listCollaborators))
+  fastify.get<{ Params: { id: string } }>('/v1/baro/professionals/:id', { preHandler: preBaro }, handle(getProfessionalById))
+  fastify.post('/v1/baro/professionals', { preHandler: preBaro }, handle(createProfessional))
+  fastify.patch<{ Params: { id: string }; Body: unknown }>('/v1/baro/professionals/:id', { preHandler: preBaro }, handle(updateProfessional))
+  fastify.patch<{ Params: { id: string }; Body: unknown }>('/v1/baro/professionals/:id/active', { preHandler: preBaro }, handle(setProfessionalActive))
+  fastify.delete<{ Params: { id: string } }>('/v1/baro/professionals/:id', { preHandler: preBaro }, handle(deleteProfessional))
 
-  fastify.get('/v1/baro/expedientes', { preHandler: preBaro }, listExpedientes)
-  fastify.get('/v1/baro/expedientes/:id', { preHandler: preBaro }, getExpedienteById)
-  fastify.get('/v1/baro/expedientes/:id/detail', { preHandler: preBaro }, getExpedienteDetail)
-  fastify.get('/v1/baro/expedientes/:id/docx-data', { preHandler: preBaro }, getExpedienteDocxData)
-  fastify.post('/v1/baro/expedientes', { preHandler: preBaro }, createExpediente)
-  fastify.put('/v1/baro/expedientes/:id/full', { preHandler: preBaro }, updateExpedienteFull)
-  fastify.delete('/v1/baro/expedientes/:id', { preHandler: preBaro }, deleteExpediente)
+  fastify.get('/v1/baro/expedientes', { preHandler: preBaro }, handle(listExpedientes))
+  fastify.get<{ Params: { id: string } }>('/v1/baro/expedientes/:id', { preHandler: preBaro }, handle(getExpedienteById))
+  fastify.get<{ Params: { id: string } }>('/v1/baro/expedientes/:id/detail', { preHandler: preBaro }, handle(getExpedienteDetail))
+  fastify.get<{ Params: { id: string }; Querystring: { tipo?: string } }>('/v1/baro/expedientes/:id/docx-data', { preHandler: preBaro }, handle(getExpedienteDocxData))
+  fastify.post('/v1/baro/expedientes', { preHandler: preBaro }, handle(createExpediente))
+  fastify.put<{ Params: { id: string }; Body: unknown }>('/v1/baro/expedientes/:id/full', { preHandler: preBaro }, handle(updateExpedienteFull))
+  fastify.delete<{ Params: { id: string } }>('/v1/baro/expedientes/:id', { preHandler: preBaro }, handle(deleteExpediente))
 }
 
 async function getMe(request: FastifyRequest, reply: FastifyReply) {

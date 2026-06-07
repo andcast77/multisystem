@@ -233,7 +233,7 @@ export async function getMe(ctx: CompanyContext): Promise<BaroMeResponse> {
     user: {
       id: user.id,
       email: user.email,
-      emailVerified: user.emailVerified?.toISOString() ?? null,
+      emailVerified: user.emailVerified ? new Date().toISOString() : null,
     },
     profile,
   }
