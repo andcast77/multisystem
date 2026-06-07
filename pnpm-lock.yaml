@@ -28,8 +28,8 @@ catalogs:
       specifier: 5.2.5
       version: 5.2.5
     '@hookform/resolvers':
-      specifier: 5.2.2
-      version: 5.2.2
+      specifier: 3.10.0
+      version: 3.10.0
     '@marsidev/react-turnstile':
       specifier: 1.5.0
       version: 1.5.0
@@ -286,7 +286,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: 'catalog:'
-        version: 5.2.2(react-hook-form@7.72.1(react@19.2.5))
+        version: 3.10.0(react-hook-form@7.72.1(react@19.2.5))
       '@multisystem/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -361,8 +361,8 @@ importers:
         specifier: ^1.4.1
         version: 1.5.0(@date-fns/tz@1.5.0)(@types/react@19.2.14)(date-fns@4.4.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@hookform/resolvers':
-        specifier: ^5.2.2
-        version: 5.2.2(react-hook-form@7.77.0(react@19.2.5))
+        specifier: 'catalog:'
+        version: 3.10.0(react-hook-form@7.77.0(react@19.2.5))
       '@multisystem/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -483,7 +483,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: 'catalog:'
-        version: 5.2.2(react-hook-form@7.72.1(react@19.2.5))
+        version: 3.10.0(react-hook-form@7.72.1(react@19.2.5))
       '@marsidev/react-turnstile':
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -556,7 +556,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: 'catalog:'
-        version: 5.2.2(react-hook-form@7.72.1(react@19.2.5))
+        version: 3.10.0(react-hook-form@7.72.1(react@19.2.5))
       '@marsidev/react-turnstile':
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -747,7 +747,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: 'catalog:'
-        version: 5.2.2(react-hook-form@7.72.1(react@19.2.5))
+        version: 3.10.0(react-hook-form@7.72.1(react@19.2.5))
       '@marsidev/react-turnstile':
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -1867,10 +1867,10 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hookform/resolvers@5.2.2':
-    resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
+  '@hookform/resolvers@3.10.0':
+    resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
     peerDependencies:
-      react-hook-form: ^7.55.0
+      react-hook-form: ^7.0.0
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -9130,14 +9130,12 @@ snapshots:
     dependencies:
       hono: 4.12.12
 
-  '@hookform/resolvers@5.2.2(react-hook-form@7.72.1(react@19.2.5))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.72.1(react@19.2.5))':
     dependencies:
-      '@standard-schema/utils': 0.3.0
       react-hook-form: 7.72.1(react@19.2.5)
 
-  '@hookform/resolvers@5.2.2(react-hook-form@7.77.0(react@19.2.5))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.77.0(react@19.2.5))':
     dependencies:
-      '@standard-schema/utils': 0.3.0
       react-hook-form: 7.77.0(react@19.2.5)
 
   '@humanfs/core@0.19.1': {}
