@@ -90,10 +90,10 @@ Per-PR verify (run at end of each slice before merge to `v2`). Full cross-slice 
 ### Final (before archive — user confirmation required)
 
 - [x] 4F.1 Consolidate `verify-report.md` from PR1–PR3
-- [ ] 4F.2 `sdd-archive` — **ask user before executing**
+- [x] 4F.2 `sdd-archive` — **ask user before executing**
 
 ## Phase 5: Delivery
 
 - [x] 5.1 Create plan branch from `v2` per git-plan-workflow
 - [x] 5.2 Each slice: verify → fix → merge to `v2` automatically; next slice branches from updated `v2`
-- [ ] 5.3 `sdd-archive` after all slices + final verify — **notify user before archive**
+- [x] 5.3 `sdd-archive` after all slices + final verify — **notify user before archive**

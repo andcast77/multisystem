@@ -1,29 +1,75 @@
 # Containerized Deployment Specification
 
-Canonical spec (merged from changes `monorepo-unification`, `check-structure`). See `docker-compose.yml`, `docker/Dockerfile.api`, and per-app Dockerfiles under `apps/*/`.
+Canonical spec (merged from changes `monorepo-unification`, `check-structure`, `turborepo-conventions`). See `docker-compose.yml`, `docker/Dockerfile.api`, `docker/Dockerfile.nextjs`.
 
 ## Purpose
 
-Define the Docker-based deployment infrastructure: a Dockerfile per application (plus `@multisystem/api`), a docker-compose.yml orchestrating all services (six Next.js apps, shared Postgres, central API, Caddy reverse proxy), and the networking/storage contracts required for local and CI reproducibility.
+Define the Docker-based deployment infrastructure: shared Dockerfiles for Next.js apps and `@multisystem/api`, a docker-compose.yml orchestrating all services (six Next.js apps, shared Postgres, central API, Caddy reverse proxy), and the networking/storage contracts required for local and CI reproducibility.
 
 ## Requirements
 
-### Requirement: Per-App Dockerfile
+### Requirement: Turborepo Prune Docker Build
 
-Each application directory MUST contain a Dockerfile that produces a production-ready image. The monorepo MUST provide `docker/Dockerfile.api` for `@multisystem/api`. All Dockerfiles MUST pin base image versions for deterministic builds.
+Production Docker images MUST be built using `turbo prune <package> --docker` to produce a minimal workspace subset before install and build. Images MUST NOT copy the full monorepo followed by manual `node_modules` extraction.
+
+#### Scenario: Next.js image uses prune
+
+- GIVEN the monorepo root
+- WHEN `docker build -f docker/Dockerfile.nextjs` runs with `PACKAGE=@multisystem/hub`
+- THEN the build MUST execute `turbo prune @multisystem/hub --docker`
+- AND MUST install dependencies only from the pruned `out/json` and `out/full` artifacts
+
+#### Scenario: API image uses prune
+
+- GIVEN the monorepo root
+- WHEN `docker build -f docker/Dockerfile.api` runs
+- THEN the build MUST execute `turbo prune @multisystem/api --docker`
+
+### Requirement: Shared Dockerfiles (No Per-App Dockerfile)
+
+Production images MUST be built from shared Dockerfiles at `docker/Dockerfile.nextjs` (Next.js apps) and `docker/Dockerfile.api` (`@multisystem/api`). Dockerfiles MUST NOT exist under individual `apps/{app}/` directories. All Dockerfiles MUST pin base image versions for deterministic builds.
 
 #### Scenario: Full application build
 
-- GIVEN the monorepo root and an app's source code
-- WHEN `docker build -f apps/{app}/Dockerfile` runs from the monorepo root
-- THEN the image contains the compiled app at the expected port
-- AND the base image SHA matches the pinned digest
+- GIVEN the monorepo root and build args `PACKAGE`, `APP_DIR`, `PORT`
+- WHEN `docker build -f docker/Dockerfile.nextjs` runs from the monorepo root
+- THEN the image contains the compiled standalone app reachable on the expected port
+- AND the base image version MUST be pinned
 
 #### Scenario: API image build
 
 - GIVEN the monorepo root
 - WHEN `docker build -f docker/Dockerfile.api` runs
-- THEN the image contains the compiled API and can run database migrations on startup
+- THEN the image contains the compiled API at `apps/api/dist/server.js`
+- AND the entrypoint MUST run `@multisystem/database` migrations before serving
+
+### Requirement: Next.js Standalone Runtime
+
+Next.js product apps in Docker MUST use `output: 'standalone'` and `outputFileTracingRoot` pointing at the monorepo root. Production containers MUST start with `node apps/{app}/server.js`. Containers MUST NOT invoke `next start` relying on workspace `node_modules` symlinks.
+
+#### Scenario: Hub container starts standalone server
+
+- GIVEN a built hub Docker image
+- WHEN the container starts
+- THEN it MUST run `node apps/hub/server.js`
+- AND MUST NOT fail with missing `next` binary on PATH
+
+#### Scenario: Standalone tracing root
+
+- GIVEN a Next.js app included in Docker deploy (hub, shopflow, workify, techservices, baro)
+- WHEN its production image is built
+- THEN `next.config` MUST declare `output: 'standalone'` and monorepo `outputFileTracingRoot`
+
+### Requirement: Docker Build-Time Public Env
+
+`NEXT_PUBLIC_*` variables consumed by Next.js client bundles MUST be supplied at Docker **build** time via build args documented in `.env.example`. Runtime-only env MUST NOT be assumed to rewrite inlined client values.
+
+#### Scenario: Compose passes build args
+
+- GIVEN `docker compose build hub`
+- WHEN the image is built
+- THEN compose MUST pass `NEXT_PUBLIC_*` build args to the Docker build
+- AND the built client bundle MUST reflect those values
 
 ### Requirement: Shared Database
 
@@ -56,14 +102,20 @@ The docker-compose.yml MUST include an `@multisystem/api` service reachable by a
 
 ### Requirement: Centralized Migration
 
-Database migrations MUST run from `@multisystem/database` at stack startup (typically via the API service entrypoint), not from individual app containers.
+Database migrations MUST run from `@multisystem/database` at stack startup via the API service entrypoint, not from individual app containers.
 
 #### Scenario: Baro container startup
 
 - GIVEN the baro image starts
 - WHEN the container entrypoint runs
-- THEN it does not execute `prisma migrate deploy` locally
-- AND schema is already applied by the database migration step
+- THEN it MUST NOT execute `prisma migrate deploy` locally
+- AND schema MUST already be applied by the API migration step
+
+#### Scenario: API serves from apps path
+
+- GIVEN the API container starts after migrations
+- WHEN the process executes
+- THEN it MUST serve from `apps/api/dist/server.js`
 
 ### Requirement: Multi-Service Orchestration
 
