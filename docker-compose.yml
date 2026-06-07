@@ -52,6 +52,14 @@ services:
     image: caddy:2-alpine
     container_name: ${STACK_NAME:-multisystem}-caddy
     restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.multisystem.app}
+      HUB_DOMAIN: ${HUB_DOMAIN:-hub.multisystem.app}
+      BARO_DOMAIN: ${BARO_DOMAIN:-forms.baroconstruccionessrl.com.ar}
+      WORKIFY_DOMAIN: ${WORKIFY_DOMAIN:-rrhh.baroconstruccionessrl.com.ar}
+      SHOPFLOW_DOMAIN: ${SHOPFLOW_DOMAIN:-pos.baroconstruccionessrl.com.ar}
+      TECHSERVICES_DOMAIN: ${TECHSERVICES_DOMAIN:-techservices.multisystem.app}
+      BALANCE_DOMAIN: ${BALANCE_DOMAIN:-balance.multisystem.app}
     ports:
       - '80:80'
       - '443:443'
