@@ -1,6 +1,6 @@
 ---
 description: Enforce JWT authentication and RBAC authorization rules
-globs: packages/api/src/**/*.ts
+globs: apps/api/src/**/*.ts
 alwaysApply: true
 ---
 

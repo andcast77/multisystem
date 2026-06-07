@@ -69,7 +69,7 @@ async function start() {
       (!config.JWT_SECRET || config.JWT_SECRET.trim() === '')
     ) {
       fastify.log.warn(
-        'JWT_SECRET is unset; API falls back to a dev default. Set JWT_SECRET in packages/api/.env for realistic auth behavior.'
+        'JWT_SECRET is unset; API falls back to a dev default. Set JWT_SECRET in apps/api/.env for realistic auth behavior.'
       )
     }
 

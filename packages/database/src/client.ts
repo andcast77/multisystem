@@ -14,7 +14,7 @@ const globalForPrisma = globalThis as unknown as {
 const connectionString = process.env.DATABASE_URL ?? ''
 if (!connectionString) {
   throw new Error(
-    'DATABASE_URL is not set. Set it in .env (e.g. packages/api/.env or packages/database/.env) or in the environment.'
+    'DATABASE_URL is not set. Set it in .env (e.g. apps/api/.env or packages/database/.env) or in the environment.'
   )
 }
 const isLocal =

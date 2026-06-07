@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-/** Must match `packages/api/src/core/session-cookie.ts` */
+/** Must match `apps/api/src/core/session-cookie.ts` */
 const AUTH_SESSION_COOKIE = "ms_session";
 const AUTH_REFRESH_COOKIE = "ms_refresh";
 

@@ -49,7 +49,7 @@ async function runAndOk(
  * HTTP entrypoints for scheduled jobs on Vercel (Cron → GET → serverless function).
  * Local/long-running deployments should keep using `startJobRunner()` in server.ts.
  *
- * @see packages/api/vercel.json — schedules are UTC (Vercel Cron).
+ * @see apps/api/vercel.json — schedules are UTC (Vercel Cron).
  */
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/v1/internal/cron/inventory-alert', (request, reply) =>

@@ -1,6 +1,6 @@
 ---
 description: Enforce strict multi-tenant data isolation across layers
-globs: packages/api/src/**/*.ts
+globs: apps/api/src/**/*.ts
 alwaysApply: true
 ---
 

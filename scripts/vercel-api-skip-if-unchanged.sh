@@ -2,7 +2,7 @@
 # Ignored Build Step (proyecto API en Vercel): código 0 = omitir build, 1 = ejecutar build.
 # Vercel → proyecto API → Settings → Git → Ignored Build Step (elegir según Root Directory):
 #   Root "." (repo):     bash scripts/vercel-api-skip-if-unchanged.sh
-#   Root "packages/api": bash ../../scripts/vercel-api-skip-if-unchanged.sh
+#   Root "apps/api": bash ../../scripts/vercel-api-skip-if-unchanged.sh
 
 set -eu
 
@@ -18,7 +18,7 @@ fi
 
 # Solo estos paths alimentan el deploy de la API (api:bundle / alias vercel:build + workspace).
 git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA}" "${VERCEL_GIT_COMMIT_SHA:-HEAD}" -- \
-  packages/api \
+  apps/api \
   packages/database \
   packages/contracts \
   pnpm-lock.yaml \

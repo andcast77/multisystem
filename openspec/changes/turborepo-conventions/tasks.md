@@ -36,13 +36,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Slice B — Layout
 
-- [ ] 2.1 `git mv packages/api apps/api`
-- [ ] 2.2 `git mv packages/component-library packages/ui`
-- [ ] 2.3 Update Tailwind `@source` / `tailwind.config.js` paths to `packages/ui` in hub, shopflow, workify, techservices, balance
-- [ ] 2.4 Update `.cursor/rules/*.mdc` globs: `apps/api/src/**`, `packages/ui/src/**`
-- [ ] 2.5 Update `scripts/vercel-api-skip-if-unchanged.sh` to watch `apps/api`
-- [ ] 2.6 Grep-fix remaining `packages/api` / `component-library` path references in code/scripts
-- [ ] 2.7 Run `pnpm turbo run typecheck --filter=@multisystem/api...` — must pass
+- [x] 2.1 `git mv packages/api apps/api`
+- [x] 2.2 `git mv packages/component-library packages/ui`
+- [x] 2.3 Update Tailwind `@source` / `tailwind.config.js` paths to `packages/ui` in hub, shopflow, workify, techservices, balance
+- [x] 2.4 Update `.cursor/rules/*.mdc` globs: `apps/api/src/**`, `packages/ui/src/**`
+- [x] 2.5 Update `scripts/vercel-api-skip-if-unchanged.sh` to watch `apps/api`
+- [x] 2.6 Grep-fix remaining `packages/api` / `component-library` path references in code/scripts
+- [x] 2.7 Run `pnpm turbo run typecheck --filter=@multisystem/api...` — must pass
 
 ## Phase 3: Slice C — Docker & Vercel
 
@@ -72,11 +72,11 @@ Per-PR verify (run at end of each slice before merge to `v2`). Full cross-slice 
 
 ### PR2 — Slice B verify
 
-- [ ] 4B.1 Spec: API at `apps/api/` (layout scenario)
-- [ ] 4B.2 Spec: UI at `packages/ui/`
-- [ ] 4B.3 Run `pnpm turbo run typecheck --filter=@multisystem/api...`
-- [ ] 4B.4 Run `pnpm turbo run lint typecheck test build --affected` vs `v2`
-- [ ] 4B.5 Write `verify-report-pr2.md`; merge PR2 → `v2`
+- [x] 4B.1 Spec: API at `apps/api/` (layout scenario)
+- [x] 4B.2 Spec: UI at `packages/ui/`
+- [x] 4B.3 Run `pnpm turbo run typecheck --filter=@multisystem/api...`
+- [x] 4B.4 Run `pnpm turbo run lint typecheck test build --affected` vs `v2`
+- [x] 4B.5 Write `verify-report-pr2.md`; merge PR2 → `v2`
 
 ### PR3 — Slice C verify
 

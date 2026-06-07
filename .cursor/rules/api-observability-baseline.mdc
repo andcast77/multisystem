@@ -1,6 +1,6 @@
 ---
 description: Enforce minimum API observability and readiness standards
-globs: packages/api/src/**/*.ts
+globs: apps/api/src/**/*.ts
 alwaysApply: true
 ---
 

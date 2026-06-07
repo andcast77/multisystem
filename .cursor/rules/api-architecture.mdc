@@ -1,6 +1,6 @@
 ---
 description: Enforce REST API layering and response contracts
-globs: packages/api/src/**/*.ts
+globs: apps/api/src/**/*.ts
 alwaysApply: true
 ---
 

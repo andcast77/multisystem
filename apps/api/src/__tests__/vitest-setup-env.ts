@@ -1,5 +1,5 @@
 /**
- * Carga `packages/api/.env` si existe (mismo criterio que `server.ts`), para tests que llaman `getConfig()`.
+ * Carga `apps/api/.env` si existe (mismo criterio que `server.ts`), para tests que llaman `getConfig()`.
  */
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'

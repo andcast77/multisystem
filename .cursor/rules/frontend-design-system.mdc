@@ -1,12 +1,12 @@
 ---
 description: Design system, stacks y estilos para frontends (Tailwind, @multisystem/ui, tokens)
-globs: apps/**/src/**/*.{tsx,css},apps/**/app/**/*.{tsx,css},packages/component-library/src/**/*.{tsx,css,scss}
+globs: apps/**/src/**/*.{tsx,css},apps/**/app/**/*.{tsx,css},packages/ui/src/**/*.{tsx,css,scss}
 alwaysApply: false
 ---
 
 # Frontend — design system y stack (multisystem)
 
-Use al editar o crear UI en apps (Hub, Shopflow, Workify, Techservices) o en `packages/component-library` (`@multisystem/ui`).
+Use al editar o crear UI en apps (Hub, Shopflow, Workify, Techservices) o en `packages/ui` (`@multisystem/ui`).
 
 ## Stack (no improvisar paralelos)
 - **Framework:** Next.js (App Router), React.
@@ -23,10 +23,10 @@ Use al editar o crear UI en apps (Hub, Shopflow, Workify, Techservices) o en `pa
 ## Librería de componentes
 - **Preferir** importar desde `@multisystem/ui` (Button, Card, Dialog, Input, Table, etc.) antes de duplicar markup de Radix en cada app.
 - Composición de clases: patrón **`cn(...)`** (clsx + tailwind-merge) como en la librería; extender con `className` al final para overrides locales.
-- Componentes nuevos **reutilizables** → valorar subirlos a `packages/component-library` y exportarlos en el índice de la UI; evitar copiar el mismo bloque en tres apps.
+- Componentes nuevos **reutilizables** → valorar subirlos a `packages/ui` y exportarlos en el índice de la UI; evitar copiar el mismo bloque en tres apps.
 
 ## Tailwind en cada app
-- **`content` / `@source`:** debe incluir rutas del **component-library** (`../../packages/component-library/...`) para que las utilidades responsive y estilos de la UI no se purguen (Shopflow usa `@source` con Tailwind v4; otros apps listan `content` explícito).
+- **`content` / `@source`:** debe incluir rutas de **`packages/ui`** (`../../packages/ui/...`) para que las utilidades responsive y estilos de la UI no se purguen (Shopflow usa `@source` con Tailwind v4; otros apps listan `content` explícito).
 - Tras añadir archivos fuera de `src/app`, **verificar** que el glob del config los escanea.
 
 ## Layout y densidad

@@ -75,7 +75,7 @@ export async function sendMail(opts: {
       )
     }
     throw new BadRequestError(
-      'Correo no configurado. Define RESEND_API_KEY y MAIL_FROM en packages/api/.env — ver .env.example.',
+      'Correo no configurado. Define RESEND_API_KEY y MAIL_FROM en apps/api/.env — ver .env.example.',
       'MAIL_NOT_CONFIGURED',
     )
   }

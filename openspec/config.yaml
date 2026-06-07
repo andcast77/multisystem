@@ -28,7 +28,7 @@ testing:
   coverage:
     available: true
     command: pnpm --filter @multisystem/api run test:coverage
-    note: Vitest v8 provider in packages/api/vitest.config.ts; @vitest/coverage-v8 is resolved in the workspace lockfile
+    note: Vitest v8 provider in apps/api/vitest.config.ts; @vitest/coverage-v8 is resolved in the workspace lockfile
   quality:
     linter:
       available: true

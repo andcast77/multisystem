@@ -1,6 +1,6 @@
 /**
- * Configuración centralizada desde `process.env` (cargado desde `packages/api/.env` en local).
- * Lista de variables: `.env.example` (referencia). Local: `packages/api/.env`. Vercel: panel.
+ * Configuración centralizada desde `process.env` (cargado desde `apps/api/.env` en local).
+ * Lista de variables: `.env.example` (referencia). Local: `apps/api/.env`. Vercel: panel.
  */
 export type AppConfig = {
   PORT: string

@@ -1,6 +1,6 @@
 /**
  * Shopflow service worker — Web Push only.
- * Push payload JSON matches packages/api push-sender.service (title, body, url, data).
+ * Push payload JSON matches apps/api push-sender.service (title, body, url, data).
  */
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())

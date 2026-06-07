@@ -103,6 +103,6 @@ Ensures secure authentication, authorization, and role-based access control in a
 
 ## Multisystem (este repo)
 
-- **JWT**: `packages/api/src/core/auth.ts` — `TokenPayload`: `id`, `email`, `role`, opcional `companyId`, `isSuperuser`, `membershipRole`. Verificación con `verifyToken`; rutas protegidas con preHandler **`requireAuth`** (Fastify).
+- **JWT**: `apps/api/src/core/auth.ts` — `TokenPayload`: `id`, `email`, `role`, opcional `companyId`, `isSuperuser`, `membershipRole`. Verificación con `verifyToken`; rutas protegidas con preHandler **`requireAuth`** (Fastify).
 - **Tenant**: validar acceso a compañía con **`companyId`** en token/params y helpers tipo **`canAccessCompany`** / membresía; no usar solo `tenantId` como nombre salvo que el código ya lo exponga así.
 - **Roles en DB**: `UserRole` (USER, ADMIN, SUPERADMIN) y **`MembershipRole`** por empresa (OWNER, ADMIN, USER); permisos granulares vía modelos Role/Permission donde aplique. Los roles `cobrador` / `cliente` solo si el módulo los define — alinear con schema y servicios existentes.
