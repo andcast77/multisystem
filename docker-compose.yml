@@ -84,11 +84,6 @@ services:
     depends_on:
       - api
       - hub
-      - shopflow
-      - workify
-      - techservices
-      - balance
-      - baro
 
   hub:
     build:
@@ -132,6 +127,8 @@ services:
     environment:
       <<: *app-env
       PORT: '3002'
+    ports:
+      - '3002:3002'
     networks:
       - caddy_network
     depends_on:
@@ -173,27 +170,6 @@ services:
     environment:
       <<: *app-env
       PORT: '3004'
-    networks:
-      - caddy_network
-    depends_on:
-      - api
-
-  balance:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.nextjs
-      args:
-        <<: *next-build-args
-        PACKAGE: '@multisystem/balance'
-        APP_DIR: balance
-        PORT: '3005'
-        NEXT_PUBLIC_BALANCE_URL: ${BALANCE_URL:-http://localhost:3005}
-        NEXT_PUBLIC_HUB_URL: ${HUB_URL?HUB_URL is required}
-    container_name: ${STACK_NAME:-multisystem}-balance
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-      PORT: '3005'
     networks:
       - caddy_network
     depends_on:
