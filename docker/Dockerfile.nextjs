@@ -24,6 +24,7 @@ RUN turbo prune "${PACKAGE}" --docker
 
 FROM base AS builder
 ARG PACKAGE
+ARG APP_DIR
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_HUB_URL
 ARG NEXT_PUBLIC_SHOPFLOW_URL
@@ -44,7 +45,7 @@ COPY --from=prepare /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prepare /app/out/full/ .
 COPY --from=prepare /app/tsconfig.base.json ./tsconfig.base.json
-RUN pnpm turbo run build --filter="${PACKAGE}..."
+RUN mkdir -p apps/${APP_DIR}/public && pnpm turbo run build --filter="${PACKAGE}..."
 
 FROM base AS runner
 ARG APP_DIR
