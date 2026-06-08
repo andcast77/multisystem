@@ -29,3 +29,7 @@
 {$BALANCE_DOMAIN:balance.multisystem.app} {
     reverse_proxy balance:3005
 }
+
+{$UPDATE_DOMAIN:update.multisystem.app} {
+    reverse_proxy 172.18.0.1:2999
+}

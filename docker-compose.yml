@@ -3,12 +3,12 @@
 # Copy .env.example to .env and adjust values per environment.
 
 x-app-env: &app-env
-  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3000}
+  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
   API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3000}
   NODE_ENV: ${NODE_ENV:-production}
 
 x-next-build-args: &next-build-args
-  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3000}
+  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
   NEXT_PUBLIC_HUB_URL: ${HUB_URL:-http://localhost:3001}
   NEXT_PUBLIC_SHOPFLOW_URL: ${SHOPFLOW_URL:-http://localhost:3002}
   NEXT_PUBLIC_WORKIFY_URL: ${WORKIFY_URL:-http://localhost:3003}
@@ -27,6 +27,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-multisystem}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
     networks:
       - caddy_network
     healthcheck:
@@ -44,7 +46,8 @@ services:
     environment:
       PORT: '3000'
       NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://multisystem:multisystem@postgres:5432/multisystem}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-multisystem}:${POSTGRES_PASSWORD:-multisystem}@postgres:5432/${POSTGRES_DB:-multisystem}
+      PRISMA_USE_PG_ADAPTER: 'true'
       JWT_SECRET: ${JWT_SECRET?JWT_SECRET is required}
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY?FIELD_ENCRYPTION_KEY is required}
       CORS_ORIGIN: ${CORS_ORIGIN?CORS_ORIGIN is required}
@@ -69,6 +72,7 @@ services:
       SHOPFLOW_DOMAIN: ${SHOPFLOW_DOMAIN:-pos.baroconstruccionessrl.com.ar}
       TECHSERVICES_DOMAIN: ${TECHSERVICES_DOMAIN:-techservices.multisystem.app}
       BALANCE_DOMAIN: ${BALANCE_DOMAIN:-balance.multisystem.app}
+      UPDATE_DOMAIN: ${UPDATE_DOMAIN:-update.multisystem.app}
     ports:
       - '80:80'
       - '443:443'
@@ -204,6 +208,7 @@ services:
         PACKAGE: '@multisystem/baro'
         APP_DIR: baro
         PORT: '3006'
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
         NEXT_PUBLIC_HUB_URL: ${HUB_URL?HUB_URL is required}
         NEXT_PUBLIC_BARO_URL: ${BARO_URL?BARO_URL is required}
     container_name: ${STACK_NAME:-multisystem}-baro
@@ -211,6 +216,8 @@ services:
     environment:
       <<: *app-env
       PORT: '3006'
+    ports:
+      - '3006:3006'
     networks:
       - caddy_network
     depends_on:
