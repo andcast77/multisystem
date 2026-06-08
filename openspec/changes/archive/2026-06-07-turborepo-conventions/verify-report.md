@@ -27,4 +27,4 @@
 
 ## Verdict
 
-**PASS** — all three slices verified and merged to `v2`. Ready for archive after user approval.
+**PASS** — all three slices verified and merged to `v2`. **Archived** 2026-06-07 → `openspec/changes/archive/2026-06-07-turborepo-conventions/`.
